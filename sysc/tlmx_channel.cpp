@@ -63,8 +63,17 @@ bool tlmx_channel::can_get(void) const
 
 void tlmx_channel::get(tlmx_packet_ptr& tlmx_payload_ptr)
 {
-  while (not nb_get()) wait(m_sysc_get_event);
+  while (not nb_get(tlmx_payload_ptr)) wait(m_sysc_get_event);
 }
+
+tlmx_packet_ptr& tlmx_channel::get(void)
+{
+  tlmx_packet_ptr* tlmx_payload_ptr = new tlmx_packet_ptr{0};
+  get(*tlmx_payload_ptr);
+  return *tlmx_payload_ptr;
+}
+
+
 bool tlmx_channel::nb_get(tlmx_packet_ptr& tlmx_payload_ptr)
 {
   // Lockdown and obtain from queue

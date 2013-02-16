@@ -17,16 +17,17 @@ struct tlmx_channel
 {
   tlmx_channel(const char* instance_name);
   ~tlmx_channel(void);
-  void            push         (tlmx_packet_ptr  tlmx_payload_ptr);
-  bool            can_get      (void) const;
-  bool            nb_get       (tlmx_packet_ptr& tlmx_payload_ptr);
-  void            get          (tlmx_packet_ptr& tlmx_payload_ptr);
-  void            wait_for_get (void) const;
-  void            nb_put       (tlmx_packet_ptr tlmx_payload_ptr);
+  void             push         (tlmx_packet_ptr  tlmx_payload_ptr);
+  bool             can_get      (void) const;
+  bool             nb_get       (tlmx_packet_ptr& tlmx_payload_ptr);
+  void             get          (tlmx_packet_ptr& tlmx_payload_ptr);
+  tlmx_packet_ptr& get          (void);
+  void             wait_for_get (void) const;
+  void             nb_put       (tlmx_packet_ptr tlmx_payload_ptr);
   // Put never blocks because unbounded queue
-  void            wait_for_put (void) const;
-  bool            can_pull     (void) const;
-  bool            nb_pull      (tlmx_packet_ptr& tlmx_payload_ptr);
+  void             wait_for_put (void) const;
+  bool             can_pull     (void) const;
+  bool             nb_pull      (tlmx_packet_ptr& tlmx_payload_ptr);
   const sc_core::sc_event& default_event(void) const { return sysc_put_event(); }
   const sc_core::sc_event& sysc_put_event(void) const;
   const sc_core::sc_event& sysc_get_event(void) const;
