@@ -24,7 +24,7 @@ LFLAGS:=
 ifeq "${TARGET_ARCH}" "ZEDBOARD"
   $(info INFO: $(BOLDRED)Targeting ZEDBOARD$(NONE))
   PTHREAD:=-lpthread
-  PRE:=arm-xilinx-eabi
+  PRE:=arm-xilinx-linux-gnueabi
   CPP:=${PRE}-gcc
   INCDIRS:=${XILINX_EDK}/gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include
   LIBDIRS:=${XILINX_EDK}/gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/lib
