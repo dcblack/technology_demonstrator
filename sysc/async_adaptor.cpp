@@ -1,7 +1,7 @@
-//BEGIN zynq.cpp (systemc)
+//BEGIN async_adaptor.cpp (systemc)
 // -*- C++ -*- vim600:sw=2:tw=80:fdm=marker:fmr=<<<,>>>
 ///////////////////////////////////////////////////////////////////////////////
-// $Info: zynq interface implementation $
+// $Info: async_adaptor interface implementation $
 //
 // Implements a TLM initiator that performs transactions via TCP IP socket
 // information.
@@ -21,7 +21,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "zynq.h"
+#include "async_adaptor.h"
 #include "report.h"
 #include <iomanip>
 #include <sys/socket.h>
@@ -36,26 +36,26 @@ using namespace sc_dt;
 
 namespace {
   // Declare string used as message identifier in SC_REPORT_* calls
-  static char const* const MSGID = "/Doulos/example/zynq";
+  static char const* const MSGID = "/Doulos/example/async_adaptor";
   // Embed file version information into object to help forensics
-  static char const* const RCSID = "(@)$Id: zynq.cpp  1.0 09/02/12 10:00 dcblack $";
+  static char const* const RCSID = "(@)$Id: async_adaptor.cpp  1.0 09/02/12 10:00 dcblack $";
   //                                        FILENAME  VER DATE     TIME  USERNAME
 }
 
-int zynq_module::s_stop_requests{0};
+int async_adaptor_module::s_stop_requests{0};
 
 ///////////////////////////////////////////////////////////////////////////////
 // Constructor <<
-zynq_module::zynq_module(sc_module_name instance_name)
+async_adaptor_module::async_adaptor_module(sc_module_name instance_name)
 : sc_module(instance_name)
 , initiator_socket("initiator_socket")
 , m_async_channel("m_async_channel")
 , m_keep_alive_signal("m_keep_alive_signal")
 , m_tcpip_port(4000)
 , m_lock_permission(new std::lock_guard<std::mutex>(m_allow_pthread))
-, m_pthread(&zynq_module::async_os_thread,this,std::ref(m_async_channel))
+, m_pthread(&async_adaptor_module::async_os_thread,this,std::ref(m_async_channel))
 {
-  signal(SIGINT,&zynq_module::sighandler); //< allow for graceful interrupts
+  signal(SIGINT,&async_adaptor_module::sighandler); //< allow for graceful interrupts
 
   // Parse command-line arguments
   for (int i=1; i<sc_argc(); ++i) {
@@ -82,7 +82,7 @@ zynq_module::zynq_module(sc_module_name instance_name)
   // Register TLM backwards fsc_report_handler::snctions
   // -NONE-
   // Register processes
-  SC_HAS_PROCESS(zynq_module);
+  SC_HAS_PROCESS(async_adaptor_module);
   SC_THREAD(initiator_sysc_thread_process);
   SC_THREAD(keep_alive_process);
   REPORT_INFO("Constructed " << name());
@@ -90,40 +90,40 @@ zynq_module::zynq_module(sc_module_name instance_name)
 
 ///////////////////////////////////////////////////////////////////////////////
 // Destructor <<
-zynq_module::~zynq_module(void)
+async_adaptor_module::~async_adaptor_module(void)
 {
   REPORT_INFO("Destroyed " << name());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Callbacks
-void zynq_module::before_end_of_elaboration(void)
+void async_adaptor_module::before_end_of_elaboration(void)
 {
   REPORT_INFO(__func__ << " " << name());
 }
 
-void zynq_module::end_of_elaboration(void)
+void async_adaptor_module::end_of_elaboration(void)
 {
   REPORT_INFO(__func__ << " " << name());
 }
 
-void zynq_module::start_of_simulation(void) {
+void async_adaptor_module::start_of_simulation(void) {
   REPORT_INFO(__func__ << " " << name());
   m_keep_alive_signal.write(true);
   m_lock_permission.reset(nullptr);
 }
 
-void zynq_module::end_of_simulation(void)
+void async_adaptor_module::end_of_simulation(void)
 {
   REPORT_INFO(__func__ << " " << name());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // External threads
-void zynq_module::async_os_thread(tlmx_channel& async_channel) {
+void async_adaptor_module::async_os_thread(tlmx_channel& async_channel) {
   REPORT_INFO("Starting " << __func__ << " ...");
 
-  // Open TCP/IP socket to zynq
+  // Open TCP/IP socket to async_adaptor
   struct sockaddr_in local_server;
   int option_value;
 
@@ -217,7 +217,7 @@ void zynq_module::async_os_thread(tlmx_channel& async_channel) {
     // Send
     REPORT_NOTE("Pushing to async_channel...");
     async_channel.push(tlmx_trans_ptr);
-    // Wait for channel to pass payload to zync_thread & return results
+    // Wait for channel to pass payload to initiator_sysc_thread_process & return results
     // from TLM 2.0 transport.
     REPORT_NOTE("Waiting for async_channel ...");
     async_channel.wait_for_put();
@@ -247,14 +247,14 @@ void zynq_module::async_os_thread(tlmx_channel& async_channel) {
 
   REPORT_INFO("Closing down...");
 
-  // Close TCP/IP socket to zynq
+  // Close TCP/IP socket to async_adaptor
   close(incoming_socket);
 
-}//end zynq_module::async_os_thread()
+}//end async_adaptor_module::async_os_thread()
 
 ///////////////////////////////////////////////////////////////////////////////
 // Processes <<
-void zynq_module::initiator_sysc_thread_process(void)  {
+void async_adaptor_module::initiator_sysc_thread_process(void)  {
   REPORT_INFO("Started " << __func__ << " " << name());
 
   // Holding place for data
@@ -300,13 +300,19 @@ void zynq_module::initiator_sysc_thread_process(void)  {
     switch(tlmx_trans_ptr->command) {
       case TLMX_DEBUG_READ:
       case TLMX_DEBUG_WRITE:
+        {
         transferred = initiator_socket->transport_dbg(tlm2_trans);
         if (transferred != tlmx_trans_ptr->data_len) REPORT_WARNING("transport_dbg returned " << transferred);
         // TODO: add this to tlmx_packet information
         break;
+        }
       default :
+        {
+        delay = SC_ZERO_TIME;
         initiator_socket->b_transport(tlm2_trans,delay);
+        wait(delay);
         break;
+        }
     }//endswitch
 
     // Update tlmx_packet
@@ -322,11 +328,11 @@ void zynq_module::initiator_sysc_thread_process(void)  {
 
   }//endforever
   wait(1,SC_SEC);
-  REPORT_INFO("Exiting zynq interface");
+  REPORT_INFO("Exiting async_adaptor interface");
   sc_stop();
-}//end zynq_module::initiator_sysc_thread_process()
+}//end async_adaptor_module::initiator_sysc_thread_process()
 
-void zynq_module::keep_alive_process(void)  {
+void async_adaptor_module::keep_alive_process(void)  {
   REPORT_INFO("Started " << __func__ << " " << name());
   for(;;) {
     if ( s_stop_requests > 0 ) break;
@@ -338,9 +344,9 @@ void zynq_module::keep_alive_process(void)  {
   wait(1,SC_SEC);
   REPORT_INFO("Exiting due to stop request.");
   sc_stop();
-}//end zynq_module::keep_alive_process()
+}//end async_adaptor_module::keep_alive_process()
 
-void zynq_module::sighandler(int sig)
+void async_adaptor_module::sighandler(int sig)
 {
   ++s_stop_requests;
 }

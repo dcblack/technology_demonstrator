@@ -1,0 +1,69 @@
+#!/bin/make -f
+
+.PHONY: default clean distclean objs exe gdb link run
+
+default: exe
+
+###############################################################################
+# Figure out architecture info
+################################################################################
+PLATFORM:=$(shell uname -s)
+MACHINE:=$(shell uname -m)
+RELEASE:=$(shell uname -r)
+OS_FOUND:=${PLATFORM}-${MACHINE}
+ifndef HOST_ARCH
+  ifeq "${PLATFORM}" "SunOS"
+    HOST_ARCH := gccsparcOS5
+  endif
+  ifeq "${PLATFORM}" "Linux"
+   ifeq "${MACHINE}" "x86_64"
+    HOST_ARCH := linux64
+   else
+    HOST_ARCH := linux
+   endif
+  endif
+  ifeq "${PLATFORM}" "CYGWIN_NT-5.1"
+    HOST_ARCH := cygwin
+  endif
+  ifeq "${PLATFORM}" "Darwin"
+    ifeq "${MACHINE}" "i386"
+      ifneq "$(shell perl -le '$$a=qq{@ARGV};$$a=~s/[.].*//;print $$a;' ${RELEASE})" "9"
+        HOST_ARCH := macosx64
+      else
+        HOST_ARCH := macosx386
+      endif
+    else
+      ifeq "${MACHINE}" "x86_64"
+        HOST_ARCH := macosx64
+      else
+        HOST_ARCH := macosx386
+      endif
+    endif
+  endif
+endif
+
+$(info INFO: PLATFORM=${PLATFORM} MACHINE=${MACHINE} HOST_ARCH=${HOST_ARCH} TARGET_ARCH=${TARGET_ARCH})
+ifndef TARGET_ARCH
+  $(error This makefile only supported on Linux, Cygwin, Darwin or SunOS. I do not recognize platform ${OS_FOUND})
+endif
+
+###############################################################################
+BOLDRED:=[01;31m
+BOLD:=[01m
+NONE:=[00m
+# RULER makes it easier to spot areas of output from a long make invocation
+define RULER
+echo "$(BOLDRED)################################################################################$(NONE)"
+endef
+# $(call REPORT_TITLE,Your title)
+define REPORT_TITLE
+  $(RULER)
+  perl -e 'print "INFO: "';
+  perl -e 'print "$(BOLDRED)"' >/dev/tty;
+  perl -e 'print "$1"';
+  perl -e 'print "$(NONE)"' >/dev/tty;
+  echo "";
+  sleep 1
+endef
+
+#TAF!

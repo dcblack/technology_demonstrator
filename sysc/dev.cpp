@@ -19,6 +19,8 @@
 
 #include "dev.h"
 #include "report.h"
+#include "sc_literals.h"
+
 using namespace sc_core;
 
 namespace {
@@ -38,7 +40,7 @@ dev_module::dev_module
 : sc_module(instance_name)
 , target_socket("target_socket")
 , m_register_count(8)
-, m_latency(sc_time(10,SC_NS))
+, m_latency(10_ns)
 {
   // Misc. initialization
   m_byte_width = target_socket.get_bus_width()/8;

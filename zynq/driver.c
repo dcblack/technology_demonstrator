@@ -46,6 +46,11 @@ static struct sockaddr_in systemc_server;
 static int                interrupt;
 static pthread_mutex_t    server_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+void SIGUSR1_handler(int sig)
+{
+  /* do nothing */
+}
+
 void *interrupt_server(void* arg) /*< watches for "interrupt" on TCPIP PORT+1 */
 {
   const char* MSGID = "/Doulos/example/interrupt_server";
@@ -124,7 +129,9 @@ void *interrupt_server(void* arg) /*< watches for "interrupt" on TCPIP PORT+1 */
     }
     // Signal hardware interrupt
     interrupt = 1;
-    pthread_kill(pt_id,SIGUSR1);
+    if (0 == pthread_kill(pt_id,SIGUSR1)) {
+      REPORT_ERROR("pthread_kill failed => %s\n",strerror(errno));
+    }
     REPORT_INFO("Connection accepted\n");/**/
     int ack_size = strlen(acknowledgement)+1;
     int send_count;
@@ -147,6 +154,10 @@ void dev_open(char* hostname, int port)
   REPORT_INFO("Starting %s\n", __func__);
   debug_level = 2;
   /*
+   * Setup signal handler to allow dev_wait to work
+   */
+  signal(SIGUSR1,SIGUSR1_handler);
+  /*
    *****************************************************************************
    * Setup outgoing TCPIP connection
    *****************************************************************************
@@ -160,7 +171,7 @@ void dev_open(char* hostname, int port)
   /* Find the host */
   if ((hostentry = gethostbyname( hostname )) == NULL) {
     /* failed */
-    herror("gethostbyname");
+    REPORT_ERROR("Failed to gethostbyname => %s\n",strerror(errno));
     exit(1);
   }
   addr_list = (struct in_addr **) hostentry->h_addr_list;
@@ -247,7 +258,7 @@ int dev_transport
                                     , data_ptr
                                     );
   if (debug_level > 1) { print_tlmx(payload_send_ptr,"Request"); }
-  bzero(send_message,TLMX_MAX_BUFFER);
+  memset(send_message,0,TLMX_MAX_BUFFER);
   int send_message_size;
   send_message_size = pack_tlmx(send_message,payload_send_ptr);
 
@@ -261,7 +272,7 @@ int dev_transport
   assert(send_count == send_message_size);
   
 //REPORT_DEBUG("Obtaining transaction response\n");
-  bzero(server_reply,TLMX_MAX_BUFFER);
+  memset(server_reply,0,TLMX_MAX_BUFFER);
   int recv_message_size;
   recv_message_size = send_message_size;
   int recv_count;
@@ -318,7 +329,7 @@ void dev_wait(void)
     REPORT_ERROR("sigaddset failed => %s\n",strerror(errno));
   }
   int sig;
-  if (0 != sigwait(&sigset,&sig)) {
+  if (0 != sigsuspend(&sigset)) {
     REPORT_ERROR("sigwait failed => %s\n",strerror(errno));
   }
   assert(sig == SIGUSR1);

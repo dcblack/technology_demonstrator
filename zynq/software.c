@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "random.h"
 #include "creport.h"
 
 static const char* MSGID="/Doulos/example/software";
@@ -43,7 +44,7 @@ int main(int argc, char* argv[])
     REPORT_ERROR("Bad port number (%ld) specified. Port number restricted to between 2000 and 65535.\n",port);
   }
   if (error_count) {
-    printf("Please fix above errors and retry.\n");
+    REPORT_INFO("Please fix above errors and retry.\n");
     return 1;
   }
 

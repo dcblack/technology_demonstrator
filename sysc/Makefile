@@ -4,13 +4,14 @@
 # 
 # -----------------------------------------------------------------}}}
 
-UNIT:=zynq
+UNIT:=async_adaptor
 SRCS:=\
+  sc_literals.cpp\
   netlist.cpp\
   report.cpp\
   tlmx_packet.cpp\
   tlmx_channel.cpp\
-  zynq.cpp\
+  async_adaptor.cpp\
   dev.cpp\
   top.cpp\
   main.cpp

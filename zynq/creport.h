@@ -22,29 +22,39 @@ extern count_t warning_count;
 extern count_t error_count;
 extern count_t fatal_count;
 
-#define REPORT_INFO\
-  printf("INFO %s@%s:%d: ",MSGID,__FILE__,__LINE__); fflush(stdout); printf
+void init_term(const char* path);
 
-#define REPORT_DEBUG(message)\
+#ifdef SILENT
+#define REPORT_INFO(...)
+#define REPORT_DEBUG(message)
+#define REPORT_WARNING(...) ++warning_count
+#define REPORT_ERROR(...) ++error_count
+#define REPORT_FATAL(...) ++fatal_count
+#else
+#define REPORT_INFO(...)\
+  do { fprintf(stdout,"INFO %s@%s:%d: ",MSGID,__FILE__,__LINE__); fflush(stdout); fprintf(stdout,__VA_ARGS__); } while(0)
+
+#define REPORT_DEBUG(...)\
   do {\
     if (debug_level > 1) {\
-      printf("DEBUG %s@%s:%d: ",MSGID,__FILE__,__LINE__);\
-      printf(message);\
+      fprintf(stdout,"DEBUG %s@%s:%d: ",MSGID,__FILE__,__LINE__);\
+      fprintf(stdout,__VA_ARGS__);\
       fflush(stdout);\
     }\
   } while (0)
 
-#define REPORT_WARNING\
-  ++warning_count; printf("WARNING %s@%s:%d: ",MSGID,__FILE__,__LINE__); fflush(stdout); printf
+#define REPORT_WARNING(...)\
+  do { ++warning_count; fprintf(stdout,"WARNING %s@%s:%d: ",MSGID,__FILE__,__LINE__); fflush(stdout); fprintf(stdout,__VA_ARGS__); } while(0)
 
-#define REPORT_ERROR\
-  ++error_count; printf("ERROR %s@%s:%d: ",MSGID,__FILE__,__LINE__); fflush(stdout); printf
+#define REPORT_ERROR(...)\
+  do { ++error_count; fprintf(stdout,"ERROR %s@%s:%d: ",MSGID,__FILE__,__LINE__); fflush(stdout); fprintf(stdout,__VA_ARGS__); } while(0)
 
-#define REPORT_FATAL\
-  ++fatal_count; printf("FATAL %s@%s:%d: ",MSGID,__FILE__,__LINE__); fflush(stdout); printf
+#define REPORT_FATAL(...)\
+  do { ++fatal_count; fprintf(stdout,"FATAL %s@%s:%d: ",MSGID,__FILE__,__LINE__); fflush(stdout); fprintf(stdout,__VA_ARGS__); } while(0)
 
 #define BREAK_HERE(message)\
   do { if (debug_level > 0) breakpoint(message); } while (0)
+#endif
 
 void report_summary(void);
 int error_status(void);

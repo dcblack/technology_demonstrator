@@ -17,21 +17,21 @@ struct tlmx_channel
 {
   tlmx_channel(const char* instance_name);
   ~tlmx_channel(void);
-  void             push         (tlmx_packet_ptr  tlmx_payload_ptr);
-  bool             can_get      (void) const;
-  bool             nb_get       (tlmx_packet_ptr& tlmx_payload_ptr);
-  void             get          (tlmx_packet_ptr& tlmx_payload_ptr);
-  tlmx_packet_ptr& get          (void);
-  void             wait_for_get (void) const;
-  void             nb_put       (tlmx_packet_ptr tlmx_payload_ptr);
+  void             push         (tlmx_packet_ptr  tlmx_payload_ptr) override;
+  bool             can_get      (void) const override;
+  bool             nb_get       (tlmx_packet_ptr& tlmx_payload_ptr) override;
+  void             get          (tlmx_packet_ptr& tlmx_payload_ptr) override;
+  tlmx_packet_ptr& get          (void) override;
+  void             wait_for_get (void) const override;
+  void             nb_put       (tlmx_packet_ptr tlmx_payload_ptr) override;
   // Put never blocks because unbounded queue
-  void             wait_for_put (void) const;
-  bool             can_pull     (void) const;
-  bool             nb_pull      (tlmx_packet_ptr& tlmx_payload_ptr);
-  const sc_core::sc_event& default_event(void) const { return sysc_put_event(); }
-  const sc_core::sc_event& sysc_put_event(void) const;
-  const sc_core::sc_event& sysc_get_event(void) const;
-  void update(void);
+  void             wait_for_put (void) const override;
+  bool             can_pull     (void) const override;
+  bool             nb_pull      (tlmx_packet_ptr& tlmx_payload_ptr) override;
+  const sc_core::sc_event& default_event(void) const override { return sysc_put_event(); }
+  const sc_core::sc_event& sysc_put_event(void) const override;
+  const sc_core::sc_event& sysc_get_event(void) const override;
+  void update(void) override;
 private:
   std::list<tlmx_packet_ptr> m_queue_to_sysc;   //< data from thread
   bool                       m_thread_did_push; //< indicates push to above

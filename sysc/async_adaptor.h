@@ -1,5 +1,5 @@
-#ifndef ZYNQ_BEH_H
-#define ZYNQ_BEH_H
+#ifndef ASYNC_ADAPTOR_H
+#define ASYNC_ADAPTOR_H
 ///////////////////////////////////////////////////////////////////////////////
 // Interfaces from the zedboard to initiate transfers.
 
@@ -25,24 +25,24 @@
 #include <thread>
 #include <mutex>
 
-struct zynq_module
+struct async_adaptor_module
 : sc_core::sc_module
 {
 public:
   // Ports
-  tlm_utils::simple_initiator_socket<zynq_module> initiator_socket;
+  tlm_utils::simple_initiator_socket<async_adaptor_module> initiator_socket;
   // Channels
   tlmx_channel             m_async_channel;
   sc_core::sc_signal<bool> m_keep_alive_signal;
   // Constructor
-  zynq_module(sc_core::sc_module_name instance_name);
+  async_adaptor_module(sc_core::sc_module_name instance_name);
   // Destructor
-  virtual ~zynq_module(void);
+  virtual ~async_adaptor_module(void);
   // SC_MODULE callbacks
-  void before_end_of_elaboration(void);
-  void end_of_elaboration(void);
-  void start_of_simulation(void);
-  void end_of_simulation(void);
+  void before_end_of_elaboration(void) override;
+  void end_of_elaboration(void) override;
+  void start_of_simulation(void) override;
+  void end_of_simulation(void) override;
   // SystemC processes
   void initiator_sysc_thread_process(void);
   void keep_alive_process(void);

@@ -21,7 +21,7 @@
 // limitations under the License.
 
 #include "top.h"
-#include "zynq.h"
+#include "async_adaptor.h"
 #include "dev.h"
 #include "report.h"
 #include "netlist.h"
@@ -39,11 +39,11 @@ namespace {
 // Constructor <<
 top_module::top_module(sc_module_name instance_name)
 : sc_module(instance_name), setup(MSGID)
-, zynq_instance   (new zynq_module("zynq_instance")) //< interfaces to zynq via tcpip sockets
+, async_adaptor_instance   (new async_adaptor_module("async_adaptor_instance")) //< interfaces to zynq via tcpip sockets
 , dev_instance    (new dev_module ("dev_instance" ))
 {
   // Connectivity
-  zynq_instance->initiator_socket(dev_instance->target_socket);
+  async_adaptor_instance->initiator_socket(dev_instance->target_socket);
 
   // Register processes
   SC_HAS_PROCESS(top_module);

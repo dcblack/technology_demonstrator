@@ -18,6 +18,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifdef _ZEDBOARD
+#define STDOUT /dev/tty
+#else
+#define STDOUT /dev/tty
+#endif
+
 debug_t debug_level   = 
 #ifdef DEBUG
 1
@@ -31,8 +37,10 @@ count_t fatal_count   = 0;
 
 void report_summary(void)
 {
-  printf("REPORT SUMMARY\n  %3d warnings\n  %3d errors\n  %3d fatals\n", warning_count, error_count, fatal_count);
+#ifndef SILENT
+  fprintf(stdout,"REPORT SUMMARY\n  %3d warnings\n  %3d errors\n  %3d fatals\n", warning_count, error_count, fatal_count);
   fflush(stdout);
+#endif
 }
 
 int error_status(void)
@@ -42,6 +50,8 @@ int error_status(void)
 
 void breakpoint(const char* message)
 {
-  printf("BREAK: %s\n",message);
+#ifndef SILENT
+  fprintf(stdout,"BREAK: %s\n",message);
   fflush(stdout);
+#endif
 }
