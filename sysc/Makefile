@@ -27,8 +27,8 @@ SRCS:=\
   top.cpp\
   main.cpp
 
-# The following conditional allows an upper level to include us to obtain a list of
-# source files
+# The following conditional allows an upper level to include this
+# makefile to obtain a list of source files:
 ifndef INCLUDED
 
 DFLT:=run

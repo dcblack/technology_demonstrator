@@ -38,7 +38,7 @@ REQUIREMENTS
 * SystemC installation compliant to IEEE-1666-2011 such as ASI's
   proof-of-concept version 2.3.
 
-* TO_BE_SUPPLIED
+* Zedboard (around 400 $US at time of writing) -- go to zedboard.org for more information
 
 HOW TO BUILD
 ============
