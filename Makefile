@@ -1,4 +1,5 @@
 #!/usr/bin/make -f
+#
 # -*- make -*- vim:syntax=make:tw=72
 ################################################################################
 # $License: Apache 2.0 $
@@ -14,38 +15,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-UNIT:=async_adaptor
-SRCS:=\
-  sc_literals.cpp\
-  netlist.cpp\
-  report.cpp\
-  tlmx_packet.cpp\
-  tlmx_channel.cpp\
-  async_adaptor.cpp\
-  dev.cpp\
-  top.cpp\
-  main.cpp
-
-# The following conditional allows an upper level to include us to obtain a list of
-# source files
-ifndef INCLUDED
-
-DFLT:=run
-
-#----------------------------------------------------------------------
-# Other optional macros you may wish to set. It is preferrable that
-# these are the only additional flags you set.
 #
-#BOOST_LIBS:=
-#OTHER_CFLAGS:=
-#OTHER_LDFLAGS:=
-#OTHER_INCDIRS:=
-#OTHER_LIBDIRS:=
-#OTHER_LIBS:=
-#USING_SYSTEMC:=1
-#USING_SCV:=1
-#USING_TLM:=1
+# This makefile is designed for C code that is cross-compiled (optionally).
+
+# Define sources
+INCLUDED:=1
+include sysc/Makefile
+SYSC_SRCS:=$(addprefix sysc/,${SRCS})
+include zedboard/Makefile
+ZEDB_SRCS:=$(addprefix zedboard/,${SRCS})
+
+UNIT:=async_request_example
+SRCS:=$(sort ${SYSC_SRCS} ${ZEDB_SRCS})
+OTHER_TAR:=Makefile* */Makefile*
+
+override DFLT:=tar
 
 #----------------------------------------------------------------------
 # *** DO NOT EDIT BELOW THIS LINE ***** DO NOT EDIT BELOW THIS LINE ***
@@ -66,9 +50,4 @@ RULES := $(firstword $(wildcard $(addsuffix /Makefile.rules,$(RULEDIRS))))
 $(info Including $(RULES))
 include $(RULES)
 
-endif
-
-# COPYRIGHT (C) 2013 Doulos Inc {{{
-# 
-# -----------------------------------------------------------------}}}
-#END $Id$
+#EOF
