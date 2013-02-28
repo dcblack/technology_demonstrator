@@ -19,9 +19,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <netdb.h>
 #include <sys/socket.h>
 #include <sys/errno.h>
-#include <netdb.h>
 #include <arpa/inet.h>
 #include <signal.h>
 #include <sys/types.h>
