@@ -1,6 +1,8 @@
 DESCRIPTION
 ===========
 
+[NOTE: This document best viewed with a 'markdown' viewer.
+
 This represents a project tying a zedboard design to a SystemC ESL design that
 was described at DVCon 2013 in San Jose. The goal of the project was to
 demonstrate multiple technologies including:
@@ -10,8 +12,11 @@ demonstrate multiple technologies including:
 - How to have OS threads safely communicate with SystemC
 - Use of TCPIP sockets, POSIX threads, and mutexes in C
 
-This directory contains two subdirectories: sysc/ and zedboard/ representing
-the component parts.
+This directory contains two subdirectories: sysc/ and zedboard/ representing the
+component parts. There are also a few supporting directories: docs/ contains
+information about the project. bin/ contains some supporting scripts for one of
+two makefile flows (systemc related). NOTE: You probably do not need to
+understand the two makefile flows in any detail.
 
 The zedboard/ directory contains C-code for a zedboard; although, it can be
 compiled for execution any any standard linux environment that supports POSIX
