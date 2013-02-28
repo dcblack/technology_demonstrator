@@ -27,7 +27,7 @@ ZEDB_SRCS:=$(addprefix zedboard/,${SRCS})
 
 UNIT:=async_request_example
 SRCS:=$(sort ${SYSC_SRCS} ${ZEDB_SRCS})
-OTHER_TAR:=Makefile* */Makefile*
+OTHER_TAR:=docs Makefile* */Makefile*
 
 override DFLT:=tar
 
