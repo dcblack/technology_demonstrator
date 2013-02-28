@@ -40,7 +40,8 @@ namespace {
 top_module::top_module(sc_module_name instance_name)
 : sc_module(instance_name), setup(MSGID)
 , async_adaptor_instance   (new async_adaptor_module("async_adaptor_instance")) //< interfaces to zynq via tcpip sockets
-, dev_instance    (new dev_module ("dev_instance" ))
+, dev_instance             (new dev_module          ("dev_instance" )         ) //< device being modeled
+// TODO: replace with an entire subsystem
 {
   // Connectivity
   async_adaptor_instance->initiator_socket(dev_instance->target_socket);
@@ -63,14 +64,22 @@ void top_module::end_of_elaboration(void) {
   REPORT_INFO(__func__ << " " << name());
   util::netlist();
   // Add sc_trace(...)
+  // Configure memory map...
 }
-void top_module::start_of_simulation(void) { REPORT_INFO(__func__ << " " << name()); }
-void top_module::end_of_simulation(void) { REPORT_INFO(__func__ << " " << name()); }
+void top_module::start_of_simulation(void) 
+{
+  REPORT_INFO(__func__ << " " << name());
+}
+
+void top_module::end_of_simulation(void) {
+  REPORT_INFO(__func__ << " " << name());
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Processes <<
 void top_module::top_thread(void)  {
   REPORT_INFO(__func__ << " " << name());
+  // Nothing to do
 }
 
 //EOF

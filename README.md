@@ -1,16 +1,30 @@
 DESCRIPTION
 ===========
 
-[NOTE: This document best viewed with a 'markdown' viewer.
+[*NOTE: This document best viewed with a 'markdown' viewer.*]
 
-This represents a project tying a zedboard design to a SystemC ESL design that
-was described at DVCon 2013 in San Jose. The goal of the project was to
-demonstrate multiple technologies including:
+This directory and its contents contain a project that ties a zedboard design to
+a SystemC ESL design.  This was described in a presentation entitled "A SystemC
+Technology Demonstrator" at the SystemC Tutorial at DVCon 2013
+in San Jose. The goal of the project was to demonstrate multiple technologies
+including:
 
-- ZedBoard containing Xylinx Zynq FPGA technology
-- SystemC code using both IEEE 1666-2011 (C++) and ISO-IEC 14882-2011 (C++)
+- ZedBoard containing Xylinx Zynq-7000 FPGA technology (contains dual Cortex
+  A9's and many peripherals)
 - How to have OS threads safely communicate with SystemC
 - Use of TCPIP sockets, POSIX threads, and mutexes in C
+- SystemC code using both IEEE 1666-2011 (C++) and ISO-IEC 14882-2011 (C++)
+  features. These included:
+  * SystemC async_request_update
+  * SystemC ensuring sc_stop is called
+  * C++ user-defined literals
+  * C++ override keyword for safety
+  * C++ threads
+  * C++ mutexes
+  * C++ unique_ptr<>
+- Other features incidentally used:
+  * SystemC dumping a netlist
+  * Managing sc_reporting
 
 This directory contains two subdirectories: sysc/ and zedboard/ representing the
 component parts. There are also a few supporting directories: docs/ contains
@@ -43,6 +57,9 @@ REQUIREMENTS
 HOW TO BUILD
 ============
 
+Make sure you meet the general requirements. See NOTES.md for additional
+information.
+
 To build the software for systemc, type:
 
 - pushd sysc && make clean exe && popd
@@ -69,15 +86,17 @@ To execute the initiator software in the zedboard directory type:
 
 Where HOSTNAME should designate a host running the SystemC simulator on the
 ethernet and the PORTNUMBER should match the sysc number. You can specify either
-a DNS name or the IP address (e.g.  198.168.1.100)
+a DNS name or the IP address (e.g.  198.168.1.12)
 
-Port numbers may be number greater than 2000. Suggest using 4000.
+Port numbers should be number greater than 2000 to avoid collisions with
+standard OS ports (e.g. mail or ssh). Suggest using 4000.
 
 ABOUT THE SOURCE
 ================
 
 SystemC code for simulated portion:
 ----------------------------------
+
 * sc_literals.cpp -- C++11 feature to make SystemC feel more natural
 * netlist.cpp -- displays a simple netlist of the design
 * report.cpp -- convenience features to improve reporting
@@ -89,6 +108,8 @@ SystemC code for simulated portion:
 * main.cpp -- SystemC main including report summary
 
 C-code for embedded system:
+---------------------------
+
 * random.c -- implements standard srandom/random
 * creport.c -- simplifies error reporting
 * tlmx_packet.c -- describes the TLM-like structure used over sockets. Includes serialization.

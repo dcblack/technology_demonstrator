@@ -29,10 +29,12 @@ class top_module
 {
   util::report setup;/*< used to extend reporting -- ONLY do this in the topmost module */
 public:
-  // Ports - NONE
+  // Ports - NONE (this is the top-level)
+  // Channels - NONE (everything is TLM 2.0 - i.e. effectively modules ARE channels due to sockets)
   // Structure (e.g. submodules)
   std::unique_ptr<async_adaptor_module> async_adaptor_instance; // ** safe alternative to raw pointers **
   std::unique_ptr<dev_module>  dev_instance;  // ** replace with unique_ptr under C++11 **
+
   // Constructor
   top_module(sc_core::sc_module_name instance_name);
   // Destructor
