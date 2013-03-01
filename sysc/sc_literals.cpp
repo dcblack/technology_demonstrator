@@ -1,3 +1,31 @@
+// FILE: sc_literals.cpp
+//
+// DESCRIPTION
+//
+// Takes advantage of C++ 2011 standard user-defined literals to provide more
+// natural syntax for time (e.g. 5.1_ns) and specialized data types such as
+// big ints (e.g. 0b_0110_1101_int or 0x) and logic (e.g. 0_XX00_ZZ11_logic).
+//
+// Special note: Since these operators require a leading numeric character, it
+// is bnecessary to have a leading 0 for many the logic type, which is automatically
+// removed.
+
+////////////////////////////////////////////////////////////////////////////////
+// $License: Apache 2.0 $
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+////////////////////////////////////////////////////////////////////////////////
+
 #include "sc_literals.h"
 #include <string>
 using namespace sc_core;
@@ -8,7 +36,7 @@ using namespace std;
 #error Requires C++11
 #endif
 
-// The following allows for easy bigint's: 123_456_789_ABCDEF0123456789_BIGINT
+// The following allows for easy bigint's: 1_2345_6789_ABCD_EF01_2345_6789_int
 sc_bigint<SC_MAX_NBITS> operator "" _int(const char* literal_string)
 {
   string tempstr(literal_string);

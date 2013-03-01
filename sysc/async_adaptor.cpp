@@ -3,8 +3,35 @@
 ///////////////////////////////////////////////////////////////////////////////
 // $Info: async_adaptor interface implementation $
 //
+// BRIEF DESCRIPTION:
 // Implements a TLM initiator that performs transactions via TCP IP socket
 // information.
+//
+// DETAILED DESCRIPTION:
+//
+// 1. Async_os_thread sets up TCP/IP socket to receive TLMX packets.
+// 2. When a packet is received a push is executed on the thread-safe
+//    async_channel, which generates a SystemC event.
+// 3. initiator_thread wakes up, gets the data from the async_channel, formats
+//    it for TLM 2.0 and initiates a transport call out its TLM 2.0 initiator
+//    socket.
+// 4. Target processes and returns a response
+// 5. initiator_thread formats for TLMX and puts the response into the
+//    async_channel, which generates an OS event
+// 6. async_os_thread wakes up and pulls the data from async_channel and sends
+//    back to the external connection via the TCP/IP socket connection.
+//
+// +----------+  recv  +------+ push  +-------+ event +---------+           +------+
+// |External  |==TLMX=>|async |=tlmx=>|async  |------>|initiator|           |TLM2.0|
+// |OS thread |        |_os_  |       |channel|    get|_sysc_   | transport |target|
+// |or process|        |thread|       |       |=tlmx=>|thread_  |=tlm2=====>|      |
+// |          |        |      |       |       |       |process  |           |      |
+// |          |        |      | event |       |    put|         |<==========|      |
+// |          |        |      |<------|       |<=tlmx=|         |           |      |
+// |          |        |      |       |       |       |         |           |      |
+// |          |   send |      | pull  |       |       |         |           |      |
+// |          |<=TLMX==|      |<======|       |       |         |           |      |
+// +----------+        +------+       +-------+       +---------+           +------+
 
 ///////////////////////////////////////////////////////////////////////////////
 // $License: Apache 2.0 $
@@ -57,7 +84,9 @@ async_adaptor_module::async_adaptor_module(sc_module_name instance_name)
 {
   signal(SIGINT,&async_adaptor_module::sighandler); //< allow for graceful interrupts
 
+  //----------------------------------------------------------------------------
   // Parse command-line arguments
+  //----------------------------------------------------------------------------
   for (int i=1; i<sc_argc(); ++i) {
     string arg(sc_argv()[i]);
     if      (arg.find("-debug")  == 0) sc_report_handler::set_verbosity_level(SC_DEBUG);
@@ -71,7 +100,9 @@ async_adaptor_module::async_adaptor_module(sc_module_name instance_name)
     }//endif
   }//endfor
 
+  //----------------------------------------------------------------------------
   // Report configuration
+  //----------------------------------------------------------------------------
   REPORT_INFO("\n===================================================================================\n"
            << "CONFIGURATION\n"
            << ">   Listening on port " << m_tcpip_port << "\n"
@@ -79,9 +110,11 @@ async_adaptor_module::async_adaptor_module(sc_module_name instance_name)
            << "===================================================================================\n"
            );
 
-  // Register TLM backwards fsc_report_handler::snctions
-  // -NONE-
+  // Register TLM backwards path methods -NONE-
+
+  //----------------------------------------------------------------------------
   // Register processes
+  //----------------------------------------------------------------------------
   SC_HAS_PROCESS(async_adaptor_module);
   SC_THREAD(initiator_sysc_thread_process);
   SC_THREAD(keep_alive_process);
@@ -123,7 +156,9 @@ void async_adaptor_module::end_of_simulation(void)
 void async_adaptor_module::async_os_thread(tlmx_channel& async_channel) {
   REPORT_INFO("Starting " << __func__ << " ...");
 
+  //----------------------------------------------------------------------------
   // Open TCP/IP socket to async_adaptor
+  //----------------------------------------------------------------------------
   struct sockaddr_in local_server;
   int option_value;
 
@@ -150,7 +185,9 @@ void async_adaptor_module::async_os_thread(tlmx_channel& async_channel) {
     REPORT_FATAL("Unable to set socket option");
   }
    
-  // Bind
+  //----------------------------------------------------------------------------
+  // Bind socket in preparation to listening
+  //----------------------------------------------------------------------------
   if ( bind
        ( listening_socket
        , (struct sockaddr *)&local_server 
@@ -162,7 +199,9 @@ void async_adaptor_module::async_os_thread(tlmx_channel& async_channel) {
   }
   REPORT_NOTE("Bind done");
 
-  // Listen
+  //----------------------------------------------------------------------------
+  // Listen for requests to connect
+  //----------------------------------------------------------------------------
   REPORT_INFO("Queueing incoming connections...");
   listen(listening_socket, 1 /*request at a time*/);
 
@@ -174,7 +213,9 @@ void async_adaptor_module::async_os_thread(tlmx_channel& async_channel) {
   uint8_t data_ptr[TLMX_MAX_DATA_LEN];
   int     incoming_socket{0};
 
+  //----------------------------------------------------------------------------
   // Watch for traffic
+  //----------------------------------------------------------------------------
   REPORT_INFO("Waiting for incoming connections...");
   // Accept an incoming connection
   int addr_len = sizeof(struct sockaddr_in);
@@ -188,9 +229,24 @@ void async_adaptor_module::async_os_thread(tlmx_channel& async_channel) {
   }
   REPORT_NOTE("Connection accepted...");
 
+  //----------------------------------------------------------------------------
+  //
+  //  #     # 
+  //  ##   ##     #     ###  #    #      #      ####    ####   ##### 
+  //  # # # #    # #     #   ##   #      #     #    #  #    #  #    #
+  //  #  #  #   #   #    #   # #  #      #     #    #  #    #  #    #
+  //  #     #  #######   #   #  # #      #     #    #  #    #  ##### 
+  //  #     #  #     #   #   #   ##      #     #    #  #    #  #     
+  //  #     #  #     #  ###  #    #      #####  ####    ####   #                        
+  //
+  //----------------------------------------------------------------------------
+  // Begin receiving and transmitting data
+  //----------------------------------------------------------------------------
   for(;;) {
 
+    //--------------------------------------------------------------------------
     // Get data
+    //--------------------------------------------------------------------------
     char receive_buffer[TLMX_MAX_BUFFER];
     bzero(receive_buffer,TLMX_MAX_BUFFER);
     int recv_count = read(incoming_socket, receive_buffer, TLMX_MAX_BUFFER);
@@ -202,7 +258,9 @@ void async_adaptor_module::async_os_thread(tlmx_channel& async_channel) {
     }
     REPORT_NOTE("Received data...");
 
+    //--------------------------------------------------------------------------
     // Unpack data
+    //--------------------------------------------------------------------------
     bzero(data_ptr,TLMX_MAX_DATA_LEN); //< clear to aid debugging
     tlmx_packet_ptr tlmx_trans_ptr(new tlmx_packet( TLMX_IGNORE, 0, 0, data_ptr ));
     int unpacked_size = tlmx_trans_ptr->unpack(receive_buffer);
@@ -214,14 +272,23 @@ void async_adaptor_module::async_os_thread(tlmx_channel& async_channel) {
       break;
     }
 
-    // Send
+    //--------------------------------------------------------------------------
+    // Send request to SystemC
+    //--------------------------------------------------------------------------
     REPORT_NOTE("Pushing to async_channel...");
     async_channel.push(tlmx_trans_ptr);
+
+    //--------------------------------------------------------------------------
     // Wait for channel to pass payload to initiator_sysc_thread_process & return results
     // from TLM 2.0 transport.
+    //--------------------------------------------------------------------------
     REPORT_NOTE("Waiting for async_channel ...");
     async_channel.wait_for_put();
     // ASSERTION: Should be ready
+
+    //--------------------------------------------------------------------------
+    // Pull response from SystemC
+    //--------------------------------------------------------------------------
     REPORT_NOTE("Pulling from async_channel ...");
     if (not async_channel.nb_pull(tlmx_trans_ptr)) {
       REPORT_FATAL("Missing response");
@@ -231,12 +298,18 @@ void async_adaptor_module::async_os_thread(tlmx_channel& async_channel) {
     if (tlmx_trans_ptr->status != TLMX_OK_RESPONSE) {
       REPORT_ERROR(tlmx_status_to_str(tlmx_status_t(tlmx_trans_ptr->status)));
     }
+
+    //--------------------------------------------------------------------------
     // Pack data
+    //--------------------------------------------------------------------------
     char transmit_buffer[TLMX_MAX_BUFFER];
     bzero(transmit_buffer,TLMX_MAX_BUFFER);
     int packed_size = tlmx_trans_ptr->pack(transmit_buffer);
     sc_assert(packed_size == unpacked_size);
+
+    //--------------------------------------------------------------------------
     // Send response to TCP/IP
+    //--------------------------------------------------------------------------
     REPORT_NOTE("Sending response ...");
     int send_count = write(incoming_socket, transmit_buffer, packed_size);
     if(send_count < 0) {
@@ -264,7 +337,7 @@ void async_adaptor_module::initiator_sysc_thread_process(void)  {
 
   for(;;) {
     // Wait for data to arrive from remote
-    m_keep_alive_signal.write(true);
+    m_keep_alive_signal.write(true); //< this could be removed iff we know for a certainty there is other traffic/computations
     wait(m_async_channel.sysc_put_event());
     REPORT_NOTE("Received sysc_put_event");
     m_keep_alive_signal.write(false);
@@ -332,6 +405,8 @@ void async_adaptor_module::initiator_sysc_thread_process(void)  {
   sc_stop();
 }//end async_adaptor_module::initiator_sysc_thread_process()
 
+// In the event there is nothing else happening, this process will keep the
+// simulator from starving.
 void async_adaptor_module::keep_alive_process(void)  {
   REPORT_INFO("Started " << __func__ << " " << name());
   for(;;) {
