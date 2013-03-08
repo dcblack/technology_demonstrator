@@ -19,11 +19,11 @@
 #include "creport.h"
 
 #define DEV_BASE       0 /*0x8000FF080100*/
-#define DEV_STATUS_REG DEV_BASE + 0*4
-#define DEV_COUNT1_REG DEV_BASE + 1*4
-#define DEV_COUNT2_REG DEV_BASE + 2*4
-#define DEV_COUNT3_REG DEV_BASE + 3*4
-#define DEV_COUNT4_REG DEV_BASE + 4*4
+#define DEV_STATUS_REG (DEV_BASE + 0*4)
+#define DEV_COUNT1_REG (DEV_BASE + 1*4)
+#define DEV_COUNT2_REG (DEV_BASE + 2*4)
+#define DEV_COUNT3_REG (DEV_BASE + 3*4)
+#define DEV_COUNT4_REG (DEV_BASE + 4*4)
 
 typedef uint64_t      addr_t;
 typedef unsigned char data_t;
