@@ -1,9 +1,5 @@
 #!/bin/make -f
 
-.PHONY: default clean distclean objs exe gdb link run
-
-default: exe
-
 ###############################################################################
 # Figure out architecture info
 ################################################################################

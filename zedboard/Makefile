@@ -17,31 +17,47 @@
 #
 # This makefile is designed for C code that is cross-compiled (optionally).
 
-SRCS:=\
+# MAKE TARGETS:
+#   clean - removes objects, executables and other compilation features
+#   distclean - removes logs & backups in addition to clean
+#   exe (default) - creates executable
+#   gdb - runs debugger
+#   link - creates executable
+#   objs - compiles all objects
+#   run - executes program
+#   flashem-ut - runs unit test of flashem.c
+
+UNIT := software
+SRCS :=\
   random.c\
   creport.c\
   tlmx_packet.c\
   driver.c\
+  ledsw.c\
+  flashem.c\
   software.c
 
-# The following conditional allows an upper level to include us to obtain a list of
-# source files
+# The following conditional allows an upper level to include us to
+# obtain a list of source files
 ifndef INCLUDED
 
 # Choose a target from:  LINUX|OSX|ZEDBOARD
-TARGET_ARCH  := ZEDBOARD
+TARGET_ARCH := ZEDBOARD
+
+.PHONY: default clean distclean objs exe gdb link run flashem-ut
+
+default: exe
 
 include ../Makefile.common
 
 ###############################################################################
-HDRS := $(wildcard $(patsubst %.c,  %.h,${SRCS}))
-OBJS := $(patsubst %.c,  %.o,${SRCS})
-LNX = software.${HOST_ARCH}
+override OBJS := $(patsubst %.c,  %.o,${SRCS})
+LNX = ${UNIT}.${HOST_ARCH}
 
-DEFS:=-D_${TARGET_ARCH}
-INCDIRS:=
-CFLAGS:=
-LFLAGS:=
+DEFS    += -D_${TARGET_ARCH} ${OTHER_DEFS}
+INCDIRS :=
+CFLAGS  :=
+LFLAGS  :=
 ifeq "${TARGET_ARCH}" "ZEDBOARD"
   $(info INFO: $(BOLDRED)Targeting ZEDBOARD$(NONE))
   PRE     := arm-xilinx-linux-gnueabi
@@ -74,9 +90,9 @@ LFLAGS+= $(wildcard $(foreach d,${LIBDIRS},$(patsubst $d/%,lib%.a,${ILIBS})))
 endif
 
 # link
-$(EXE): $(OBJS) $(HDRS)
+$(EXE): $(OBJS)
 	@-rm -f $@; $(call REPORT_TITLE,Linking $@)
-	${CPP} -o $@ $? $(LFLAGS)
+	${CPP} -o $@ $(OBJS) $(LFLAGS)
 	@$(RULER)
 
 # compile
@@ -85,22 +101,38 @@ $(EXE): $(OBJS) $(HDRS)
 	${CPP} $(CFLAGS) -g ${PTHREAD} -std=c99 -c -o $*.o $*.c
 
 clean:
+	@$(call REPORT_TITLE,Cleaning)
 	-rm -f *.o *.x
 
 distclean: clean
+	@$(call REPORT_TITLE,Cleaning distribution)
 	-rm -f *.log *~ *.bak
 
-objs: clean $(OBJS) $(HDRS)
+objs: clean $(OBJS)
 
 link: $(EXE)
 
 exe: clean $(EXE)
 
 gdb: $(LNX)
+	@$(call REPORT_TITLE,Enter debugger)
 	gdb ./$(LNX)
 
 run: $(LNX)
+	@$(call REPORT_TITLE,Run program)
 	./$(LNX) localhost 4000
+
+# unit-test
+flashem-ut:
+	$(MAKE) \
+          OTHER_DEFS=-DTEST_FLASHEM\
+          SRCS="creport.c ledsw.c flashem.c"\
+          TARGET_ARCH=LINUX\
+          UNIT=flashem\
+          LNX=flashem.${HOST_ARCH}\
+          run
+
+flashem.${HOST_ARCH}: creport.o ledsw.o flashem.o
 
 endif
 #TAF!
