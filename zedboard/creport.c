@@ -24,11 +24,19 @@
 #define STDOUT /dev/tty
 #endif
 
-debug_t debug_level   = 
+verbosity_t verbosity   = 
 #ifdef DEBUG
-1
+DEBUG_LEVEL
 #else
-0
+#ifdef VERBOSE
+NOISY_LEVEL
+#else
+#ifdef QUIET
+HIGH_LEVEL
+#else
+MEDIUM_LEVEL
+#endif
+#endif
 #endif
 ;
 count_t warning_count = 0;
@@ -38,7 +46,7 @@ count_t fatal_count   = 0;
 void report_summary(void)
 {
 #ifndef SILENT
-  fprintf(stdout,"REPORT SUMMARY\n  %3d warnings\n  %3d errors\n  %3d fatals\n", warning_count, error_count, fatal_count);
+  fprintf(stdout,"REPORT SUMMARY\n  %3lld warnings\n  %3lld errors\n  %3lld fatals\n", warning_count, error_count, fatal_count);
   fflush(stdout);
 #endif
 }
