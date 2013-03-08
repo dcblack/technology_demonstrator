@@ -23,8 +23,8 @@
 
 static const char* MSGID="/Doulos/example/software";
 
-#define REGCNT 4
-#define TESTCNT 20
+int REGCNT  =  4; /* number of registers  in device*/
+int TESTCNT = 20; /* number of tests to perform */
 
 int main(int argc, char* argv[])
 {
