@@ -46,7 +46,7 @@ The makefiles provided assume GNU make (aka gmake) version 3.82 or better.
 RUNNING HINTS
 -------------
 
-### Connecting via Ethernet ###
+### Connecting via Ethernet and copying via SCP ###
 
 When zedboard powers up using the default linux image, it provides ftp, telnet and ssh access via 
 TCP address 192.168.1.10.
@@ -55,17 +55,47 @@ If you are unable to connect to the ethernet port, you can change it via the UAR
 
     zynq> ifconfig eth0 ###.###.###.###
 
-Telnet to it and then use netstat on the host system to determine the return address:
+Telnet to the zedboard from the Linux SystemC host and then use netstat on the host system to determine the return address. You will need two terminal windows on the host machine. The following assumes the default TCP/IP # for the ZedBoard (192.168.1.10):
 
-    linux % netstat -p TCP | grep 192.168.1.10 #< using the appropriate TCP # here
+From 1st window
 
+```
+    % telnet 192.168.1.10
+    / # passwd
+    Changing password for root
+    New password: S3Cr3t!
+    Retype password: S3Cr3t!
+    Password for root changed by root
+    / # exit  #<<<=== (after step 2 below is completed)
+    %
+```
+
+From 2nd window
+
+```
+    % netstat -p TCP | grep 192.168.1.10
+    Active Internet connections
+    Proto Recv-Q Send-Q  Local Address          Foreign Address        (state)    
+    tcp4       0      0  **192.168.1.12.51080**     192.168.1.10.telnet    ESTABLISHED
+    tcp4       0      0  192.168.207.242.51071  204.152.18.206.https   ESTABLISHED
+    ^C
+    % scp software.zed root@192.168.1.10:/ #<<<=== copy software onto zedboard
+    root@192.168.1.10's password: S3Cr3t!
+    software.zed                                              100%   65KB  64.9KB/s   00:00    
+    %
+```
 
 ### Connecting to the USB UART ###
 
 After connecting the USB UART, 'ls /dev' and look for the TTY representing the zedboard connection.
 On MacOSX, it is called '/dev/tty.usbmodem14221'. On CentOS, it is called '/dev/ttyACM0'.
 
-Connect to zedboard with 'screen DEVICE_PATH 115200'. Hit the return key or power cycle. You should see something like:
+Connect to zedboard with `screen DEVICE_PATH 115200`.
+
+- On MacOSX: `screen /dev/tty.usbmodem1a12131 115200`
+- On Linux:  `screen /dev/tty.
+
+Hit the return key or power cycle. You should see something like:
 
     U-Boot 2011.03-dirty (Jul 11 2012 - 16:07:00)
     
