@@ -7,14 +7,14 @@ General
 -------
 On MacOSX:
 
-- get [macports](http://www.macports.org)
-- 'port install screen', which will provide a terminal emulator
-- 'port install clang-3.3', which will provide C++11 support
+- Obtain and install [macports](http://www.macports.org)
+- `port install screen`, will provide a terminal emulator
+- `port install clang-3.3`, will provide C++11 support
 
 On CentOS Linux:
 
-- 'yum install devtoolset-1.0', which will provide GCC 4.7 supporting C++11.
-- 'yum install screen', which will provide a terminal emulator
+- `yum install devtoolset-1.0`, which will provide GCC 4.7 supporting C++11
+- `yum install screen`, which will provide a terminal emulator
 
 
 COMPILING HINTS
@@ -26,21 +26,20 @@ Get and install arm-xilinx-linux-gnueabi via Xilinx version 14.4 or higher Vivad
 
 Get and activate LLVM clang++ compiler for MacOSX 10.8 (Mountain Lion x86_64)
 
-- gcc_select-ports mp-clang3.2
+- `port select gcc mp-clang3.3`
 
-Get and activate GCC g++ 4.7 compiler for Centos Linux 5.8
+Activate GCC g++ 4.7 compiler for Centos Linux 5.8
 
-- yum install devtoolset-1.0
-- source /opt/centos/devtoolset-1.0/enable
+- `source /opt/centos/devtoolset-1.0/enable` will setup search paths appropriately
 
 Be sure to remove any of the following from your environment (they are bad for your sanity):
 
-- unsetenv GCC_EXEC_PREFIX
-- unsetenv C_INCLUDE_PATH
-- unsetenv CPLUS_INCLUDE_PATH
-- unsetenv LD_LINK_LIBRARY
-- unsetenv LD_LIBRARY_PATH
-- unsetenv DYLD_LIBRARY_PATH
+- `unsetenv GCC_EXEC_PREFIX`
+- `unsetenv C_INCLUDE_PATH`
+- `unsetenv CPLUS_INCLUDE_PATH`
+- `unsetenv LD_LINK_LIBRARY`
+- `unsetenv LD_LIBRARY_PATH`
+- `unsetenv DYLD_LIBRARY_PATH`
 
 The makefiles provided assume GNU make (aka gmake) version 3.82 or better.
 
