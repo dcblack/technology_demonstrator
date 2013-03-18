@@ -13,6 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////
+#if __STDC_VERSION__ < 199901L
+#error Requires C99
+#endif
 
 #include "driver.h"
 #include <stdlib.h>
@@ -33,7 +36,9 @@ int main(int argc, char* argv[])
 
   srandom(1);
 
-  /* Parse command-line */
+  //----------------------------------------------------------------------------
+  // Parse command-line
+  //----------------------------------------------------------------------------
   if (argc != 3) {
     REPORT_ERROR("Syntax: %s HOSTNAME PORTNUMBER\n",argv[0]);
   }
@@ -50,13 +55,17 @@ int main(int argc, char* argv[])
 
   dev_open(argv[1],port);
   REPORT_INFO("Device connection opened...\n");
+
   int count[REGCNT];
   // Initialize
   for (int t=0; t!=REGCNT; ++t) {
     count[REGCNT] = 0;
   }
-  int data;
+
+  //----------------------------------------------------------------------------
   // Perform TESTCNT tests
+  //----------------------------------------------------------------------------
+  int data;
   for (int i=0; i!=TESTCNT; ++i) {
     /* Write to all registers */
     for (int t=0; t!=REGCNT; ++t) {
@@ -85,6 +94,10 @@ int main(int argc, char* argv[])
       }
     }//endfor t=0..REGCNT-1
   }//endfor i=0..19
+
+  //----------------------------------------------------------------------------
+  // Exit
+  //----------------------------------------------------------------------------
   dev_close();
   REPORT_INFO("Exiting\n");
   report_summary();
