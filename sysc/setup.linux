@@ -1,0 +1,6 @@
+#!/bin/bash
+#
+# This is executed prior to compile/link steps. Used to set environment variable correctly.
+
+SETUP_SCRIPT='/opt/centos/devtoolset-1.0/enable'
+test "$SETUP_SCRIPT" && source "$SETUP_SCRIPT"

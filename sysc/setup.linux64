@@ -1,0 +1,5 @@
+#!/bin/bash
+#
+# This is executed prior to compile/link steps. Used to set environment variable correctly.
+
+source setup.linux
