@@ -37,20 +37,21 @@
 static const char*        MSGID = "/Doulos/example/driver";
 static char               hostip[100]; /*< hold string rep of IP # */
 static int                tcpip_port;
-static pthread_t          pt_id;
-static pthread_t          ct_id;
-static int                ct_retval = 0;
-static int                rc;
+static pthread_t          main_id;   // identifies the main thread
+static pthread_t          server_id; // identifies the server thread
+static int                server_exitcode = 0;
 static int                outgoing_socket;
 static struct sockaddr_in systemc_server;
-static int                interrupt;
-static pthread_mutex_t    server_mutex = PTHREAD_MUTEX_INITIALIZER;
+static int                interrupt_flag  = 0;
+static pthread_mutex_t    interrupt_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t     interrupt_cond  = PTHREAD_COND_INITIALIZER;
+static int                server_ready    = 0;
+static pthread_mutex_t    server_mutex    = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t     server_cond     = PTHREAD_COND_INITIALIZER;
+static int                server_stop     = 0; //< indicates server should stop
+static const char*        acknowledgement = "Ack\n";
 
-void SIGUSR1_handler(int sig)
-{
-  /* do nothing */
-}
-
+//------------------------------------------------------------------------------
 void *interrupt_server(void* arg) /*< watches for "interrupt" on TCPIP PORT+1 */
 {
   const char* MSGID = "/Doulos/example/interrupt_server";
@@ -58,10 +59,12 @@ void *interrupt_server(void* arg) /*< watches for "interrupt" on TCPIP PORT+1 */
   struct sockaddr_in local_server, remote_client;
   int addr_len;
   int option_value;
-  const char* acknowledgement = "Ack\n";
-  int retval;
-  int locked = 1;
-  retval = pthread_mutex_lock(&server_mutex);
+  static int server_retval = 0; //< static to aid debug
+  server_retval = pthread_mutex_lock(&server_mutex);
+  if (server_retval) {
+    REPORT_ERROR("Unable to lock server_mutex => %s\n",strerror(errno));
+    exit(1);
+  }
 
   REPORT_INFO("Starting %s\n",__func__);
 
@@ -69,8 +72,8 @@ void *interrupt_server(void* arg) /*< watches for "interrupt" on TCPIP PORT+1 */
   listening_socket = socket(AF_INET, SOCK_STREAM, 0);
   if (listening_socket == -1) {
     REPORT_ERROR("Could not create socket\n");
-    ct_retval = 1;
-    pthread_exit(&ct_retval);
+    server_exitcode = 1;
+    pthread_exit(&server_exitcode);
   }
   REPORT_INFO("Opened listening socket\n");
 
@@ -101,22 +104,31 @@ void *interrupt_server(void* arg) /*< watches for "interrupt" on TCPIP PORT+1 */
        ) < 0
   ) {
     REPORT_ERROR("bind failed\n");
-    ct_retval = 1;
-    pthread_exit(&ct_retval);
+    server_exitcode = 1;
+    pthread_exit(&server_exitcode);
   }
   REPORT_INFO("Bind done\n");
 
   /* Listen */
   listen(listening_socket, 2);
 
+  // Indicate server is now initialized/ready
+  server_ready = 1;
+  server_retval = pthread_cond_signal(&server_cond);
+  if (server_retval) {
+    REPORT_ERROR("Unable to signal server_cond => %s\n",strerror(errno));
+    exit(1);
+  }
+  server_retval = pthread_mutex_unlock(&server_mutex);
+  if (server_retval) {
+    REPORT_ERROR("Unable to unlock server_mutex => %s\n",strerror(errno));
+    exit(1);
+  }
+
   /* watch interrupt */
   for(;;) {
     /* Accept and incoming connection */
     REPORT_INFO("Waiting for incoming connections...\n");/**/
-    if (locked) {
-      retval = pthread_mutex_unlock(&server_mutex);
-      locked = 0;
-    }
     addr_len = sizeof(struct sockaddr_in);
     incoming_socket = accept( listening_socket
                             , (struct sockaddr *)&remote_client
@@ -124,13 +136,28 @@ void *interrupt_server(void* arg) /*< watches for "interrupt" on TCPIP PORT+1 */
                             );
     if (incoming_socket<0) {
       REPORT_ERROR("Accept failed => %s\n",strerror(errno));
-      ct_retval = 1;
-      pthread_exit(&ct_retval);
+      continue; // Try again
+    }
+    /* Check to see if shutdown requested */
+    if (server_stop) {
+      break;
     }
     // Signal hardware interrupt
-    interrupt = 1;
-    if (0 == pthread_kill(pt_id,SIGUSR1)) {
-      REPORT_ERROR("pthread_kill failed => %s\n",strerror(errno));
+    server_retval = pthread_mutex_lock(&interrupt_mutex);
+    if (server_retval) {
+      REPORT_ERROR("Unable to lock interrupt_mutex => %s\n",strerror(errno));
+      exit(1);
+    }
+    interrupt_flag = 1;
+    server_retval = pthread_cond_signal(&interrupt_cond);
+    if (server_retval) {
+      REPORT_ERROR("Unable to signal interrupt_cond => %s\n",strerror(errno));
+      exit(1);
+    }
+    server_retval = pthread_mutex_unlock(&interrupt_mutex);
+    if (server_retval) {
+      REPORT_ERROR("Unable to unlock interrupt_mutex => %s\n",strerror(errno));
+      exit(1);
     }
     REPORT_INFO("Connection accepted\n");/**/
     int ack_size = strlen(acknowledgement)+1;
@@ -138,25 +165,22 @@ void *interrupt_server(void* arg) /*< watches for "interrupt" on TCPIP PORT+1 */
     send_count = write(incoming_socket, acknowledgement, ack_size);
     if (send_count < 0) {
       REPORT_ERROR("Acknowledgement write/send failed => %s\n",strerror(errno));
-      ct_retval = 1;
-      pthread_exit(&ct_retval);
+      continue; // Try again
     }
     assert(send_count == ack_size);
     close(incoming_socket);
-  }
-  ct_retval = 0;
-  pthread_exit(&ct_retval);
+  }/*endforever*/
+  server_exitcode = 0;
+  pthread_exit(&server_exitcode);
   //return
 }/*end interrupt_server()*/
 
+//------------------------------------------------------------------------------
 void dev_open(char* hostname, int port)
 {
+  static int dev_open_retval = 0; //< static to aid debug
   REPORT_INFO("Starting %s\n", __func__);
   debug_level = 2;
-  /*
-   * Setup signal handler to allow dev_wait to work
-   */
-  signal(SIGUSR1,SIGUSR1_handler);
   /*
    *****************************************************************************
    * Setup outgoing TCPIP connection
@@ -217,27 +241,118 @@ void dev_open(char* hostname, int port)
    * Spawn interrupt server
    *****************************************************************************
    */
-  pt_id = pthread_self();
-  int rc;
-  rc = pthread_create(&ct_id, NULL, interrupt_server, NULL/*no args*/);
-  if (rc) {
+  main_id = pthread_self();
+  dev_open_retval = pthread_create(&server_id, NULL, interrupt_server, NULL/*no args*/);
+  if (dev_open_retval) {
     REPORT_ERROR("Unable to create pthread => %s\n",strerror(errno));
     exit(1);
   }
-  sleep(1); //< allow interrupt server to start
+  // allow interrupt server to start
+  dev_open_retval = pthread_mutex_lock(&server_mutex);
+  if (dev_open_retval) {
+    REPORT_ERROR("Unable to lock server_mutex => %s\n",strerror(errno));
+    exit(1);
+  }
+  dev_open_retval = pthread_cond_wait(&server_cond,&server_mutex);
+  if (dev_open_retval) {
+    REPORT_ERROR("Unable to wait for server_cond => %s\n",strerror(errno));
+    exit(1);
+  }
+  dev_open_retval = pthread_mutex_unlock(&server_mutex);
+  if (dev_open_retval) {
+    REPORT_ERROR("Unable to unlock server_mutex => %s\n",strerror(errno));
+    exit(1);
+  }
+
   REPORT_INFO("Finished %s\n",__func__);
   return;
 }/*end dev_open(...)*/
 
+//------------------------------------------------------------------------------
+void dev_soft_interrupt(const char* irq_message) /*< send a software interrupt*/
+{
+  struct hostent*   hostentry;
+  struct in_addr**  addr_list;
+  const char* const hostname = "localhost";
+  char              ack_reply[TLMX_MAX_BUFFER];
+  int               interrupt_socket;
+  if (irq_message == NULL) {
+    irq_message = "Software interrupt\n";
+  }
+
+  /* Find the host */
+  if ((hostentry = gethostbyname( hostname )) == NULL) {
+    /* failed */
+    REPORT_ERROR("Failed to gethostbyname => %s\n",strerror(errno));
+    exit(1);
+  }
+  addr_list = (struct in_addr **) hostentry->h_addr_list;
+  for (int i=0; addr_list[i] != NULL; ++i) {
+    strcpy( hostip, inet_ntoa(*addr_list[i]) );
+  }
+
+  /* Open the socket */
+  interrupt_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+  if (interrupt_socket == -1) {
+    REPORT_ERROR("Could not create socket => %s\n",strerror(errno));
+  }
+  systemc_server.sin_addr.s_addr = inet_addr(hostip);
+  systemc_server.sin_family = AF_INET;
+  systemc_server.sin_port = htons( tcpip_port+1 );
+  /* Connect to host server */
+  int connect_status = 0;
+  int tries = 0;
+  do {
+    ++tries;
+    connect_status = connect(interrupt_socket, (struct sockaddr *)&systemc_server, sizeof(systemc_server));
+    if (connect_status < 0) {
+      if (errno == ECONNREFUSED)
+      {
+        if (tries%5 == 1) 
+        {
+          REPORT_INFO("Waiting for server connection\n");/**/
+        }
+        sleep(1);
+      }
+      else
+      {
+        REPORT_ERROR("%d %s\n",errno,strerror(errno));
+        exit(1);
+      }
+    }
+  } while (connect_status < 0 && errno == ECONNREFUSED);
+
+  int irq_message_size;
+  irq_message_size = strlen(irq_message);
+  int send_count;
+  send_count = write(interrupt_socket, irq_message, irq_message_size);
+  // ignore send_count, it's just the fact of sending that matters
+  int ack_reply_size;
+  ack_reply_size = strlen(ack_reply);
+  int recv_count;
+  recv_count = read(interrupt_socket, ack_reply, ack_reply_size);
+  if (recv_count < 0) {
+    REPORT_ERROR("TCPIP read/recv didn't receive enough data\n");
+  }
+  close(interrupt_socket);
+}/*end dev_soft_interrupt(...)*/
+
+//------------------------------------------------------------------------------
 void dev_close(void)
 {
-  pthread_kill(pt_id,SIGINT);
   REPORT_INFO("Closing outgoing socket\n");
   close(outgoing_socket);
+
+  // stop the interrupt server
+  server_stop = 1;
+  dev_soft_interrupt("Shutdown\n"); //< send soft interrupt for force notice of interrupt
+
   REPORT_INFO("Finished %s\n",__func__);
   return;
-}
+}/*end dev_close()*/
 
+//------------------------------------------------------------------------------
 int dev_transport
 ( tlmx_command_t  command
 , addr_t  address
@@ -296,45 +411,55 @@ int dev_transport
   delete_tlmx_packet(payload_send_ptr);
   delete_tlmx_packet(payload_recv_ptr);
   return status;
-}
+}/*end dev_transport(...)*/
 
+//------------------------------------------------------------------------------
 int dev_put ( addr_t  address , data_t* data_ptr , dlen_t  data_len )
 {
   return dev_transport( TLMX_WRITE, address, data_len, data_ptr );
-}
+}/*end dev_put(...)*/
 
+//------------------------------------------------------------------------------
 int dev_get ( addr_t  address , data_t* data_ptr , dlen_t  data_len )
 {
   return dev_transport( TLMX_READ, address, data_len, data_ptr );
-}
+}/*end dev_get(...)*/
 
+//------------------------------------------------------------------------------
 int dev_put_debug ( addr_t  address , data_t* data_ptr , dlen_t  data_len )
 {
   return dev_transport( TLMX_DEBUG_WRITE, address, data_len, data_ptr );
-}
+}/*end dev_put_debug(...)*/
 
+//------------------------------------------------------------------------------
 int dev_get_debug ( addr_t  address , data_t* data_ptr , dlen_t  data_len )
 {
   return dev_transport( TLMX_DEBUG_READ, address, data_len, data_ptr );
-}
+}/*end dev_get_debug(...)*/
 
+//------------------------------------------------------------------------------
 void dev_wait(void)
 {
-  sigset_t sigset;
+  static int dev_wait_retval = 0; //< static to aid debug
 //REPORT_DEBUG("Waiting for SIGUSR1\n");
-  if (0 != sigemptyset(&sigset)) {
-    REPORT_ERROR("sigemptyset failed => %s\n",strerror(errno));
+  dev_wait_retval = pthread_mutex_lock(&interrupt_mutex);
+  if (dev_wait_retval) {
+    REPORT_ERROR("Unable to lock interrupt_mutex => %s\n",strerror(errno));
+    exit(1);
   }
-  if (0 != sigaddset(&sigset,SIGUSR1)) {
-    REPORT_ERROR("sigaddset failed => %s\n",strerror(errno));
+  while (!interrupt_flag) {
+    dev_wait_retval = pthread_cond_wait(&interrupt_cond,&interrupt_mutex);
+    if (dev_wait_retval) {
+      REPORT_ERROR("Unable to wait for interrupt_cond => %s\n",strerror(errno));
+      exit(1);
+    }
   }
-  int sig;
-  if (0 != sigsuspend(&sigset)) {
-    REPORT_ERROR("sigwait failed => %s\n",strerror(errno));
+  dev_wait_retval = pthread_mutex_unlock(&interrupt_mutex);
+  if (dev_wait_retval) {
+    REPORT_ERROR("Unable to unlock interrupt_mutex => %s\n",strerror(errno));
+    exit(1);
   }
-  assert(sig == SIGUSR1);
-}
-
+}/*end dev_wait()*/
 
 debug_t dev_debug(long long int level)
 {
@@ -342,7 +467,7 @@ debug_t dev_debug(long long int level)
   prev_level = debug_level;
   if (level >= 0) { debug_level = (debug_t) level; }
   return prev_level;
-}
+}/*end dev_debug(...)*/
 
 /*
  * TAF!

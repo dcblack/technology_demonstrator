@@ -36,6 +36,7 @@ int     dev_put( addr_t  address , data_t* data_ptr , dlen_t  data_len );
 int     dev_get( addr_t  address , data_t* data_ptr , dlen_t  data_len );
 int     dev_put_debug ( addr_t  address , data_t* data_ptr , dlen_t  data_len );
 int     dev_get_debug ( addr_t  address , data_t* data_ptr , dlen_t  data_len );
+void    dev_soft_interrupt(const char* irq_message);
 void    dev_wait(void); // wait for "interrupt"
 debug_t dev_debug(long long int level); // if <0 then read else set level (default 0 => off)
 
