@@ -39,6 +39,7 @@ MEDIUM_LEVEL
 #endif
 #endif
 ;
+debug_t debug_level   = 0;
 count_t warning_count = 0;
 count_t error_count   = 0;
 count_t fatal_count   = 0;

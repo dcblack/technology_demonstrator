@@ -16,8 +16,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 typedef unsigned long long int verbosity_t;
+typedef unsigned long long int debug_t;
 typedef unsigned long long int count_t;
 extern verbosity_t verbosity;
+extern debug_t     debug_level;
 extern count_t warning_count;
 extern count_t error_count;
 extern count_t fatal_count;
@@ -35,7 +37,7 @@ void init_term(const char* path);
 #ifdef SILENT
 #define REPORT_INFO(...)
 #define REPORT_INFO_VERB(verbosity_level,...)
-#define REPORT_DEBUG(message)
+#define REPORT_DEBUG(...)
 #define REPORT_WARNING(...) ++warning_count
 #define REPORT_ERROR(...) ++error_count
 #define REPORT_FATAL(...) ++fatal_count
@@ -92,7 +94,6 @@ void init_term(const char* path);
   do {                                                            \
     if (verbosity > BREAK_LEVEL) breakpoint(message);             \
   } while (0)
-#endif
 #define NOT_YET_IMPLEMENTED REPORT_ERROR("NOT YET IMPLEMENTED")
 #define UNDER_CONSTRUCTION  REPORT_WARNING("THIS CODE UNDER CONSTRUCTION -- YMMV")
 #define NEWLINE             \
@@ -100,6 +101,7 @@ void init_term(const char* path);
     fprintf(stdout,"\n");   \
     fflush(stdout);         \
   } while(0)
+#endif
 
 void report_summary(void);
 int error_status(void);
