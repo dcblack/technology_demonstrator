@@ -46,7 +46,7 @@ TARGET_ARCH := ZEDBOARD
 
 .PHONY: default clean distclean objs exe gdb link run flashem-ut
 
-default: exe
+default: clean exe
 
 include ../Makefile.common
 
@@ -112,7 +112,7 @@ objs: clean $(OBJS)
 
 link: $(EXE)
 
-exe: clean $(EXE)
+exe: $(EXE)
 
 gdb: $(LNX)
 	@$(call REPORT_TITLE,Enter debugger)
