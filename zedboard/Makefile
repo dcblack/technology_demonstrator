@@ -65,9 +65,16 @@ ifeq "${TARGET_ARCH}" "ZEDBOARD"
   INCDIRS := ${XILINX_EDK}/gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include
   LIBDIRS := ${XILINX_EDK}/gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/lib
   LIBS    := pthread c
-  CFLAGS  := -static
-  LFLAGS  := -static
-  DEFS    += -D__USE_GNU -D_POSIX_SOURCE -DSILENT
+  DEFS    += -D__USE_GNU -D_POSIX_SOURCE
+
+# For a static image uncomment the following, but be sure to have ALL
+# libraries referenced.
+# CFLAGS  := -static
+# LFLAGS  := -static
+
+# Uncomment following to suppress printf withing zed code
+# DEFS    += -DSILENT
+
   EXE     := software.zed
 else
   $(info INFO: $(BOLDRED)Targeting LINUX HOST$(NONE))
