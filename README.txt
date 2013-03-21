@@ -1,8 +1,6 @@
 DESCRIPTION
 ===========
 
-[*NOTE: This document best viewed with a 'markdown' viewer.*]
-
 This directory and its contents contain a project that ties a zedboard design to
 a SystemC ESL design.  This was described in a presentation entitled "A SystemC
 Technology Demonstrator" at the SystemC Tutorial at DVCon 2013
@@ -37,8 +35,9 @@ compiled for execution any any standard linux environment that supports POSIX
 sockets and pthreads. main simply sends a variety of random data values to a
 driver that communicates with sockets to a remote SystemC design.
 
-The sysc/ directory contains C++ code for a SystemC adaptor that takes TLMX packets
-and converts them to TLM 2.0 payloads, which are then sent to the TLM target.
+The sysc/ directory contains C++ code for a SystemC adaptor that takes TLMX
+packets and converts them to TLM 2.0 payloads, which are then sent to the TLM
+target.
 
 REQUIREMENTS
 ============
@@ -52,7 +51,8 @@ REQUIREMENTS
 * SystemC installation compliant to IEEE-1666-2011 such as ASI's
   proof-of-concept version 2.3.
 
-* Zedboard (around 400 $US at time of writing) -- go to zedboard.org for more information
+* Zedboard (around 400 $US at time of writing) -- go to zedboard.org for more
+  information
 
 HOW TO BUILD
 ============
@@ -112,7 +112,8 @@ C-code for embedded system:
 
 * random.c -- implements standard srandom/random
 * creport.c -- simplifies error reporting
-* tlmx_packet.c -- describes the TLM-like structure used over sockets. Includes serialization.
+* tlmx_packet.c -- describes the TLM-like structure used over sockets. Includes
+  serialization.
 * driver.c -- where the driver lives
 * software.c -- main
 
