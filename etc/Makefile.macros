@@ -1,0 +1,254 @@
+#!/bin/make -f
+# -*- make -*- vim:syntax=make:fdm=marker:fmr=<<<,>>>:tw=80:sw=2:et
+# Find path to THIS file
+MAKEFILE_MACROS := $(realpath $(lastword $(MAKEFILE_LIST)))
+# Header guard -- don't include more than once
+ifndef INCLUDED_MAKEFILE_MACROS
+INCLUDED_MAKEFILE_RULES=1
+################################################################################
+# These macros support Makefile.rules
+
+################################################################################
+# $License: Apache 2.0 $
+#
+# This file is licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#-------------------------------------------------------------------------------
+
+$(info INFO: $$Id: Makefile.macros,v 1.1 2013/03/25 05:43:15 dcblack Exp $$)
+
+################################################################################
+# Directory where we put our scripts
+ifndef MAKEFILE_ETCDIR
+  MAKEFILE_ETCDIR:=$(firstword $(wildcard $(dir $(dir ${MAKEFILE_MACROS}))/etc) $(dir ${MAKEFILE_MACROS}))
+  $(if "$(wildcard ${MAKEFILE_ETCDIR})",,$(shell echo -n "Creating "; mkdir -v -p ${MAKEFILE_ETCDIR}))
+endif
+ifndef MAKEFILE_BINDIR
+  MAKEFILE_BINDIR:=$(dir $(dir ${MAKEFILE_MACROS}))/bin
+  $(if "$(wildcard ${MAKEFILE_BINDIR})",,$(shell echo -n "Creating "; mkdir -v -p ${MAKEFILE_BINDIR}))
+endif
+
+################################################################################
+# $(call Findbin,PGM) will return the full path to a program preferring ./bin or ../bin
+Findbin=$(firstword $(wildcard $(addsuffix /$1,$(subst :, ,./bin:../bin:${MAKEFILE_BINDIR}:${PATH}))))
+
+#-------------------------------------------------------------------------------
+# Important scripts used internally (some may be bypassed)
+#-------------------------------------------------------------------------------
+PWD_PGM:=$(call Findbin,pwd)
+PARENTS_PGM:=$(call Findbin,parents)
+INCLUDES_PGM:=$(call Findbin,includes)
+GCC_VERSION_PGM:=$(call Findbin,gcc_version)
+ifeq "${GCC_VERSION_PGM}" ""
+  GCC_VERSION_PGM:=gcc --version | perl -ane '/GCC/ && print $$F[2],"\n"'
+endif
+GCC_VERSION:=$(shell ${GCC_VERSION_PGM})
+SYSTEMC_VERSION_PGM:=$(call Findbin,systemc_version)
+UNIQUE_LIST_PGM:=$(call Findbin,unique_list)
+
+################################################################################
+# Important macro functions to aid makefile work
+################################################################################
+#
+# NOTE: All of the following are used with the GNU make $(call NAME,ARGS...). By
+# convention, they are capitalized words. The comment on the line preceding
+# definition provides description. If the description is preceded with ACTION:,
+# then the Macro is intended to be used in a rule. Otherwise, these macros stand
+# on their own and execute before any rules have been evaluated. They are
+# usually invoked on a line by themselves.
+#
+# Math expressions within make
+Expr=$(shell perl -le 'print $1')
+# $(call Require_make,VERSION) ensures the right version of make is in use
+Require_make=$(if $(findstring 1,$(shell perl -e 'print ($(MAKE_VERSION)<$1).$$/')),$(error Requires gnu make version $1 or better))
+# $(call First_realfile,FILES) returns the first real file
+First_realfile=$(firstword $(wildcard $1))
+# $(call Require_real,FILE) will issue an error unless the FILE exists
+Require_real=$(if $(wildcard $1),$1,$(error Missing $1)$1)
+# $(call Require_one_realfile,FILES) will issue an error unless at least one FILE exists
+Require_one_realfile=$(if $(call First_realfile,$1),$(call First_realfile,$1),$(error Missing $1)$(firstword $1))
+# $(call Require_all_real,FILES) will issue an error unless all FILES exist
+Require_all_real=$(if $(findstring( -$(words $(wildcard $1))-,-$(words $1)-),$1,$(error Missing a file in $1)$1))
+# $(call Warn_if_missing,FILE) will issue a warning unless the FILE exists
+Warn_if_missing=$(if $(wildcard $1),,$(warning Missing directory $1))$1
+# $(call Find_executable,PROGRAM_NAME) expands to full path of the executable if found; otherwise, empty
+Find_executable:=$(firstword $(wildcard $(foreach pgm,$1,$(addsuffix /${pgm},$(subst :, ,${PATH})))))
+# $(call Find1st,PGMS) will return first executable found
+Find1st=$(firstword $(wildcard $(foreach pgm,$1,$(addsuffix /${pgm},$(subst :, ,${PATH})))))
+# $(call Get_dirs,PATHS) will return only those elements that are real directories
+Get_dirs=$(foreach pth,$1,$(if $(wildcard ${pth}/.),${pth},))
+# $(call Get_notdirs,PATHS) will return only those elements that are not directories
+Get_notdirs=$(foreach pth,$1,$(if $(wildcard ${pth}/.),,${pth}))
+# $(call Get_notreal,PATHS) will return only those elements that are not real paths
+Get_notreal=$(foreach pth,$1,$(if $(realpath ${pth}),,${pth}))
+# $(call Parents,DIRECTORY) will return a space separated list of parent directories
+#Parents=$1 $(if $(subst /,,$1),$(call $0,$(patsubst %/,%,$(dir $1))),)
+Parents=$(shell ${PARENTS_PGM} $1)
+# $(call Reverse,LIST) will return a space separated list in reverse order
+Reverse=$(strip $(if $(word 2,$1),$(call $0,$(wordlist 2,$(words $1),$1))) $(firstword $1))
+# $(call Unique,LIST) will return a space separated list with duplicates removed
+#Unique=$(shell ${UNIQUE_LIST_PGM} $1)
+Unique=$(foreach u,$(sort $1),$(findstring $u,$1))
+Uniq=$(shell perl -lse 'for(@ARGV){next if exists$$u{$$_};$$u{$$_}=1;push @o,$$_;}print join("\n",@o),;' $1)
+# $(call Lastwords,N) will return the last N words of a list
+Lastwords=$(wordlist $(call Expr,$(words $2)-$1+1),$(words $2),$2)
+#ifneq "$(strip $(call File_contains,PATTERN,FILE_LIST))" ""
+# DO_SOMETHING
+#endif
+File_contains=$(shell perl -ne 'if(m{\b($1)}i){print;exit}' $2)
+# ACTION: $(call Mkdir,FILE)
+Mkdir=test -e $1 || mkdir -p $1; # create directory if non-existant
+# ACTION: $(call Mkln,LINK_TARGET,LINK_NAME)
+Mkln=test -e $1 || ln -s $1 $2; # create link if non-existant
+# $(call Report_debug,VAR)
+Report_debug=$(if ${DEBUG_MAKE},$(foreach n,$1,$(info DEBUG: $n=${$n})),)
+# $(call Report_here,TAG) 
+Report_here=$(info ************ HERE $1 ************)
+# $(Stop)
+Stop=$(error STOPPED BY USER)
+
+$(call Require_make,3.81)
+$(info INFO: Using GNU make version $(MAKE_VERSION))
+
+# Frequently used variable
+PWD:=$(shell ${PWD_PGM})
+
+################################################################################
+# Figure out architecture info <<<
+################################################################################
+PLATFORM:=$(shell uname -s)
+MACHINE:=$(shell uname -m)
+RELEASE:=$(shell uname -r)
+OS_FOUND:=${PLATFORM}-${MACHINE}
+ifndef HOST_ARCH
+  ifeq "${PLATFORM}" "SunOS"
+    HOST_ARCH := gccsparcOS5
+  endif
+  ifeq "${PLATFORM}" "Linux"
+   ifeq "${MACHINE}" "x86_64"
+    HOST_ARCH := linux64
+   else
+    HOST_ARCH := linux
+   endif
+  endif
+  ifeq "${PLATFORM}" "CYGWIN_NT-5.1"
+    HOST_ARCH := cygwin
+  endif
+  ifeq "${PLATFORM}" "Darwin"
+    ifeq "${MACHINE}" "i386"
+      ifneq "$(shell perl -le '$$a=qq{@ARGV};$$a=~s/[.].*//;print $$a;' ${RELEASE})" "9"
+        HOST_ARCH := macosx64
+      else
+        HOST_ARCH := macosx386
+      endif
+    else
+      ifeq "${MACHINE}" "x86_64"
+        HOST_ARCH := macosx64
+      else
+        HOST_ARCH := macosx386
+      endif
+    endif
+  endif
+endif
+
+ifndef TARGET_ARCH
+  TARGET_ARCH:=${HOST_ARCH}
+endif
+ifdef FORCE_ARCH
+  $(warning Overriding TARGET_ARCH)
+  TARGET_ARCH:=${FORCE_ARCH}
+endif
+
+ifndef TARGET_ARCH
+  $(error This makefile only supported on Linux, Cygwin, Darwin or SunOS. I do not recognize platform ${OS_FOUND})
+else
+  $(info INFO: PLATFORM=$(PLATFORM) MACHINE=$(MACHINE) TARGET_ARCH=$(TARGET_ARCH))
+endif
+#>>>
+################################################################################
+
+################################################################################
+# Setup commands
+#------------------------------------------------------------------------------
+define modulecmd
+eval `${MODULESHOME}/bin/modulecmd sh $1 $2` ;
+endef
+define ADDMODULES
+  $(if ${MODULES},$(call modulecmd,add,${MODULES}))
+endef
+ifndef MODULES
+  MODULES:=
+endif
+# Don't recall what the following helps... (DCB)
+ifdef MODULESHOME_disabled
+  ifndef SYSTEMC
+    SYSTEMC:=
+    MODULES += gcc boost systemc
+  endif
+endif
+define SETUP
+  $(if $(wildcard setup.$(TARGET_ARCH)),. setup.$(TARGET_ARCH);) $(ADDMODULES)
+endef
+
+################################################################################
+# Stuff important for easier debug of output log files
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BOLDRED:=[01;31m
+BOLD:=[01m
+NONE:=[00m
+# RULER makes it easier to spot areas of output from a long make invocation
+define RULER
+echo "$(BOLDRED)################################################################################$(NONE)"
+endef
+# $(call REPORT_TITLE,Your title)
+define REPORT_TITLE
+  perl -e 'print "INFO: "';
+  perl -e 'print "$(BOLD)"' >/dev/tty;
+  perl -e 'print "$1"';
+  perl -e 'print "$(NONE)"' >/dev/tty;
+  echo "";
+  sleep 1
+endef
+
+################################################################################
+# Makefile rules & macros dependencies
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ifndef MAKEFILE_SCRIPTS
+  MAKEFILE_SCRIPTS:=
+endif
+MAKEFILE_SCRIPTS+=\
+  gcc_version\
+  includes\
+  parents\
+  systemc_version\
+  unique_list\
+
+ifndef MAKEFILE_BINS
+  MAKEFILE_BINS:=
+endif
+MAKEFILE_BINS+=\
+  cat\
+  ln\
+  modulecmd\
+  perl\
+  pwd\
+  test\
+  uname\
+  wx-config\
+
+else
+$(warning ${MAKEFILE_MACROS} already included)
+endif
+################################################################################
+# COPYRIGHT (C) 2012 David C Black
+#-------------------------------------------------------------------------------
+#END $File$

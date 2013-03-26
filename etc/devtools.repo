@@ -1,0 +1,5 @@
+[testing-devtools-$releasever]
+name=testing devtools for CentOS $releasever 
+baseurl=http://people.centos.org/tru/devtools/$releasever/$basearch/RPMS
+enable=1
+gpgcheck=0

@@ -27,7 +27,6 @@ ZEDB_SRCS:=$(addprefix zedboard/,${SRCS})
 
 UNIT:=async_request_example
 SRCS:=$(sort ${SYSC_SRCS} ${ZEDB_SRCS})
-OTHER_TAR+=Makefile* */Makefile*
 
 override DFLT:=tar
 
@@ -38,15 +37,19 @@ override DFLT:=tar
 # that are used to compile designs anywhere here or above to three levels
 # or in the $HLDW/etc directory..
 ifndef EDA
+  # Where EDA related scripts/tools are stored (system defaults)
   EDA:=$(firstword $(wildcard $(HOME)/eda /eda))
 endif
 ifndef HLDW
+  # Locally developed scripts/tools
   $(warning Defining HLDW)
   HLDW:=$(EDA)/hldw/default
 endif
 # Allow for overrides locally, but normally use $HLDW/etc
-RULEDIRS := . $(shell parents -limit -3) $(HLDW)/etc
-RULES := $(firstword $(wildcard $(addsuffix /Makefile.rules,$(RULEDIRS))))
+RULEDIRS := . .. ../.. ../../.. ../../../.. $(HLDW)/etc
+RULES := $(addsuffix /etc/Makefile.rules,$(RULEDIRS))
+RULES += $(addsuffix /Makefile.rules,$(RULEDIRS))
+RULES := $(firstword $(wildcard $(RULES)))
 $(info Including $(RULES))
 include $(RULES)
 

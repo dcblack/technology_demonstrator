@@ -1,0 +1,1333 @@
+#!/bin/make -f
+# -*- make -*- vim:syntax=make:fdm=marker:fmr=<<<,>>>:tw=80:sw=2:et
+# Find path to THIS file
+MAKEFILE_RULES := $(realpath $(lastword $(MAKEFILE_LIST)))
+# Header guard -- don't include more than once
+ifndef INCLUDED_MAKEFILE_RULES
+INCLUDED_MAKEFILE_RULES=1
+$(info INFO: $$ Makefile.rules,v 1.1 2012/09/01 05:26:56 dcblack Exp $$)
+################################################################################
+# $License: Apache 2.0 $
+#
+# This file is licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+################################################################################
+define MAKEFILE_DOCUMENTATION
+
+#######################################################################
+#                                                                     #
+#   ---->>     To read this use: perldoc Makefile.rules    <<----     #
+#                                                                     #
+#######################################################################
+
+=pod
+
+=head1 NAME
+
+B<Makefile.rules> - Generic SystemC makefile rules
+
+=head1 SYNOPSIS
+
+B<make -f Makefile.rules> UNIT={:NAME:} SRCS={:LIST:} {:TARGET:}
+
+or if #included from a Makefile
+
+B<make> [{:TARGET:}]
+
+NOTE - Some local installations of GNU make rename it to B<gmake>.
+
+=head1 DESCRIPTION
+
+This file, Makefile.rules, contains rules for compiling  and running
+SystemC under UNIX using gcc. It has a variety of pseudo-targets
+(targets that do not correspond directly to creation of a like named
+file).
+
+=head1 USAGE
+
+The following targets are available:
+
+=over
+
+=item B<help>
+
+Displays this documentation
+
+=item B<objs>
+
+Makes all the object files (typically files that end in B<.o>)
+
+=item B<lib>
+
+TBD - this is an undocumented area
+
+=item B<exe>
+
+Makes the executable (typically ends in B<.x>)
+
+=item B<run>
+
+Creates and runs the executable.
+
+=item B<gdb>
+
+Create the executable and invokes the B<gdb> debugger on it.
+
+=item B<ddd>
+
+Create the executable and invoke the B<ddd> debugger on it.
+
+=item B<deps>
+
+Creates the dependencies file (typically dependencies.mk)
+
+=item B<dist>
+
+Attempts to create a tar'able distribution file with all the necessary
+parts. This includes pulling in a copy of Makefile.rules.
+
+=item B<rmdeps>
+
+Removes the dependencies file.
+
+=item B<rmdist>
+
+Removes things that can be found in standard locations. Effectively undoes
+the B<dist> target.
+
+=item B<show>
+
+Displays some internal variables/macros.
+
+=item B<tar>
+
+Creates a tarball consisting of all the source files, makefile and scripts.
+
+=item B<clean>
+
+Removes generated objects, dependency, executable and core dumps.
+
+=item B<ultraclean>
+
+In addition to clean, removes waveforms and other intermediates.
+
+=item B<distclean>
+
+In addition to ultraclean, removes all log files, and things not part
+of the distribution.
+
+=item B<version>
+
+Displays the version of GCC and SystemC.
+
+=item B<html>
+
+Runs doxygen to generate help in HTML (web page) format.
+
+=item B<pdf>
+
+Runs doxygen to generate help in PDF format.
+
+=item B<gprof>
+
+Runs the GNU Profiler.
+
+=item B<gcov>
+
+Runs the GNU Coverage tool.
+
+=back
+
+You will likely wish to set the following variables:
+
+=over
+
+=item *
+
+B<PROJ_HOME> points to the project home directory.
+You must define it.
+
+=item *
+
+B<UNIT>, establishes the basename for the executable
+
+=item *
+
+B<SRCS>, a list of source files (.cpp) to be compiled
+
+=item *
+
+B<BOOST_LIBS>, an optional list of boost libraries you use.
+Specified I<without> the B<-lboost_> prefix.
+
+=item *
+
+B<BOOST_HOME> points to the directory where boost is installed. 
+It is assumed that the following hierarchy exists:
+
+  ${BOOST_HOME}/
+  +- include/
+  |  +- boost/
+  +- lib/
+
+=back
+
+The following are optional:
+
+=over
+
+=item B<MY_CDEFS>
+
+May contain arbitrary preprocessor definitions of the
+for B<-D>I<NAME> with an optionally appended value B<=>I<VALUE>.
+
+=item B<MY_CFLAGS>
+
+May contain arbitrary compiler options.
+
+=item B<MY_LDFLAGS>
+
+May contain arbitrary linker options (flags).
+
+=item B<MY_INCDIRS>
+
+May contain B<-I>I<DIRECTORY> include directory specifications.
+
+=item B<MY_LIBDIRS>
+
+May contain B<-I>L<DIRECTORY> library directory specifications.
+
+=item B<MY_LIBS>
+
+May contain B<-l>I<LIBNAME> library specifications.
+
+=back
+
+=head1 ENVIRONMENT
+
+Assumes GNU make.
+
+B<SYSTEMC> or B<SYSTEMC_HOME> environment variable set properly (points to
+installation of SystemC).
+
+=head1 EXAMPLES
+
+Given Makefile containing:
+
+ +---------------------------------------------------------------------
+ |#!gmake -f
+ |# Assumes GNU make version 3.8 or better
+ |
+ |UNIT:=example
+ |SRCS:=subroutine.cpp main.cpp
+ |
+ |#--------------------------------------------------------------------
+ |# *** DO NOT EDIT BELOW THIS LINE *** DO NOT EDIT BELOW THIS LINE ***
+ |#--------------------------------------------------------------------
+ |# The following locates the closest definition file containing the
+ |# make rules that are used to compile designs anywhere here or above
+ |# to three levels or in the ${HLDW}/etc directory..
+ |ifndef EDA
+ |  $(info INFO: Defining EDA)
+ |  export EDA:=$(firstword $(wildcard ./eda ../eda ${HOME}/eda /eda))
+ |endif
+ |ifndef HLDW
+ | ifdef HLDW
+ |  $(info Defining HLDW)
+ |  HLDW:=$(HLDW)
+ | else
+ |  HLDW:=$(firstword $(wildcard $EDA/hldw/default $EDA/util/default))
+ | endif
+ | export HLDW
+ |endif
+ |# Allow for overrides locally, but normally use ${HLDW}/etc
+ |UPWARDDIRS:=$(wildcard .. ../.. ../../.. ../../../..)
+ |$(info UPWARDDIRS=${UPWARDDIRS})
+ |RULEDIRS := $(addsuffix /shared/etc,${UPWARDDIRS}) . $(UPWARDDIRS) $(HLDW)/etc
+ |RULES := $(firstword \
+ |           $(wildcard \
+ |             $(addsuffix etc/Makefile.rules,$(RULEDIRS))\
+ |             $(addsuffix /Makefile.rules,$(RULEDIRS))\
+ |           )\
+ |         )
+ |$(info INFO: Including $(RULES))
+ |include $(RULES)
+ +---------------------------------------------------------------------
+
+B<gmake> -f Makefile.rules
+
+B<gmake> SRCS="top.cpp main.cpp" UNIT=mycode
+
+=head1 AUTHOR
+
+David C Black <dcblack@hldwizard.com>
+
+=cut
+
+endef
+
+.PHONY: default help selftest envv obj compile objs lib link exe run debug gdb ddd deps rmdeps tar  \
+        install dist rmdist sweep clean ultraclean distclean version\
+        sim simulation html pdf lns gprof gcov show
+
+ifndef EDA
+ $(info INFO: Defining EDA)
+ export EDA:=$(firstword $(wildcard ./eda ../eda ${HOME}/eda /eda))
+endif
+ifndef HLDW
+ HLDW:=$(firstword $(wildcard $EDA/hldw/default $EDA/util/default))
+ export HLDW
+endif
+
+# Locate macros - should be in same directory as rules
+MACROS := $(wildcard $(addsuffix /Makefile.macros,$(dir ${MAKEFILE_RULES})))
+$(warning Including $(MACROS))
+include $(MACROS)
+
+# Following help with finding tools used by this environment
+UPWARDDIRS:=$(call Parents,${PWD})
+$(info INFO: UPWARDDIRS=${UPWARDDIRS})
+
+ifndef SHARED_DIR
+  SHARED_DIR:=$(firstword $(wildcard $(addsuffix /shared,. ${UPWARDDIRS} $(PROJ_HOME))))
+endif
+ifndef SHARED_BIN
+  ifdef SHARED_DIR
+    SHARED_BIN:=$(SHARED_DIR)/bin
+  endif
+endif
+$(call Report_debug,SHARED_DIR)
+
+# Standard locations for include directories
+export INCLUDE_DIRECTORY_LOCATIONS:=. ../include ../includes ../inc ../incs
+# Standard locations for source directories
+export SOURCE_DIRECTORY_LOCATIONS:=. ../src ../srcs ../source ../sources
+# Standard extensions
+export SOURCE_EXTENSIONS:=cpp cxx cc c
+
+################################################################################
+# Determine defaults for some variables <<<
+################################################################################
+C_DEFS:=${MY_CDEFS}
+CFLAGS:=${MY_CFLAGS}
+
+ifdef MODULE
+  # Backwards compatibility
+  UNIT:=${UNIT:}
+  MODULE:=
+  unexport MODULE
+endif
+ifndef UNIT
+  UNIT:=$(notdir $(patsubst %/,%,${PWD}))
+  $(info INFO: Using directory name '${UNIT}' for UNIT)
+endif
+ifeq "${SRCS}" "{:SRCS:}"
+  $(error You must replace {:SRCS:} in Makefile with a list of source files)
+endif
+ifeq "${SRCS}" ""
+  override SRCS := $(wildcard \
+                     $(foreach l,. ..,\
+                       $(foreach d,${SOURCE_DIRECTORY_LOCATIONS},\
+                         $(foreach e,${SOURCE_EXTENSIONS},$l/$d/*/$e)\
+                        )\
+                      )\
+                    )
+  $(warning Wildcarding files for SRCS yields '${SRCS}')
+endif
+override SRCS:=$(foreach s,${SRCS},$(if $(wildcard $s),$s,$(if $(wildcard ../src/$s),../src/$s,$s)))
+SRC_MISSING:=$(foreach s,${SRCS},$(if $(wildcard $s),,$s))
+SRC_NAMES:=$(filter-out %.cpp %.c %.hpp %.h,${SRC_MISSING})
+SRC_MISSING:=$(filter-out ${SRC_NAMES},${SRC_MISSING})
+SRC_DIRS:=$(call Get_dirs,${SRCS})
+SRC_FILES:=$(call Get_notdirs,$(wildcard ${SRCS}))
+$(call Report_debug,SRCS SRC_NAMES SRC_FILES SRC_DIRS SRC_MISSING)
+ifneq "$(SRC_MISSING)" ""
+  $(warning WARNING: Missing files!)
+endif
+ifeq "$(wildcard ${SRC_FILES} ${SRC_DIRS})" ""
+  $(error ERROR: No source files found (SRCS)!?)
+endif
+
+################################################################################
+ifdef SHARED
+  SHARED_DIRS:=$(realpath $(call Get_dirs,${SHARED} ${SHARED_DIR}))
+  SHARED_FILE:=$(call Get_notdirs,${SHARED})
+endif
+ifdef SHARED_DIRS
+  SHARED_INCS:=$(addprefix -I,$(wildcard $(addsuffix /include,${SHARED_DIRS})))
+endif
+ifdef SHARED_FILE
+  $(info Examining shared files)
+  SHARED_SRCS:=$(wildcard $(foreach dir,${SHARED_DIRS},$(foreach sdir,/ /src/,$(addprefix ${dir}${sdir},${SHARED_FILE}))))
+# remove duplicates
+  SHARED_SRCS:=$(sort $(realpath ${SHARED_SRCS}))
+  SHARED_INCS+=$(addprefix -I,$(realpath $(wildcard $(foreach sdir,/. /include,$(addsuffix ${sdir},$(dir ${SHARED_SRCS}))))))
+# SHARED_LIBS:=$(wildcard $(addsuffix /lib,$(dir $(dir ${SHARED_SRCS}))))
+# SHARED_libs:=$(addprefix -l,$(notdir ${SHARED_SRCS}))
+# # TODO:need to match libs against LIBS
+# SHARED_LIBS:=$(addprefix -L,${SHARED_LIBS})
+# SHARED_libs:=$(addprefix -l,${SHARED_libs})
+endif
+$(call Report_debug,SHARED_DIRS SHARED_FILE SHARED_INCS SHARED_SRCS)
+################################################################################
+
+# Find unmentioned header files
+HDRS+=${SRCS} ${SHARED_SRCS}
+HDRS:=$(patsubst %.cpp,%.h,${HDRS})
+HDRS:=$(patsubst %.cxx,%.h,${HDRS})
+HDRS:=$(patsubst %.cc, %.h,${HDRS})
+HDRS:=$(patsubst %.c,  %.h,${HDRS})
+HDRS+=$(patsubst %.h,%.hpp,${HDRS})
+ifneq "${INCLUDES_PGM}" ""
+HDRS+=$(shell ${INCLUDES_PGM} ${SRCS} ${HDRS})
+endif
+HDRS:=$(sort ${HDRS})
+HDRS:=$(wildcard ${HDRS} $(addprefix ../include/,${HDRS}))
+
+# Figure out filenames for objects
+ifndef OBJS
+  OBJS:=${SRCS}
+  OBJS:=$(patsubst %.cpp,%.o,${OBJS})
+  OBJS:=$(patsubst %.cxx,%.o,${OBJS})
+  OBJS:=$(patsubst %.cc, %.o,${OBJS})
+  OBJS:=$(patsubst %.c,  %.o,${OBJS})
+endif
+SHARED_OBJS := ${SHARED_SRCS}
+SHARED_OBJS := $(patsubst %.cpp,%.o,${SHARED_OBJS})
+SHARED_OBJS := $(patsubst %.cxx,%.o,${SHARED_OBJS})
+SHARED_OBJS := $(patsubst %.cc, %.o,${SHARED_OBJS})
+SHARED_OBJS := $(patsubst %.c,  %.o,${SHARED_OBJS})
+ifdef OBJFLAVOR
+  OBJS:=$(patsubst %.o,%${OBJFLAVOR}.o,${OBJS})
+  SHARED_OBJS:=$(patsubst %.o,%${OBJFLAVOR}.o,${SHARED_OBJS})
+endif
+# Stuff for libraries
+ifdef LIBSRCS
+  LIBOBJS := $(SRCS:.cpp=.o)
+  LIBOBJS:=$(patsubst %.c,  %.o,${SRCS})
+  LIBOBJS:=$(patsubst %.cc, %.o,${LIBOBJS})
+  LIBOBJS:=$(patsubst %.cpp,%.o,${LIBOBJS})
+  LIBOBJS:=$(patsubst %.cxx,%.o,${LIBOBJS})
+  ifdef OBJFLAVOR
+    LIBOBJS:=$(patsubst %.o,%${OBJFLAVOR}.o,${LIBOBJS})
+  endif
+endif
+ifndef OBJDIR
+  OBJDIR:=.
+endif
+ifndef NODEPS
+  FOBS := ${OBJS}
+else
+  FOBS := $(addprefix ${OBJDIR}/,$(notdir ${OBJS}))
+endif
+ifndef LIBDIR
+  LIBDIR:=../lib-${TARGET_ARCH}
+endif
+ifneq "$(wildcard ${HLDW}/hldw)" ""
+  EA:=hldw
+else
+  EA:=ea
+endif
+ifndef LIBFILE
+  LIBFILE:=lib${EA}
+endif
+
+################################################################################
+# Test for features within source code
+#------------------------------------------------------------------------------
+ifneq "$(wildcard ${SRCS} ${SHARED_SRCS})" ""
+ $(info INFO: Examining source files)
+ ifneq "$(strip $(call File_contains,systemc|\bsc_,${SRCS} ${SHARED_SRCS}))" ""
+  USING_SYSTEMC:=1
+  $(info INFO: Using SystemC)
+  ifndef SYSTEMC
+    # NOTE: In the following SYSTEMC_HOME is purely for certain EDA tools that
+    # use a different convention for identifying the location of SystemC
+    # includes & libraries.
+    ifdef SYSTEMC_HOME
+      export SYSTEMC:=${SYSTEMC_HOME}
+    else
+      $(error The SYSTEMC environment variable is not set)
+    endif
+  endif
+  ifndef SYSTEMC_HOME
+    export SYSTEMC_HOME:=${SYSTEMC}
+  endif
+  #$(call Report_debug,SYSTEMC_VERSION_PGM)
+  SYSTEMC_VERSION:=$(shell ${SYSTEMC_VERSION_PGM} -D)
+  SYSTEMC_VERSION_INT:=$(shell ${SYSTEMC_VERSION_PGM} -int)
+  SYSTEMC_FULL:=$(shell ${SYSTEMC_VERSION_PGM})-gcc${GCC_VERSION}
+  $(info INFO: Using ${SYSTEMC_VERSION} library)
+ endif
+ ifneq "$(strip $(call File_contains,null_ptr|unique_ptr,${SRCS} ${SHARED_SRCS}))" ""
+  USING_CXX11:=1
+ endif
+ ifneq "$(strip $(call File_contains,scv_,${SRCS} ${SHARED_SRCS}))" ""
+  USING_SCV:=1
+  $(info INFO: Using SCV library)
+ endif
+ ifneq "$(strip $(call File_contains,TLM|tlm_|tlm.h,${SRCS} ${SHARED_SRCS}))" ""
+  USING_TLM:=1
+  $(info INFO: Using TLM library)
+ endif
+ ifneq "$(strip $(call File_contains,sc_fix|sc_ufix,${SRCS} ${SHARED_SRCS}))" ""
+  USING_FX:=1
+  $(info INFO: Using sc_fix types library)
+ endif
+ ifneq "$(strip $(call File_contains,tlm|sc_spawn|SC_FORK|simple_\w+_socket,${SRCS} ${SHARED_SRCS}))" ""
+   USING_DYNAMIC:=1
+   $(info INFO: Using dynamic processes library)
+ endif
+ ifneq "$(strip $(call File_contains,boost/,${SRCS} ${SHARED_SRCS}))" ""
+   USING_BOOST:=1
+   $(info INFO: Using BOOST library)
+ endif
+ ifneq "$(strip $(call File_contains,wx.h,${SRCS} ${SHARED_SRCS}))" ""
+  USING_WXWIDGETS:=1
+  $(info INFO: Using wxWidgets library)
+ endif
+ ifneq "$(strip $(call File_contains,201103L|([/= ]c[+][+]11),${SRCS} ${SHARED_SRCS}))" ""
+  USING_CXX11:=1
+ endif
+ ifeq "${GCC_VERSION}" "4.7"
+  USING_CXX11:=1
+ endif
+#ifneq "$(strip $(call File_contains,${EA}_,${SRCS} ${SHARED_SRCS}))" ""
+# USING_HLDW:=1
+# $(info INFO: Using HLDW library)
+#endif
+endif
+ifndef LIBPATH
+ ifdef USING_SYSTEMC
+  ifdef NC_SYSTEMC
+    LIBPATH:=${LIBDIR}/${LIBFILE}-${SYSTEMC_FULL}-cds.a
+  else
+   ifdef VSIMSACFG
+    LIBPATH:=${LIBDIR}/${LIBFILE}-${SYSTEMC_FULL}-aldec.a
+   else
+    LIBPATH:=${LIBDIR}/${LIBFILE}-${SYSTEMC_FULL}-osci.a
+   endif
+  endif
+ endif
+endif
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ifdef USING_SYSTEMC
+  ifeq "${PLATFORM}" "CYGWIN_NT-5.1"
+    SCV_DLL := ${SYSTEMC}/lib-cygwin/libscv.dll
+  endif
+endif
+
+ifdef LIBOBJS
+  LIBMBRS := $(patsubst %,${LIBPATH}(%),${LIBOBJS})
+endif
+
+ifndef DEPENDENCIES_FILE
+  DEPENDENCIES_FILE := ${UNIT}${OBJFLAVOR}.deps
+endif
+
+.PRECIOUS: ${DEPENDENCIES_FILE} ${SHARED_OBJS} ${OBJS} ${EXE}
+
+#ifeq "$(shell in_clearcase_dir -v)" "Yes"
+#  USING_CLEARCASE:=1
+#endif
+#>>>
+################################################################################
+
+################################################################################
+
+# Allow command-line arguments to come from file if not defined
+ifneq "$(wildcard ${UNIT}.args)" ""
+  ifndef RUNTIME_ARGS
+    RUNTIME_ARGS := $(shell cat ${UNIT}.args)
+  endif
+endif
+
+################################################################################
+# Standard variables affecting compilation <<<
+################################################################################
+ifdef NDEBUG
+  NDEBUG_SYSTEMC := 1
+endif
+ifeq "${PLATFORM}" "Darwin2"
+  ifndef CXX
+  #ifeq "${CXX}" "g++"
+  $(info DEBUG: using clang++)
+    USING_CLANG := 1
+    CPUWIDTH := 64
+  endif
+endif
+ifdef USING_CLANG
+  CC  := clang
+  CXX := clang++
+endif
+CXX_PGMS:=systemcc ${CXX} clang++ g++ c++
+CXX_PGM:=$(call Find_executable,${CXX_PGMS})
+$(info INFO: Using ${CXX_PGM} for compiling)
+ifndef FIX_PGM
+  FIX_PGM :=$(call Findbin,fixdeps)
+endif
+ifndef GDB_PGM
+  GDB_PGM :=$(firstword $(wildcard /usr/bin/gdb /sw/bin/gdb $(call Find_executable,gdb)))
+endif
+ifndef DDD_PGM
+  DDD_PGM :=$(firstword $(wildcard /usr/bin/ddd /sw/bin/ddd $(call Find_executable,ddd)))
+endif
+ifndef NOPEDANTIC
+  CFLAGS += -pedantic -Wno-long-long
+endif
+ifdef WORKLIB
+  HAS_SHARED := 1
+endif
+ifdef HAS_SHARED
+  $(info INFO: Creating shared output)
+  ifeq "${PLATFORM}" "Darwin"
+    CFLAGS += -dynamic
+  else
+    CFLAGS += -shared
+  endif
+  CFLAGS += -fPIC
+endif
+ifndef CXXFLAGS
+  CXXFLAGS := ${OTHER_CFLAGS}
+endif
+
+ifdef OPTIMIZE
+  ifeq "${OPTIMIZE}" ""
+    OPTLEVEL:=-O3
+  else
+    OPTLEVEL:=-O${OPTIMIZE}
+  endif
+else
+  OPTLEVEL:=-O0
+endif
+
+ifdef VISTA_HOME
+  CXX     := ${VISTA_HOME}/${TARGET_ARCH}32/tools/bin/g++
+  CC      := ${VISTA_HOME}/${TARGET_ARCH}32/tools/bin/g++
+  VISTACC := vista_c++ -sc201 -gcc34
+  LD      :=  ${VISTACC}
+endif
+ifndef CC
+  CC := gcc
+endif
+ifndef NDEBUG
+  CFLAGS   += -ggdb
+endif
+ifdef GPROF
+  CFLAGS += -pg
+  OPTLEVEL:=-O0
+endif
+ifdef GCOV
+  CFLAGS += -fprofile-arcs -ftest-coverage
+  OPTLEVEL:=-O3
+endif
+CFLAGS += -Wno-deprecated
+CFLAGS += ${OPTLEVEL}
+
+# Allow user overrides to go first
+LDFLAGS := ${OTHER_LDFLAGS} ${MY_LDFLAGS}
+INCDIRS := -I.  -I../include -I../src ${SHARED_INCS} ${MY_INCDIRS}
+C_DEFS  +=      ${HLDW_DEFS}
+LIBDIRS := -L.  ${OTHER_LIBDIRS} ${MY_LIBDIRS}
+LIBS    :=      ${OTHER_LIBS} ${MY_LIBS}
+tmp:=$(wildcard ./include)
+
+CC_CMD  := ${CC} 
+CXX_CMD := ${CXX}
+LD_CMD  := ${CXX}
+
+ifdef USING_WXWIDGETS
+  CXXFLAGS += $(shell wx-config --cppflags) -Wno-long-long
+  LDFLAGS  += $(shell wx-config --libs)
+endif
+
+ifdef HAS_SHARED
+  LDFLAGS += -shared
+endif
+ifneq "" "${tmp}"
+  INCDIRS += -I${tmp}
+endif
+tmp:=$(firstword $(wildcard ../include))
+ifneq "" "${tmp}"
+  INCDIRS += -I${tmp}
+endif
+tmp:=$(firstword $(wildcard ../lib-${TARGET_ARCH}))
+ifneq "" "${tmp}"
+  LIBDIRS += -L${tmp}
+endif
+ifdef HLDW
+  ifdef USING_SYSTEMC
+   ifdef USING_HLDW
+     ifndef NOHLDW
+      INCDIRS += -I${HLDW}/include
+      LIBDIRS += -L${HLDW}/lib-${TARGET_ARCH}
+      ifdef NC_SYSTEMC
+        LIBS    += -l${EA}-${SYSTEMC_FULL}-cds
+      else
+       ifdef VSIMSACFG
+        LIBS    += -l${EA}-${SYSTEMC_FULL}-aldec
+       else
+        LIBS    += -l${EA}-${SYSTEMC_FULL}-osci
+       endif
+      endif
+     endif
+   endif
+  endif
+endif
+ifdef M
+  CPUWIDTH:=$M
+endif
+ifeq "${TARGET_ARCH}" "linux64"
+  CPUWIDTH:=64
+endif
+ifeq "${TARGET_ARCH}" "macosx64"
+  CPUWIDTH:=64
+endif
+ifndef CPUWIDTH
+  CPUWIDTH:=32
+  $(info defaulting to 32 bits)
+endif
+
+ifdef NDEBUG
+  C_DEFS += -DNDEBUG
+endif
+ifdef NDEBUG_SYSTEMC
+  C_DEFS += -DNDEBUG_SYSTEMC
+endif
+ifdef USING_BOOST
+  # Remove old style -l
+  BOOST_LIBS:=$(patsubst -l%,%,${BOOST_LIBS})
+  $(call Report_debug,BOOST_LIBS)
+  $(call Report_debug,BOOST_LDIR)
+  INCDIRS += -I${BOOST_HOME}/include
+  LIBDIRS += -L${BOOST_LDIR}
+  # Add -l back in for each library iff it exists
+  LIBS    += $(addprefix -l,$(foreach lib,${BOOST_LIBS},$(patsubst libb%.a,b%,$(notdir $(wildcard ${BOOST_LDIR}/lib*${lib}*.a)))))
+  $(call Report_debug,LIBS)
+endif
+ifdef USING_SYSTEMC
+  ifdef SYSTEMC
+    ifdef SYSTEMC_VERSION
+      C_DEFS += -D${SYSTEMC_VERSION}
+    endif
+    ifdef SYSTEMC_VERSION_INT
+      C_DEFS += -DSYSTEMC_VERS=${SYSTEMC_VERSION_INT}
+    endif
+    ifndef NDEBUG_SYSTEMC
+      C_DEFS += -DDEBUG_SYSTEMC
+    else
+  $(info INFO: Turning off DEBUG_SYSTEMC)
+    endif
+    SYSTEMC_LIB:=$(firstword $(wildcard ${SYSTEMC}/lib-${TARGET_ARCH} ${SYSTEMC}/lib))
+    ifeq "${SYSTEMC_LIB}" ""
+      $(error Missing SystemC library ${SYSTEMC}/lib-${TARGET_ARCH})
+    endif
+    INCDIRS  += -I$(call Require_real,${SYSTEMC}/include)
+    LIBDIRS  += -L${SYSTEMC_LIB}
+    LIBS     += -lsystemc
+    # Support some EDA tools
+    export SYSTEMC_HOME:=${SYSTEMC}
+    # Forte support
+    ifdef CYNTH_HOME
+      INCDIRS += -I${CYNTH_HOME}/include
+    endif
+  endif
+endif
+ifdef DOULOS
+  $(info INFO: Using Doulos checkers)
+  USING_DOULOS:=1
+  INCDIRS += -I${DOULOS}/include
+endif
+ifeq "${TARGET_ARCH}" "macosx64"
+  CPUWIDTH:=64
+  CXX_CMD += -arch x86_64
+endif
+ifdef USING_FX
+  C_DEFS += -DSC_INCLUDE_FX
+endif
+ifdef USING_DYNAMIC
+  C_DEFS += -DSC_INCLUDE_DYNAMIC_PROCESSES
+endif
+ifdef USING_CXX11
+  CXX_CMD += -std=c++11
+  #CXX_CMD += -stdlib=libc++
+endif
+CC_CMD  += -m${CPUWIDTH}
+CXX_CMD += -m${CPUWIDTH}
+LD_CMD  += -m${CPUWIDTH}
+C_DEFS  += -DW${CPUWIDTH}
+$(info Using ${CPUWIDTH}-bit architecture)
+ifdef USING_SCV
+  ifdef SYSTEMC_SCV
+    ifneq "$(SYSTEMC)" "$(SYSTEMC_SCV)"
+      INCDIRS += -I${SYSTEMC_SCV}/include
+      LIBDIRS += -L$(firstword $(wildcard ${SYSTEMC_SCV}/lib-${TARGET_ARCH} ${SYSTEMC_SCV}/lib))
+    endif
+  endif
+  LIBS   += -lscv
+endif
+ifdef USING_TLM
+  ifdef TLM_HOME
+    ifndef SYSTEMC_TLM
+      SYSTEMC_TLM:=${TLM_HOME}
+    endif
+  endif
+  ifdef SYSTEMC_TLM
+    INCDIRS += -I${SYSTEMC_TLM}/include/tlm
+  endif
+endif
+# Allow for other extensions
+LDFLAGS += ${BDW_EXTRA_LDFLAGS}
+
+# Allow user to override
+ifdef OTHER_DEFS
+C_DEFS    += ${OTHER_DEFS}
+endif
+$(info INFO: C_DEFS=$(C_DEFS))
+
+INCDIRS := $(call Unique,${INCDIRS})
+LIBDIRS := $(call Unique,${LIBDIRS})
+C_DEFS  := $(call Unique,${C_DEFS})
+LIBS    := $(call Unique,${LIBS})
+OBJS    := $(call Unique,${OBJS})
+
+# Fixup
+INCDIRS := $(patsubst -I-I%,-I%,${INCDIRS})
+LIBDIRS := $(patsubst -L-L%,-L%,${LIBDIRS})
+
+FLAGS:=${CXXFLAGS} ${CFLAGS} ${OTHER_CFLAGS} ${PLUSFLAGS}
+
+ifndef EXE
+  ifndef HAS_SHARED
+    EXE := $(strip ${UNIT})-${TARGET_ARCH}.x
+  else
+    EXE := $(strip ${UNIT}).so
+  endif
+endif
+#>>>
+################################################################################
+.SUFFIXES: .cc .cpp .o .x
+
+ifndef DFLT
+  DFLT:=exe
+endif
+
+default_target: version ${DFLT}
+
+version:
+	@echo "INFO: GCC version " `${GCC_VERSION_PGM}`;
+ifdef SYSTEMC_VERSION
+	@echo -n "INFO: SystemC version "; ${SYSTEMC_VERSION_PGM};
+endif
+	@$(RULER);
+
+envv:
+	@echo "MAKEFILE_RULES = ${MAKEFILE_RULES}"
+
+help:
+	@perldoc ${MAKEFILE_RULES}
+
+################################################################################
+# 'show' rule displays internal variables for debug purposes <<<
+show:
+	@header WHAT
+	@$(RULER);
+	@echo "User specified:";
+	@echo "  DFLT='${DFLT}'";
+	@echo "  UNIT='${UNIT}'";
+	@echo "  SRCS='${SRCS}'";
+	@echo "  HDRS='${HDRS}'";
+	@echo "  MAKEFILE_LIST='${MAKEFILE_LIST}'";
+	@$(RULER);
+	@echo "Environment/discovered:";
+	@echo "  HLDW='${HLDW}'";
+	@echo "  SYSTEMC='${SYSTEMC}'";
+	@echo "  SYSTEMC_SCV='${SYSTEMC_SCV}'";
+	@echo "  SYSTEMC_TLM='${SYSTEMC_TLM}'";
+	@echo "  BOOST='${BOOST}'";
+#ifdef BMAKEFILE
+	@$(RULER);
+	@echo "bmake:";
+	@echo "  BMAKE='${BMAKE}'";
+	@echo "  BMAKEFILE='${BMAKEFILE}'";
+	@echo "  PLUSOPTS='${PLUSOPTS}'";
+	@echo "  PLUSARGS='${PLUSARGS}'";
+	@echo "  PLUSDEFINES='${PLUSDEFINES}'";
+	@echo "  PLUSFLAGS='${PLUSFLAGS}'";
+#endif BMAKEFILE
+	@$(RULER);
+	@echo "Computed:";
+	@echo "  INCDIRS='${INCDIRS}'";
+	@echo "  C_DEFS='${C_DEFS}'";
+	@echo "  OBJS='${OBJS}'";
+	@echo "  SHARED_OBJS='${SHARED_OBJS}'";
+	@echo "  LIBDIRS='${LIBDIRS}'";
+	@echo "  LIBS='${LIBS}'";
+	@echo "  CXX='${CXX}'";
+	@echo "  CXXFLAGS='${CXXFLAGS}'";
+	@echo "  CFLAGS='${CFLAGS}'";
+	@echo "  RUNTIME_ARGS='${RUNTIME_ARGS}'";
+	@echo "  EXE='${EXE}'";
+	@$(RULER)
+#>>>
+
+debug: gdb
+gdb: exe
+	@echo 'printf "Begin ${UNIT}.gdb"'   >${UNIT}.gdb;
+	@echo 'set args ${RUNTIME_ARGS}'    >>${UNIT}.gdb;
+ifdef BREAKPOINTS
+	@for bp in $(call Unique,sc_main ${BREAKPOINTS}); do \
+           echo "break $$bp" >>${UNIT}.gdb;\
+           echo 'commands'                  >>${UNIT}.gdb;\
+           echo '  printf " ***'$$bp'\\n"'  >>${UNIT}.gdb;\
+           echo 'end'                       >>${UNIT}.gdb;\
+           done
+endif
+	@echo 'run'                         >>${UNIT}.gdb;
+	@echo 'printf "End ${UNIT}.gdb"'    >>${UNIT}.gdb;
+	${GDB_PGM} -x ${UNIT}.gdb ${EXE}
+
+ddd: exe
+	@echo "set args ${RUNTIME_ARGS}"  >${UNIT}.gdb;
+ifdef BREAKPOINTS
+	@for bp in ${BREAKPOINTS}; do echo "break $$bp" >>${UNIT}.gdb;
+endif
+	@echo "break sc_main"  >>${UNIT}.gdb;
+	@echo "run"  >>${UNIT}.gdb;
+	@-rm -f .gdbinit; ln -s ${UNIT}.gdb .gdbinit
+	${DDD_PGM} ${EXE}
+
+sim:        run
+simulation: run
+
+runbg: ${EXE}
+        # Simple background execution
+	@echo "${EXE} ${RUNTIME_ARGS}"
+	@-time ./${EXE} ${RUN_TIME_ARGS} &
+
+noscr: noscript
+noscript:
+	$(MAKE) NOSCRIPT=1 run
+ifdef NOSCRIPT
+  SCRIPT:=""
+else
+  SCRIPT=./${UNIT}.scr
+endif
+run: ${EXE}
+	@$(RULER);
+	@echo "RUNNING SIMULATION";
+	@$(RULER)
+ifndef NORUN
+	@$(RULER);
+ ifneq "$(wildcard ${SCRIPT})" ""
+	@echo "$(wildcard ./${UNIT}.scr) ${RUNTIME_ARGS}"
+	@-time ./$(wildcard ./${UNIT}.scr) ${RUNTIME_ARGS}\
+        || echo "INFO: Simulation had runtime errors"
+ else
+ ifdef VISTA_HOME
+  ifneq "$(wildcard ./${UNIT}_rcfg.xml)" ""
+        # Execution with a run-time configuration
+	@echo "vista -exec ${EXE} --rcfg ./${UNIT}_rcfg.xml ${RUNTIME_ARGS}"
+	@-time vista -exec ./${EXE} --rcfg ./${UNIT}_rcfg.xml ${RUN_TIME_ARGS}\
+        || echo "INFO: Simulation had runtime errors"
+  else
+  ifneq "$(wildcard ./${UNIT}.dat)" ""
+        # Execute streaming a data file into STDIN
+	@echo "vista -exec ${EXE} ${RUNTIME_ARGS} < $(wildcard ./${UNIT}.dat)"
+	@-time vista -exec ./${EXE} ${RUN_TIME_ARGS} < $(wildcard ./${UNIT}.dat)\
+	|| echo "INFO: Simulation had runtime errors"
+  else
+        # Simple execution
+	@echo "vista -exec ${EXE} ${RUNTIME_ARGS}"
+	@-time vista -exec ./${EXE} ${RUN_TIME_ARGS}\
+        || echo "INFO: Simulation had runtime errors"
+  endif
+  endif
+ else
+  ifneq "$(wildcard ./${UNIT}_rcfg.xml)" ""
+        # Execution with a run-time configuration
+	@echo "${EXE} --rcfg ./${UNIT}_rcfg.xml ${RUNTIME_ARGS}"
+	@-time ./${EXE} --rcfg ./${UNIT}_rcfg.xml ${RUNTIME_ARGS}\
+        || echo "INFO: Simulation had runtime errors"
+  else
+  ifneq "$(wildcard ./${UNIT}.dat)" ""
+        # Execute streaming a data file into STDIN
+	@echo "${EXE} ${RUNTIME_ARGS} < $(wildcard ./${UNIT}.dat)"
+	@-time ./${EXE} ${RUNTIME_ARGS} < $(wildcard ./${UNIT}.dat)\
+	|| echo "INFO: Simulation had runtime errors"
+  else
+        # Simple execution
+	@echo "${EXE} ${RUNTIME_ARGS}"
+	@-time ./${EXE} ${RUNTIME_ARGS}\
+        || echo "INFO: Simulation had runtime errors"
+  endif
+  endif
+  endif
+ endif
+else
+	@echo "INFO: Executable is ready (NORUN was specified)";
+endif
+	@$(RULER)
+
+compile obj objs: deps $(if ${LIBMBRS},${LIBOBJS} ${LIBMBRS}) ${SHARED_OBJS} ${OBJS}
+
+lib: deps ${LIBPATH}
+
+link: exe
+exe: deps $(if ${LIBMBRS},${LIBOBJS} ${LIBMBRS}) ${EXE}
+
+work: ${WORKLIB}
+
+rmdeps:
+	-rm -f ${DEPENDENCIES_FILE}
+
+deps: rmdeps ${DEPENDENCIES_FILE}
+
+################################################################################
+#
+#      #                                         
+#     # #               ##                       
+#    #   #               #                       
+#   #     # ####   ###   #   #   # ######  ###   
+#   ####### #   # #   #  #    # #     ##  #####  
+#   #     # #   # #  ##  #     #    ##    #      
+#   #     # #   #  ## # ###    #   ######  ###   
+#  
+################################################################################
+# Profiling (time, memory, coverage)
+################################################################################
+ifndef GPROF
+gprof:
+	$(MAKE) gprof GPROF=
+else
+gprof: run
+	gprof ${GPROF} ${EXE} gmon.out
+endif
+ifndef GCOV
+gcov:
+	$(MAKE) gcov GCOV="-fprofilearcs -ftest-coverage"
+else
+gcov: run
+	gcov ${GCOV}
+endif
+ifndef MEMLEAK
+memleak:
+	$(MAKE) memleak MEMLEAK=
+else
+memleak: run
+	memleak ${MEMLEAK}
+endif
+
+################################################################################
+#  
+#    ####                                        ##       #                  
+#   #    #                        ##            #  #      #             #    
+#   #                          #   #             ##       #     #       #    
+#   #       ###  ### ##  ###       #   ###      ###       #        ###  #    
+#   #      #   # #  #  # #  # ##   #  #####    #   # #    #    ##  #  # #  # 
+#   #    # #   # #  #  # ###   #   #  #        #    #     #     #  #  # ###  
+#    ####   ###  #  #  # #    ### ###  ###      ###  #    #### ### #  # #  # 
+#  
+################################################################################
+# Compilation
+################################################################################
+# Link
+define LINK
+(${SETUP}\
+${LD_CMD} ${LIBDIRS} -o $1 $2 ${LDFLAGS} ${LIBS} 2>&1 | c++filt ) | tee link.log
+endef
+${EXE}: ${SHARED_OBJS} ${OBJS} ${OTHER_OBJS}
+	@$(RULER)
+	@echo "LINK TO CREATE EXECUTABLE";
+	@$(RULER)
+	@-rm -fr ${EXE}
+	@$(call REPORT_TITLE,Linking $@);
+	@touch FAILED_TO_LINK.$(@F)
+	$(strip $(call LINK,$@,${SHARED_OBJS} ${OBJS} ${OTHER_OBJS})) 
+	@test -x ${EXE}
+	@rm FAILED_TO_LINK.$(@F)
+
+ifdef WORKLIB
+${WORKLIB}: ${SHARED_OBJS} ${OBJS} ${OTHER_OBJS}
+	@$(RULER)
+	@echo "LINK TO CREATE SHARED LIBRARY";
+	@$(RULER)
+	@-rm -fr ${WORKLIB}
+	@echo "INFO: Linking $@";
+	@touch FAILED_TO_LINK.$(@F)
+	$(strip $(call LINK,$@,${SHARED_OBJS} ${OBJS} ${OTHER_OBJS})) 
+	@test -r ${WORKLIB}
+	@rm FAILED_TO_LINK.$(@F)
+endif
+
+ifneq "$(findstring systemcc,${CXX_PGM})" ""
+  $(info INFO: Using SYSTEMCC)
+  define SYSTEMCC
+    (${CXX_PGM} -cd $1 $2 $3) 2>&1 | tee compile.log
+  endef
+else
+  $(info INFO: Default ${CXX})
+  define SYSTEMCC
+    (cd $1 && $2 $3 && cd -) 2>&1 | tee compile.log
+  endef
+endif
+
+# Compile C++
+%${OBJFLAVOR}.o: %.cpp
+	@$(RULER); $(call REPORT_TITLE,Compiling $<);
+	@-rm -f $@
+	@touch FAILED_TO_COMPILE.$(<F)
+	${SETUP} $(call SYSTEMCC,$(<D),${CXX_CMD},$(strip ${FLAGS} ${INCDIRS} ${C_DEFS} -o $(@F) -c $(<F)))
+	@rm FAILED_TO_COMPILE.$(<F)
+
+# Compile C++
+%${OBJFLAVOR}.o: %.cxx
+	@$(RULER); $(call REPORT_TITLE,Compiling $<);
+	@-rm -f $@
+	@touch FAILED_TO_COMPILE.$(<F)
+	${SETUP} $(call SYSTEMCC,$(<D),${CXX_CMD},$(strip ${FLAGS} ${INCDIRS} ${C_DEFS} -o  $(@F) -c $(<F)))
+	@rm FAILED_TO_COMPILE.$(<F)
+
+# Compile C++
+%${OBJFLAVOR}.o: %.cc
+	@$(RULER); $(call REPORT_TITLE,Compiling $<);
+	@-rm -f $@
+	@touch FAILED_TO_COMPILE.$(<F)
+	${SETUP} $(call SYSTEMCC,$(<D),${CXX_CMD},$(strip ${FLAGS} ${INCDIRS} ${C_DEFS} -o $(@F) -c $(<F)))
+	@rm FAILED_TO_COMPILE.$(<F)
+
+# Compile vanilla C if requested
+%${OBJFLAVOR}.o: %.c
+	@$(RULER); $(call REPORT_TITLE,Vanilla C code - Compiling $<);
+	@-rm -f $@
+	@touch FAILED_TO_COMPILE.$(<F)
+	${SETUP} $(call SYSTEMCC,$(<D),${CC_CMD},$(strip ${CFLAGS} ${INCDIRS} ${C_DEFS} -o $(@F) -c $(<F)))
+	@rm FAILED_TO_COMPILE.$(<F)
+
+################################################################################
+#  
+#   #     ### #####  #####     #    #####  #     # 
+#   #      #  #    # #    #   # #   #    #  #   #  
+#   #      #  #    # #    #  #   #  #    #   # #   
+#   #      #  #####  #####  #     # #####     #    
+#   #      #  #    # #  #   ####### #  #      #    
+#   #      #  #    # #   #  #     # #   #     #    
+#   ##### ### #####  #    # #     # #    #    #    
+#  
+################################################################################
+# Library maintenance
+################################################################################
+TARGET_HEADERS:=$(addprefix ${INCDIR}/,$(notdir ${HEADERS}))
+headers:
+ifdef USING_CLEARCASE
+#------------------------------------------------------------------------------
+# Create links to headers.
+#
+# NOTE: This fails without notice if the headers are checked out.
+# NOTE: The relative path logic makes all kinds of assumptions.
+#
+	-cleartool co -nc ${INCDIR}
+	for o in $(wildcard ${TARGET_HEADERS}); do cleartool rm $${o}; done
+	for t in ${HEADERS}; do cleartool ln -s ../`cleartool ls -d -short $${t} | cut -d"/" -f4-` ${INCDIR}/`basename $${t}`; done
+endif
+
+${LIBPATH}: ${OBJS}
+	@$(call REPORT_TITLE,Archiving $(notdir $@));
+	mkdir -p ${LIBDIR}
+ifdef USING_CLEARCASE
+# We need to checkout if not already
+	-cleartool ls $@ | grep -q CHECKEDOUT || cleartool co -nc $@
+endif
+	ar -rcs $@ $(filter-out %_tb.o,${OBJS})
+	ranlib $@
+
+${LIBPATH}(%.o): %.o
+	@$(call REPORT_TITLE,Updating $(notdir $@));
+	mkdir -p ${LIBDIR}
+ifdef USING_CLEARCASE
+# We need to checkout if not already
+	-cleartool ls $@ | grep -q CHECKEDOUT || cleartool co -nc ${LIBPATH}
+endif
+	ar -rcs ${LIBPATH} $<
+	ranlib ${LIBPATH}
+
+################################################################################
+# Housekeeping
+################################################################################
+TARBALL:=${UNIT}.tgz
+TARLIST=$(call Unique,\
+  $(wildcard README* LICENSE* GITHEAD CHANGELOG* NOTES* INSTALL* ?akefile docs etc)\
+  ${HDRS}\
+  ${SRCS}\
+  $(wildcard $(OTHER_TAR))\
+  $(wildcard ${UNIT}.scr ${UNIT}.dat)\
+  )
+tar:
+	@test -e ${UNIT} || ln -s . ${UNIT}; # create link if non-existant
+	@$(call Mkdir,${UNIT}/etc)
+	@$(call Mkln,${MAKEFILE_RULES},${UNIT}/etc/$(notdir ${MAKEFILE_RULES}))
+	@$(call Mkln,${MAKEFILE_MACROS},${UNIT}/etc/$(notdir ${MAKEFILE_MACROS}))
+	@$(call Mkln,${HLDW}/bin,)
+	@echo "git version " >GITHEAD && git rev-parse HEAD 2>/dev/null >>GITHEAD || rm -f GITHEAD
+	tar cvhzf ${TARBALL} $(addprefix ${UNIT}/,${TARLIST}) >MANIFEST.txt 2>&1
+	@rm ${UNIT}
+	@echo "Created ${TARBALL}"
+
+ifdef INSTALL
+INSTALL_DIR:=$(dir ${INSTALL})
+INSTALL_LIST:=$(notdir ${INSTALL})
+endif
+ifndef INSTALL_DIR
+INSTALL_DIR := ${HLDW}/bin
+endif
+ifndef INSTALL_LIST
+INSTALL_LIST:=${EXE}
+endif
+install: ${INSTALL_LIST}
+	@echo ""
+	mkdir -p ${INSTALL_DIR} &&\
+	rsync -auvP $(call Require_real,${INSTALL_LIST}) ${INSTALL_DIR}/
+
+dist:
+	rsync -auv $(lastword $(filter %.deps,${MAKEFILE_LIST})) ./
+	mkdir -p bin
+	rsync -auv ${INCLUDES_PGM} ${GCC_VERSION_PGM} ${SYSTEMC_VERSION_PGM} bin/
+
+rmdist: distclean
+	-rm -fv ${RULES}
+
+sweep: clean
+
+clean:
+	@$(RULER); $(call REPORT_TITLE,Cleaning ${PWD});
+	rm -f ${SHARED_OBJS} ${OBJS} ${DEPENDENCIES_FILE}
+	rm -f *~ ${EXE} core link.log
+
+ultraclean: clean
+	@echo "Ultra cleaning...";
+	rm -rf Makefile.prj *.vcd *.vcd.vpd *.awif *.ow vcd_autosave.sav
+	rm -rf $(filter-out bmake% run_test% vc2%,$(wildcard *.log))
+
+distclean: ultraclean
+	@echo "Distribution clean...";
+	rm -rf *.log
+
+################################################################################
+# Documentation
+################################################################################
+html: html/index.html
+
+lns:
+	@$(call REPORT_TITLE,Putting symbolic links in place...)
+ifdef TOOL
+	for tool in ${TOOL}; do\
+          ln -s ../bin/$$tool $$tool.pod;\
+        done
+else
+	for file in ../include/*.h ../src/*.cpp; do\
+          ln -s $$file;\
+        done
+endif
+
+pdf: lns $(addsuffix .pdf,${TOOL})
+
+Doxyfile:
+	doxygen -g
+
+html/index.html: ${SRCS} Doxyfile
+	doxygen $*.cpp
+
+%.chk: %.pod
+	podchecker $*.pod >$*.chk 2>&1
+
+%.pdf: %.chk
+	TITLE=`podtitle $*.pod`;\
+	pod2pdf \
+          --title "$$TITLE"\
+          --author 'Doulos.'\
+          --header 'User Manual'\
+                $*.pod
+	mv $*.pod.pdf $*.pdf
+
+M:=1
+man$M/%.$M: %.chk Makefile
+	@mkdir -p man$M
+	TITLE=`podtitle $*.pod`;\
+	pod2man\
+          --name "$$TITLE"\
+          --section=$M\
+          --center="Doulos."\
+          $*.pod >man$M/$*.$M
+
+################################################################################
+# Mac specific
+################################################################################
+NewMacApp:
+	new plist   Info
+	new plist   version
+	new strings InfoPlist
+	new macicns $(UNIT)
+
+$(UNIT).app: Info.plist $(UNIT) version.plist InfoPlist.strings $(UNIT)MacIcons.icns AnotherResource.txt  
+	-mkdir $(UNIT).app    
+	-mkdir $(UNIT).app/Contents
+	-mkdir $(UNIT).app/Contents/MacOS
+	-mkdir $(UNIT).app/Contents/Resources
+	-mkdir $(UNIT).app/Contents/Resources/English.lproj
+	cp Info.plist $(UNIT).app/Contents/
+	cp version.plist $(UNIT).app/Contents/
+	cp InfoPlist.strings $(UNIT).app/Contents/Resources/English.lproj/
+	echo -n 'APPL????' > $(UNIT).app/Contents/PkgInfo
+	cp $(UNIT) $(UNIT).app/Contents/MacOS/$(UNIT)
+	cp $(UNIT)MacIcons.icns AnotherResource.txt $(UNIT).app/Contents/Resources/
+
+################################################################################
+# Following is for internal use only
+ifdef FUNC
+FUNCS:=${FUNC}
+endif
+ifndef FUNCS
+FUNCS:=Get_dirs Get_notdirs
+endif
+ifndef ARGV
+ARGV:=$(wildcard *)
+endif
+selftest:
+	@$(foreach func,${FUNCS},echo "${func}(${ARGV})=$(call ${func},${ARGV})";)
+
+################################################################################
+# Dependencies
+################################################################################
+
+${DEPENDENCIES_FILE}: $(wildcard ${SHARED_SRCS} ${SRCS})
+	@$(RULER); $(call REPORT_TITLE,Computing dependencies);
+	${SETUP} ${CXX_CMD} ${FLAGS} ${INCDIRS} ${C_DEFS} -MM $(wildcard ${SHARED_SRCS} ${SRCS}) > ${DEPENDENCIES_FILE}
+ifndef NOFIXDEPS
+  ifneq "$(findstring fixdeps,${FIX_PGM})" ""
+    ifdef OBJFLAVOR
+	fixdeps -flavor ${OBJFLAVOR} ${DEPENDENCIES_FILE}
+    else
+	fixdeps ${DEPENDENCIES_FILE}
+    endif
+  endif
+endif
+
+-include ${DEPENDENCIES_FILE}
+
+else
+$(warning ${MAKEFILE_RULES} already included)
+endif
+# COPYRIGHT (C) 2012 David C Black
+#-------------------------------------------------------------------------------
+#END $File$

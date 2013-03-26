@@ -48,7 +48,7 @@ TARGET_ARCH := ZEDBOARD
 
 default: clean exe
 
-include ../Makefile.common
+include ../etc/Makefile.common
 
 ###############################################################################
 override OBJS := $(patsubst %.c,  %.o,${SRCS})
