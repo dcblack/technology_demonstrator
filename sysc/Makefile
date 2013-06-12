@@ -22,7 +22,7 @@ SRCS:=\
   report.cpp\
   tlmx_packet.cpp\
   tlmx_channel.cpp\
-  async_adaptor.cpp\
+  tcpip_initiator.cpp\
   dev.cpp\
   top.cpp\
   main.cpp

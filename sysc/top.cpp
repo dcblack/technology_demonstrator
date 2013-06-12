@@ -5,20 +5,20 @@
 //
 // Basic top-level module where everything is hooked up.
 //
-// +------------------------------+
-// |  top_instance                |
-// |                              |
-// |  +------------------------+  |
-// |  | async_adaptor_instance |  |
-// |  +-----------V------------+  |
-// |              V               |
-// |              |               |
-// |              V               |
-// |  +-----------V------------+  |
-// |  | dev_instance           |  |
-// |  +------------------------+  |
-// |                              |
-// +------------------------------+
+// +--------------------------------+
+// |  top_instance                  |
+// |                                |
+// |  +--------------------------+  |
+// |  | tcpip_initiator_instance |  |
+// |  +-----------V--------------+  |
+// |              V                 |
+// |              |                 |
+// |              V                 |
+// |  +-----------V--------------+  |
+// |  | dev_instance             |  |
+// |  +--------------------------+  |
+// |                                |
+// +--------------------------------+
 
 ///////////////////////////////////////////////////////////////////////////////
 // $License: Apache 2.0 $
@@ -36,7 +36,7 @@
 // limitations under the License.
 
 #include "top.h"
-#include "async_adaptor.h"
+#include "tcpip_initiator.h"
 #include "dev.h"
 #include "report.h"
 #include "netlist.h"
@@ -54,12 +54,12 @@ namespace {
 // Constructor <<
 top_module::top_module(sc_module_name instance_name)
 : sc_module(instance_name), setup(MSGID)
-, async_adaptor_instance   (new async_adaptor_module("async_adaptor_instance")) //< interfaces to zynq via tcpip sockets
-, dev_instance             (new dev_module          ("dev_instance" )         ) //< device being modeled
+, tcpip_initiator_instance (new tcpip_initiator_module("tcpip_initiator_instance")) //< initiates transactions from zynq via tcpip sockets
+, dev_instance             (new dev_module            ("dev_instance" )           ) //< device being modeled
 // TODO: replace with an entire subsystem
 {
   // Connectivity
-  async_adaptor_instance->initiator_socket(dev_instance->target_socket);
+  tcpip_initiator_instance->initiator_socket(dev_instance->target_socket);
 
   // Register processes
   SC_HAS_PROCESS(top_module);

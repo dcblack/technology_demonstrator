@@ -1,7 +1,7 @@
-//BEGIN async_adaptor.cpp (systemc)
+//BEGIN tcpip_initiator.cpp (systemc)
 // -*- C++ -*- vim600:sw=2:tw=80:fdm=marker:fmr=<<<,>>>
 ///////////////////////////////////////////////////////////////////////////////
-// $Info: async_adaptor interface implementation $
+// $Info: tcpip_initiator interface implementation $
 //
 // BRIEF DESCRIPTION:
 // Implements a TLM initiator that performs transactions via TCP IP socket
@@ -48,7 +48,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "async_adaptor.h"
+#include "tcpip_initiator.h"
 #include "report.h"
 #include <iomanip>
 #include <sys/socket.h>
@@ -63,26 +63,26 @@ using namespace sc_dt;
 
 namespace {
   // Declare string used as message identifier in SC_REPORT_* calls
-  static char const* const MSGID = "/Doulos/example/async_adaptor";
+  static char const* const MSGID = "/Doulos/example/tcpip_initiator";
   // Embed file version information into object to help forensics
-  static char const* const RCSID = "(@)$Id: async_adaptor.cpp  1.0 09/02/12 10:00 dcblack $";
+  static char const* const RCSID = "(@)$Id: tcpip_initiator.cpp  1.0 09/02/12 10:00 dcblack $";
   //                                        FILENAME  VER DATE     TIME  USERNAME
 }
 
-int async_adaptor_module::s_stop_requests{0};
+int tcpip_initiator_module::s_stop_requests{0};
 
 ///////////////////////////////////////////////////////////////////////////////
 // Constructor <<
-async_adaptor_module::async_adaptor_module(sc_module_name instance_name)
+tcpip_initiator_module::tcpip_initiator_module(sc_module_name instance_name)
 : sc_module(instance_name)
 , initiator_socket("initiator_socket")
 , m_async_channel("m_async_channel")
 , m_keep_alive_signal("m_keep_alive_signal")
 , m_tcpip_port(4000)
 , m_lock_permission(new std::lock_guard<std::mutex>(m_allow_pthread))
-, m_pthread(&async_adaptor_module::async_os_thread,this,std::ref(m_async_channel))
+, m_pthread(&tcpip_initiator_module::async_os_thread,this,std::ref(m_async_channel))
 {
-  signal(SIGINT,&async_adaptor_module::sighandler); //< allow for graceful interrupts
+  signal(SIGINT,&tcpip_initiator_module::sighandler); //< allow for graceful interrupts
 
   //----------------------------------------------------------------------------
   // Parse command-line arguments
@@ -115,7 +115,7 @@ async_adaptor_module::async_adaptor_module(sc_module_name instance_name)
   //----------------------------------------------------------------------------
   // Register processes
   //----------------------------------------------------------------------------
-  SC_HAS_PROCESS(async_adaptor_module);
+  SC_HAS_PROCESS(tcpip_initiator_module);
   SC_THREAD(initiator_sysc_thread_process);
   SC_THREAD(keep_alive_process);
   REPORT_INFO("Constructed " << name());
@@ -123,41 +123,41 @@ async_adaptor_module::async_adaptor_module(sc_module_name instance_name)
 
 ///////////////////////////////////////////////////////////////////////////////
 // Destructor <<
-async_adaptor_module::~async_adaptor_module(void)
+tcpip_initiator_module::~tcpip_initiator_module(void)
 {
   REPORT_INFO("Destroyed " << name());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Callbacks
-void async_adaptor_module::before_end_of_elaboration(void)
+void tcpip_initiator_module::before_end_of_elaboration(void)
 {
   REPORT_INFO(__func__ << " " << name());
 }
 
-void async_adaptor_module::end_of_elaboration(void)
+void tcpip_initiator_module::end_of_elaboration(void)
 {
   REPORT_INFO(__func__ << " " << name());
 }
 
-void async_adaptor_module::start_of_simulation(void) {
+void tcpip_initiator_module::start_of_simulation(void) {
   REPORT_INFO(__func__ << " " << name());
   m_keep_alive_signal.write(true);
   m_lock_permission.reset(nullptr);
 }
 
-void async_adaptor_module::end_of_simulation(void)
+void tcpip_initiator_module::end_of_simulation(void)
 {
   REPORT_INFO(__func__ << " " << name());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // External threads
-void async_adaptor_module::async_os_thread(tlmx_channel& async_channel) {
+void tcpip_initiator_module::async_os_thread(tlmx_channel& async_channel) {
   REPORT_INFO("Starting " << __func__ << " ...");
 
   //----------------------------------------------------------------------------
-  // Open TCP/IP socket to async_adaptor
+  // Open TCP/IP socket to tcpip_initiator
   //----------------------------------------------------------------------------
   struct sockaddr_in local_server;
   int option_value;
@@ -320,14 +320,14 @@ void async_adaptor_module::async_os_thread(tlmx_channel& async_channel) {
 
   REPORT_INFO("Closing down...");
 
-  // Close TCP/IP socket to async_adaptor
+  // Close TCP/IP socket to tcpip_initiator
   close(incoming_socket);
 
-}//end async_adaptor_module::async_os_thread()
+}//end tcpip_initiator_module::async_os_thread()
 
 ///////////////////////////////////////////////////////////////////////////////
 // Processes <<
-void async_adaptor_module::initiator_sysc_thread_process(void)  {
+void tcpip_initiator_module::initiator_sysc_thread_process(void)  {
   REPORT_INFO("Started " << __func__ << " " << name());
 
   // Holding place for data
@@ -401,13 +401,13 @@ void async_adaptor_module::initiator_sysc_thread_process(void)  {
 
   }//endforever
   wait(1,SC_SEC);
-  REPORT_INFO("Exiting async_adaptor interface");
+  REPORT_INFO("Exiting tcpip_initiator interface");
   sc_stop();
-}//end async_adaptor_module::initiator_sysc_thread_process()
+}//end tcpip_initiator_module::initiator_sysc_thread_process()
 
 // In the event there is nothing else happening, this process will keep the
 // simulator from starving.
-void async_adaptor_module::keep_alive_process(void)  {
+void tcpip_initiator_module::keep_alive_process(void)  {
   REPORT_INFO("Started " << __func__ << " " << name());
   for(;;) {
     if ( s_stop_requests > 0 ) break;
@@ -419,9 +419,9 @@ void async_adaptor_module::keep_alive_process(void)  {
   wait(1,SC_SEC);
   REPORT_INFO("Exiting due to stop request.");
   sc_stop();
-}//end async_adaptor_module::keep_alive_process()
+}//end tcpip_initiator_module::keep_alive_process()
 
-void async_adaptor_module::sighandler(int sig)
+void tcpip_initiator_module::sighandler(int sig)
 {
   ++s_stop_requests;
 }

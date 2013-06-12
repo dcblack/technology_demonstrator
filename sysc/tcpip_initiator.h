@@ -1,7 +1,7 @@
-#ifndef ASYNC_ADAPTOR_H
-#define ASYNC_ADAPTOR_H
+#ifndef TCPIP_INITIATOR_H
+#define TCPIP_INITIATOR_H
 ///////////////////////////////////////////////////////////////////////////////
-// Interfaces from the zedboard to initiate transfers.
+// Interfaces from the TCPIP to initiate transfers.
 
 ///////////////////////////////////////////////////////////////////////////////
 // $License: Apache 2.0 $
@@ -25,19 +25,19 @@
 #include <thread>
 #include <mutex>
 
-struct async_adaptor_module
+struct tcpip_initiator_module
 : sc_core::sc_module
 {
 public:
   // Ports
-  tlm_utils::simple_initiator_socket<async_adaptor_module> initiator_socket;
+  tlm_utils::simple_initiator_socket<tcpip_initiator_module> initiator_socket;
   // Channels
   tlmx_channel             m_async_channel;
   sc_core::sc_signal<bool> m_keep_alive_signal;
   // Constructor
-  async_adaptor_module(sc_core::sc_module_name instance_name);
+  tcpip_initiator_module(sc_core::sc_module_name instance_name);
   // Destructor
-  virtual ~async_adaptor_module(void);
+  virtual ~tcpip_initiator_module(void);
   // SC_MODULE callbacks
   void before_end_of_elaboration(void) override;
   void end_of_elaboration(void) override;

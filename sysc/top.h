@@ -21,7 +21,7 @@
 #include <systemc>
 #include <memory>
 #include "report.h"
-#include "async_adaptor.h"
+#include "tcpip_initiator.h"
 #include "dev.h"
 
 class top_module
@@ -32,7 +32,7 @@ public:
   // Ports - NONE (this is the top-level)
   // Channels - NONE (everything is TLM 2.0 - i.e. effectively modules ARE channels due to sockets)
   // Structure (e.g. submodules)
-  std::unique_ptr<async_adaptor_module> async_adaptor_instance; // ** safe alternative to raw pointers **
+  std::unique_ptr<tcpip_initiator_module> tcpip_initiator_instance; // ** safe alternative to raw pointers **
   std::unique_ptr<dev_module>  dev_instance;  // ** replace with unique_ptr under C++11 **
 
   // Constructor
