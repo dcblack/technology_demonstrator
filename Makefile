@@ -28,7 +28,8 @@ ZEDB_SRCS:=$(addprefix zedboard/,${SRCS})
 UNIT:=async_request_example
 SRCS:=$(sort ${SYSC_SRCS} ${ZEDB_SRCS})
 
-override DFLT:=tar
+MESSAGE="WARNING: Top-level make NOT supported here - only 'tar'"
+override DFLT:=help
 
 #----------------------------------------------------------------------
 # *** DO NOT EDIT BELOW THIS LINE ***** DO NOT EDIT BELOW THIS LINE ***
