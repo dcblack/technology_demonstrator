@@ -196,7 +196,7 @@ ifdef MODULESHOME_disabled
   endif
 endif
 define SETUP
-  $(if $(wildcard setup.$(TARGET_ARCH)),. setup.$(TARGET_ARCH);) $(ADDMODULES)
+  $(if $(wildcard setup.$(TARGET_ARCH)),. $(realpath setup.$(TARGET_ARCH));) $(ADDMODULES)
 endef
 
 ################################################################################

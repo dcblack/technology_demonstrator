@@ -61,7 +61,7 @@ The following targets are available:
 
 =item B<help>
 
-Displays this documentation
+Displays manpage style documentation on this makefile.
 
 =item B<objs>
 
@@ -112,6 +112,10 @@ Displays some internal variables/macros.
 =item B<tar>
 
 Creates a tarball consisting of all the source files, makefile and scripts.
+
+=item B<targets>
+
+Displays short form list of all targets
 
 =item B<clean>
 
@@ -292,6 +296,40 @@ David C Black <dcblack@hldwizard.com>
 
 =cut
 
+#: * clean      - Removes generated objects, dependency, executable and core dumps.
+#: * compile    - alias for objs
+#: * ddd        - Create the executable and invoke the *ddd* debugger on it.
+#: * debug      - alias for gdb
+#: * default    - Default target usually set with $(DFLT)
+#: * deps       - Creates the dependencies file (typically dependencies.mk)
+#: * dist       - Creates a tar'able distribution file
+#: * distclean  - In addition to ultraclean, removes all log files, and things not part of the distribution.
+#: * envv       - Displays MAKEFILERULES **internal makefile development**
+#: * exe        - Makes the executable (typically ends in ``.x``)
+#: * gcov       - Runs the GNU Coverage tool.
+#: * gdb        - Create the executable and invokes the *gdb* debugger on it.
+#: * gprof      - Runs the GNU Profiler.
+#: * help       - Displays manpage style documentation on this makefile
+#: * html       - Runs doxygen to generate help in HTML (web page) format.
+#: * install    - Copies files to installation area **danger experimental**
+#: * lib        - Create library files (typically ends in ``.a``) **danger experimental**
+#: * link       - alias for exe
+#: * lns        - Creates symbolic links to tools/files **danger experimental**
+#: * objs       - Makes all the object files (typically files that end in ``.o``)
+#: * pdf        - Runs doxygen to generate help in PDF format.
+#: * rmdeps     - Removes the dependencies file.
+#: * rmdist     - Removes things that can be found in standard locations.
+#: * run        - Creates and runs the executable.
+#: * selftest   - Tests various macros **internal makefile development**
+#: * show       - Displays some internal variables/macros.
+#: * sim        - alias for run
+#: * simulation - alias for run
+#: * sweep      - alias for clean
+#: * tar        - Creates a tarball consisting of all the source files, makefile and scripts.
+#: * targets    - Displays short form list of all targets
+#: * ultraclean - In addition to clean, removes waveforms and other intermediates.
+#: * version    - Displays the version of GCC and SystemC.
+
 endef
 
 ################################################################################
@@ -308,7 +346,7 @@ endef
 
 
 .PHONY: default help selftest envv obj compile objs lib link exe run debug gdb ddd deps rmdeps tar  \
-        install dist rmdist sweep clean ultraclean distclean version\
+        install dist rmdist sweep clean ultraclean distclean version targets\
         sim simulation html pdf lns gprof gcov show
 
 ifndef EDA
@@ -866,8 +904,24 @@ endif
 envv:
 	@echo "MAKEFILE_RULES = ${MAKEFILE_RULES}"
 
+targets:
+	@perl -ne 'if (m/^#: /) { s/^...//;print;}' ${MAKEFILE_RULES}
+
 help:
+ifdef MESSAGE
+	@clear; ${RULER};\
+	 echo "${MESSAGE}"; \
+	 ${RULER}; \
+	 REPLY="?";\
+         while [[ "$$REPLY" != "" && "$$REPLY" != "h" && "$$REPLY" != "H" ]]; do \
+           read -n 1 -t 3 -p "(Press return to quit or H for help)"; echo ""; \
+           if [[ "$$REPLY" == "h" || "$$REPLY" == "H" ]]; then \
+             perldoc ${MAKEFILE_RULES};\
+           fi \
+         done
+else
 	@perldoc ${MAKEFILE_RULES}
+endif
 
 ################################################################################
 # 'show' rule displays internal variables for debug purposes <<<
@@ -1231,9 +1285,14 @@ install: ${INSTALL_LIST}
 	rsync -auvP $(call Require_real,${INSTALL_LIST}) ${INSTALL_DIR}/
 
 dist:
-	rsync -auv $(lastword $(filter %.deps,${MAKEFILE_LIST})) ./
+# Install/update local copies of makefiles and other links
+	mkdir -p etc
+	rsync -auvLP ./links/ ./etc/
+ifdef HLDW
+# Install/update local copies of scripts
 	mkdir -p bin
-	rsync -auv ${MAKEFILE_SCRIPTS} bin/
+	HERE=`pwd`;cd ${HLDW}/bin && rsync -auvP ${MAKEFILE_SCRIPTS} $$HERE/bin/
+endif
 
 rmdist: distclean
 	-rm -fv ${RULES}

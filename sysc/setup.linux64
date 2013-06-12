@@ -1,5 +1,15 @@
 #!/bin/bash
 #
-# This is executed prior to compile/link steps. Used to set environment variable correctly.
+# *** MODIFY this script to suite your tools environment. ***
+#
+# This is executed for 64-bit linux environments prior to compile/link steps.
+# Used to set environment variable correctly.  The goal is to ensure that
+# compilers and linkers are found via $PATH, and license variablesi are
+# properly setup. Often EDA tools will have files to source which do this. You
+# can source them from here. Note that if your scripts are in csh format, you
+# can use the env2 script to convert them.
 
+# Same as 32 bit
 source setup.linux
+
+# The end
