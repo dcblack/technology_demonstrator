@@ -5,14 +5,18 @@
 #include "matrix.h"
 #include <iomanip>
 #include <sstream>
+#ifdef CXX11
 #include <random>
+#endif
 #include <cassert>
 using namespace std;
 
 //------------------------------------------------------------------------------
 int    Matrix::next = 0;
+#ifdef CXX11
 std::default_random_engine Matrix::gen;
 Matrix::Pattern_distribution       Matrix::distr(Matrix::FILL0,Matrix::RANDOM);
+#endif
 
 //------------------------------------------------------------------------------
 Matrix::Matrix(size_t r, size_t c, Pattern_t patt, string name) //< Constructor
@@ -103,7 +107,11 @@ void Matrix::fill_patt(Pattern_t patt) {
   } else if (patt == RANDOM) {
     randomize();
   } else /*RANDALL*/ {
+#ifdef CXX11
     fill_patt(distr(gen));
+#else
+    fill_patt(Pattern_t(random()%(NONE+1)));
+#endif
   }
 }
 
@@ -120,7 +128,13 @@ void Matrix::identity(Data_t value) {
 
 //------------------------------------------------------------------------------
 void Matrix::randomize(void) {
-  for (Addr_t i=begin(); i!=end(); ++i) m[i] = gen();
+  for (Addr_t i=begin(); i!=end(); ++i) {
+#ifdef CXX11
+    m[i] = gen();
+#else
+    m[i] = random();
+#endif
+  }
 }
 
 //------------------------------------------------------------------------------

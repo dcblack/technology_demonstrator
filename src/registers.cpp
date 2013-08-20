@@ -15,11 +15,18 @@ Registers::Registers(void) //< Constructor
 , reg_COMMAND  ( 0 )
 , reg_STATUS   ( 0 )
 {
+  reg = new Data_t[REGS];
+}
+
+//------------------------------------------------------------------------------
+Registers::~Registers(void) //< Destructor
+{
+  delete [] reg;
 }
 
 //------------------------------------------------------------------------------
 void Registers::fill(Data_t value) {
-  for (auto& v : reg) v = value;
+  for (unsigned i=0; i!=REGS; ++i) reg[i] = value;
   reg_AXI_BASE = value;
   reg_COMMAND  = value;
   reg_STATUS   = value;
@@ -39,7 +46,7 @@ string Registers::dump(void) {
   sout << "reg_AXI_BASE=0x" << reg_AXI_BASE << "\n";
   sout << "reg_COMMAND =0x" << reg_COMMAND << "\n";
   sout << "reg_STATUS  =0x" << reg_STATUS  << "\n";
-  for (unsigned i=0; i!=16; ++i) {
+  for (unsigned i=0; i!=REGS; ++i) {
     sout << "reg_"  << reg_name[i] << "] = ";
     sout << setw(8) << "0x" << hex << uppercase << setfill('0') << reg[i];
     sout << "\n";

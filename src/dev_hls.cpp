@@ -80,9 +80,52 @@ void dev_hls
 , volatile Data_t* reg_COMMAND     //< AXI slave
 , volatile Data_t* reg_STATUS      //< AXI slave
 ,          Data_t  imem[IMEM_SIZE] //< Device memory
-, volatile Data_t* xmem   //< AXI master
+, volatile Data_t* axibus          //< AXI master
 )
 {
+
+// Port mappings to hardware
+#pragma HLS interface ap_hs   port=reg_R0
+#pragma HLS interface ap_none port=reg_R1
+#pragma HLS interface ap_none port=reg_R2
+#pragma HLS interface ap_none port=reg_R3
+#pragma HLS interface ap_none port=reg_R4
+#pragma HLS interface ap_none port=reg_R5
+#pragma HLS interface ap_none port=reg_R6
+#pragma HLS interface ap_none port=reg_R7
+#pragma HLS interface ap_none port=reg_R8
+#pragma HLS interface ap_none port=reg_R9
+#pragma HLS interface ap_none port=reg_R10
+#pragma HLS interface ap_none port=reg_R11
+#pragma HLS interface ap_none port=reg_R12
+#pragma HLS interface ap_none port=reg_R13
+#pragma HLS interface ap_none port=reg_R14
+#pragma HLS interface ap_none port=reg_R15
+#pragma HLS interface ap_none port=reg_AXI_BASE
+#pragma HLS interface ap_none port=reg_COMMAND
+#pragma HLS interface ap_none port=reg_STATUS
+
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R0
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R1
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R2
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R3
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R4
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R5
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R6
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R7
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R8
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R9
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R10
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R11
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R12
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R13
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R14
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R15
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_AXI_BASE
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_COMMAND
+#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_STATUS
+
+#pragma HLS resource core=AXIM variable=axibus
 
   FOREVER_LOOP:
   for(;;) {
@@ -155,7 +198,7 @@ void dev_hls
         VALIDATE_REGISTER(src1);
         GET_REG(src1,x_ptr);
         x_ptr += base;
-        shape = xmem[x_ptr++];
+        shape = axibus[x_ptr++];
         
         VALIDATE_MATRIX(dest);
         SET_REG(dest,shape);
@@ -176,7 +219,7 @@ void dev_hls
         unsigned int size = Msize(shape);
         for (unsigned int i=0; i!=size; ++i) {
           Data_t data;
-          data = xmem[x_ptr++];
+          data = axibus[x_ptr++];
           imem[i_ptr++] = data;
         }
         *reg_STATUS = DONE;
@@ -206,7 +249,7 @@ void dev_hls
           *reg_STATUS = SHAPE_ERROR;
           break;
         }
-        xmem[x_ptr++] = shape;
+        axibus[x_ptr++] = shape;
         // Make sure it's a valid internal memory location
         if (!Mvalid(i_ptr)) {
           *reg_STATUS = ADDRESS_ERROR;
@@ -217,7 +260,7 @@ void dev_hls
         for (unsigned int i=0; i!=size; ++i) {
           Data_t data;
           data = imem[i_ptr++];
-          xmem[x_ptr++] = data;
+          axibus[x_ptr++] = data;
         }
         *reg_STATUS = DONE;
         break;

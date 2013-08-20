@@ -11,6 +11,11 @@ using namespace std;
 
 extern unsigned long int errors;
 
+#ifdef CXX11
+static std::default_random_engine                 Command::gen;
+static std::uniform_int_distribution<Operation_t> Command::distr(NOP, HALT);
+#endif
+
 //----------------------------------------------------------------------------
 Command::Command //< Constructor
 ( Operation_t op
@@ -22,7 +27,6 @@ Command::Command //< Constructor
 : command((op<<3*8)|(dest<<2*8)|(src1<<1*8)|(src2<<0*8))
 , status(IDLE)
 , m_op(op)
-, distr(NOP, HALT)
 {
   for (size_t i=0; i!=REGS; ++i) {
     m_r[i] = 0xF00DFACE;
@@ -38,7 +42,6 @@ Command::Command(const Command& rhs) //< Copy constructor
 , status (rhs.status)
 , expected (rhs.expected)
 , m_op(rhs.m_op)
-, distr(NOP, HALT)
 {
   for (size_t i=0; i!=REGS; ++i) {
     m_r[i] = rhs.m_r[i];
@@ -128,12 +131,26 @@ void Command::get_r(size_t i, Data_t& value, bool always) {
 
 //----------------------------------------------------------------------------
 void Command::clear(void) {
-  for (auto& v : m_c) v = false;
+  for (size_t i=0; i!=REGS; ++i) {
+    m_c[i] = false;
+  }
 }
 
 //----------------------------------------------------------------------------
 void Command::randomize(void) {
-  command = distr(gen);
+#ifdef CXX11
+  Operation_t& op;
+  unsigned char& dest;
+  unsigned char& src1;
+  unsigned char& src2;
+  op = distr(gen);
+  dest = gen();
+  src1 = gen();
+  src2 = gen();
+  set(op,dest,src1,src2);
+#else
+  command = random();
+#endif
 }
 
 //----------------------------------------------------------------------------
@@ -154,9 +171,9 @@ std::ostream& operator<<(std::ostream& os, const Command& rhs) {
   unsigned char dest, src1, src2;
   rhs.get(op, dest, src1, src2);
   os << operation_name[op];
-  if (rhs.command&0xFFFFFF != 0xFFFFFF) os << hex << ", " << int(dest);
-  if (rhs.command&0xFFFF   != 0xFFFF  ) os << hex << ", " << int(src1);
-  if (rhs.command&0xFF     != 0xFF    ) os << hex << ", " << int(src2);
+  if ((rhs.command&0xFFFFFF) != 0xFFFFFF) os << hex << ", " << int(dest);
+  if ((rhs.command&0xFFFF  ) != 0xFFFF  ) os << hex << ", " << int(src1);
+  if ((rhs.command&0xFF    ) != 0xFF    ) os << hex << ", " << int(src2);
   os << dec << ";";
   for (size_t i=0; i!=rhs.REGS; ++i) {
     if (rhs.m_r[i] != 0xF00DFACE) {

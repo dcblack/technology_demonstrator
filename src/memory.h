@@ -3,10 +3,15 @@
 
 #include "dev_hls.h"
 #include <string>
+#ifdef CXX11
 #include <random>
+#endif
 
 struct Memory
 {
+#ifdef CXX11
+  static std::default_random_engine gen;
+#endif
   // Attributes
   Data_t* xmem;
   Data_t* xmem_mirror; //< shadow
@@ -27,7 +32,6 @@ struct Memory
   void   mirror(void);
   bool   check(void);
 private:
-  std::default_random_engine gen;
   Memory(const Memory& rhs);
   Memory& operator=(const Memory& rhs);
   void dump8(Data_t* mem, Addr_t addr, Addr_t len=8);

@@ -26,11 +26,9 @@ SRCS:=$(strip   \
   dev_test.cpp  \
 )
 
+ifdef CXX11
 override CXX11:=-std=c++11 -stdlib=libc++
-#dev_hls.o:  override CXX11:=
-#dev_util.o: override CXX11:=-std=c++11 -stdlib=libc++
-#dev_test.o: override CXX11:=-std=c++11 -stdlib=libc++
-#hls_test.deps: override CXX11:=-std=c++11 -stdlib=libc++
+endif
 
 # The following conditional allows an upper level to include this
 # makefile to obtain a list of source files:

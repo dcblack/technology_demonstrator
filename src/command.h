@@ -2,11 +2,17 @@
 #define COMMAND_H
 
 #include "dev_hls.h"
+#ifdef CXX11
 #include <random>
+#endif
 
 struct Command
 {
   static const int REGS = 16;
+#ifdef CXX11
+  static std::default_random_engine gen;
+  static std::uniform_int_distribution<Operation_t> distr;
+#endif
 
   // Attributes
   Data_t   command;
@@ -51,8 +57,6 @@ private:
   void set_expected(Status_t expect=START);
   // Hidden attributes
   Operation_t m_op;
-  std::default_random_engine gen;
-  std::uniform_int_distribution<Operation_t> distr;
 };//endclass Command
 
 std::ostream& operator<<(std::ostream& os, const Command& rhs);

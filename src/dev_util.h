@@ -28,7 +28,7 @@ void dev_hls
 , volatile Data_t* reg_COMMAND
 , volatile Data_t* reg_STATUS
 , Data_t  imem[IMEM_SIZE]
-, volatile Data_t* xmem
+, volatile Data_t* axibus
 );
 
 #endif /*DEV_UTIL_H*/

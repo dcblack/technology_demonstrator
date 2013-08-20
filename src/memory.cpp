@@ -6,7 +6,9 @@
 #include "matrix.h"
 #include <iostream>
 #include <iomanip>
+#ifdef CXX11
 #include <random>
+#endif
 #include <cassert>
 using namespace std;
 
@@ -175,7 +177,7 @@ bool Memory::check(void) {
     diffs += mydiffs;
   }
   if (diffs) cout << "\n";
-  else       cout << "identical\n";
+  else       cout << "none\n";
   cout << flush;
   return !diffs;
 }

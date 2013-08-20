@@ -4,7 +4,9 @@
 #include "dev_hls.h"
 #include "memory.h"
 #include <string>
+#ifdef CXX11
 #include <random>
+#endif
 
 struct Matrix
 {
@@ -16,8 +18,10 @@ struct Matrix
 
   typedef std::uniform_int_distribution<Matrix::Pattern_t> Pattern_distribution;
   static int    next;
+#ifdef CXX11
   static std::default_random_engine gen;
   static Pattern_distribution       distr;
+#endif
 
   // Attributes
   Addr_t  m_rows, m_cols;
