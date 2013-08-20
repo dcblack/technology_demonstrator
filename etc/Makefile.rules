@@ -61,7 +61,7 @@ The following targets are available:
 
 =item B<help>
 
-Displays manpage style documentation on this makefile.
+Displays this documentation
 
 =item B<objs>
 
@@ -112,10 +112,6 @@ Displays some internal variables/macros.
 =item B<tar>
 
 Creates a tarball consisting of all the source files, makefile and scripts.
-
-=item B<targets>
-
-Displays short form list of all targets
 
 =item B<clean>
 
@@ -296,40 +292,6 @@ David C Black <dcblack@hldwizard.com>
 
 =cut
 
-#: * clean      - Removes generated objects, dependency, executable and core dumps.
-#: * compile    - alias for objs
-#: * ddd        - Create the executable and invoke the *ddd* debugger on it.
-#: * debug      - alias for gdb
-#: * default    - Default target usually set with $(DFLT)
-#: * deps       - Creates the dependencies file (typically dependencies.mk)
-#: * dist       - Creates a tar'able distribution file
-#: * distclean  - In addition to ultraclean, removes all log files, and things not part of the distribution.
-#: * envv       - Displays MAKEFILERULES **internal makefile development**
-#: * exe        - Makes the executable (typically ends in ``.x``)
-#: * gcov       - Runs the GNU Coverage tool.
-#: * gdb        - Create the executable and invokes the *gdb* debugger on it.
-#: * gprof      - Runs the GNU Profiler.
-#: * help       - Displays manpage style documentation on this makefile
-#: * html       - Runs doxygen to generate help in HTML (web page) format.
-#: * install    - Copies files to installation area **danger experimental**
-#: * lib        - Create library files (typically ends in ``.a``) **danger experimental**
-#: * link       - alias for exe
-#: * lns        - Creates symbolic links to tools/files **danger experimental**
-#: * objs       - Makes all the object files (typically files that end in ``.o``)
-#: * pdf        - Runs doxygen to generate help in PDF format.
-#: * rmdeps     - Removes the dependencies file.
-#: * rmdist     - Removes things that can be found in standard locations.
-#: * run        - Creates and runs the executable.
-#: * selftest   - Tests various macros **internal makefile development**
-#: * show       - Displays some internal variables/macros.
-#: * sim        - alias for run
-#: * simulation - alias for run
-#: * sweep      - alias for clean
-#: * tar        - Creates a tarball consisting of all the source files, makefile and scripts.
-#: * targets    - Displays short form list of all targets
-#: * ultraclean - In addition to clean, removes waveforms and other intermediates.
-#: * version    - Displays the version of GCC and SystemC.
-
 endef
 
 ################################################################################
@@ -346,7 +308,7 @@ endef
 
 
 .PHONY: default help selftest envv obj compile objs lib link exe run debug gdb ddd deps rmdeps tar  \
-        install dist rmdist sweep clean ultraclean distclean version targets\
+        install dist rmdist sweep clean ultraclean distclean version\
         sim simulation html pdf lns gprof gcov show
 
 ifndef EDA
@@ -433,18 +395,17 @@ ifdef SHARED
   SHARED_FILE:=$(call Get_notdirs,${SHARED})
 endif
 ifdef SHARED_DIRS
-  SHARED_INCS:=$(addprefix -I,$(wildcard $(addsuffix /include,${SHARED_DIRS})))
+  SHARED_INCS:=$(wildcard $(addsuffix /include,${SHARED_DIRS}))
 endif
 ifdef SHARED_FILE
   $(info Examining shared files)
   SHARED_SRCS:=$(wildcard $(foreach dir,${SHARED_DIRS},$(foreach sdir,/ /src/,$(addprefix ${dir}${sdir},${SHARED_FILE}))))
 # remove duplicates
   SHARED_SRCS:=$(sort $(realpath ${SHARED_SRCS}))
-  SHARED_INCS+=$(addprefix -I,$(realpath $(wildcard $(foreach sdir,/. /include,$(addsuffix ${sdir},$(dir ${SHARED_SRCS}))))))
+  SHARED_INCS+=$(realpath $(wildcard $(foreach sdir,/. /include,$(addsuffix ${sdir},$(dir ${SHARED_SRCS})))))
 # SHARED_LIBS:=$(wildcard $(addsuffix /lib,$(dir $(dir ${SHARED_SRCS}))))
 # SHARED_libs:=$(addprefix -l,$(notdir ${SHARED_SRCS}))
 # # TODO:need to match libs against LIBS
-# SHARED_LIBS:=$(addprefix -L,${SHARED_LIBS})
 # SHARED_libs:=$(addprefix -l,${SHARED_libs})
 endif
 $(call Report_debug,SHARED_DIRS SHARED_FILE SHARED_INCS SHARED_SRCS)
@@ -511,6 +472,19 @@ ifndef LIBFILE
   LIBFILE:=lib${EA}
 endif
 
+USING_SYSTEMC:=0
+USING_CXX11:=0
+USING_SCV:=0
+USING_TLM:=0
+USING_FX:=0
+USING_DYNAMIC:=0
+USING_BOOST:=0
+USING_WXWIDGETS:=0
+#USING_HLDW:=0
+#USING_CLEARCASE:=0
+USING_CLANG:=0
+USING_DOULOS:=0
+
 ################################################################################
 # Test for features within source code
 #------------------------------------------------------------------------------
@@ -538,7 +512,7 @@ ifneq "$(wildcard ${SRCS} ${SHARED_SRCS})" ""
   SYSTEMC_FULL:=$(shell ${SYSTEMC_VERSION_PGM})-gcc${GCC_VERSION}
   $(info INFO: Using ${SYSTEMC_VERSION} library)
  endif
- ifneq "$(strip $(call File_contains,null_ptr|unique_ptr,${SRCS} ${SHARED_SRCS}))" ""
+ ifneq "$(strip $(call File_contains,null_ptr|unique_ptr|(?:<memory|thread|random>),${SRCS} ${SHARED_SRCS}))" ""
   USING_CXX11:=1
  endif
  ifneq "$(strip $(call File_contains,scv_,${SRCS} ${SHARED_SRCS}))" ""
@@ -577,7 +551,7 @@ ifneq "$(wildcard ${SRCS} ${SHARED_SRCS})" ""
 #endif
 endif
 ifndef LIBPATH
- ifdef USING_SYSTEMC
+ ifeq (${USING_SYSTEMC},1)
   ifdef NC_SYSTEMC
     LIBPATH:=${LIBDIR}/${LIBFILE}-${SYSTEMC_FULL}-cds.a
   else
@@ -591,7 +565,7 @@ ifndef LIBPATH
 endif
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-ifdef USING_SYSTEMC
+ifeq (${USING_SYSTEMC},1)
   ifeq "${PLATFORM}" "CYGWIN_NT-5.1"
     SCV_DLL := ${SYSTEMC}/lib-cygwin/libscv.dll
   endif
@@ -636,7 +610,7 @@ ifeq "${PLATFORM}" "Darwin2"
     CPUWIDTH := 64
   endif
 endif
-ifdef USING_CLANG
+ifeq (${USING_CLANG},1)
   CC  := clang
   CXX := clang++
 endif
@@ -706,17 +680,18 @@ CFLAGS += ${OPTLEVEL}
 
 # Allow user overrides to go first
 LDFLAGS := ${OTHER_LDFLAGS} ${MY_LDFLAGS}
-INCDIRS := -I.  -I../include -I../src ${SHARED_INCS} ${MY_INCDIRS}
+INCDIRS := . ../include ../src ${SHARED_INCS} ${MY_INCDIRS} ${OTHER_INCDIRS}
 C_DEFS  +=      ${HLDW_DEFS}
-LIBDIRS := -L.  ${OTHER_LIBDIRS} ${MY_LIBDIRS}
+LIBDIRS := .  ${OTHER_LIBDIRS} ${MY_LIBDIRS}
 LIBS    :=      ${OTHER_LIBS} ${MY_LIBS}
 tmp:=$(wildcard ./include)
+CXX11   :=
 
 CC_CMD  := ${CC} 
 CXX_CMD := ${CXX}
 LD_CMD  := ${CXX}
 
-ifdef USING_WXWIDGETS
+ifeq (${USING_WXWIDGETS},1)
   CXXFLAGS += $(shell wx-config --cppflags) -Wno-long-long
   LDFLAGS  += $(shell wx-config --libs)
 endif
@@ -725,22 +700,22 @@ ifdef HAS_SHARED
   LDFLAGS += -shared
 endif
 ifneq "" "${tmp}"
-  INCDIRS += -I${tmp}
+  INCDIRS += ${tmp}
 endif
 tmp:=$(firstword $(wildcard ../include))
 ifneq "" "${tmp}"
-  INCDIRS += -I${tmp}
+  INCDIRS += ${tmp}
 endif
 tmp:=$(firstword $(wildcard ../lib-${TARGET_ARCH}))
-ifneq "" "${tmp}"
-  LIBDIRS += -L${tmp}
+ifneq "" "$(wildcard ${tmp})"
+  LIBDIRS += ${tmp}
 endif
 ifdef HLDW
-  ifdef USING_SYSTEMC
-   ifdef USING_HLDW
+  ifeq (${USING_SYSTEMC},1)
+   ifeq (${USING_HLDW},1)
      ifndef NOHLDW
-      INCDIRS += -I${HLDW}/include
-      LIBDIRS += -L${HLDW}/lib-${TARGET_ARCH}
+      INCDIRS += ${HLDW}/include
+      LIBDIRS += ${HLDW}/lib-${TARGET_ARCH}
       ifdef NC_SYSTEMC
         LIBS    += -l${EA}-${SYSTEMC_FULL}-cds
       else
@@ -774,18 +749,18 @@ endif
 ifdef NDEBUG_SYSTEMC
   C_DEFS += -DNDEBUG_SYSTEMC
 endif
-ifdef USING_BOOST
+ifeq (${USING_BOOST},1)
   # Remove old style -l
   BOOST_LIBS:=$(patsubst -l%,%,${BOOST_LIBS})
   $(call Report_debug,BOOST_LIBS)
   $(call Report_debug,BOOST_LDIR)
-  INCDIRS += -I${BOOST_HOME}/include
-  LIBDIRS += -L${BOOST_LDIR}
+  INCDIRS += ${BOOST_HOME}/include
+  LIBDIRS += ${BOOST_LDIR}
   # Add -l back in for each library iff it exists
   LIBS    += $(addprefix -l,$(foreach lib,${BOOST_LIBS},$(patsubst libb%.a,b%,$(notdir $(wildcard ${BOOST_LDIR}/lib*${lib}*.a)))))
   $(call Report_debug,LIBS)
 endif
-ifdef USING_SYSTEMC
+ifeq (${USING_SYSTEMC},1)
   ifdef SYSTEMC
     ifdef SYSTEMC_VERSION
       C_DEFS += -D${SYSTEMC_VERSION}
@@ -802,58 +777,58 @@ ifdef USING_SYSTEMC
     ifeq "${SYSTEMC_LIB}" ""
       $(error Missing SystemC library ${SYSTEMC}/lib-${TARGET_ARCH})
     endif
-    INCDIRS  += -I$(call Require_real,${SYSTEMC}/include)
-    LIBDIRS  += -L${SYSTEMC_LIB}
+    INCDIRS  += $(call Require_real,${SYSTEMC}/include)
+    LIBDIRS  += ${SYSTEMC_LIB}
     LIBS     += -lsystemc
     # Support some EDA tools
     export SYSTEMC_HOME:=${SYSTEMC}
     # Forte support
     ifdef CYNTH_HOME
-      INCDIRS += -I${CYNTH_HOME}/include
+      INCDIRS += ${CYNTH_HOME}/include
     endif
   endif
 endif
 ifdef DOULOS
   $(info INFO: Using Doulos checkers)
   USING_DOULOS:=1
-  INCDIRS += -I${DOULOS}/include
+  INCDIRS += ${DOULOS}/include
 endif
 ifeq "${TARGET_ARCH}" "macosx64"
   CPUWIDTH:=64
   CXX_CMD += -arch x86_64
 endif
-ifdef USING_FX
+ifeq (${USING_FX},1)
   C_DEFS += -DSC_INCLUDE_FX
 endif
-ifdef USING_DYNAMIC
+ifeq (${USING_DYNAMIC},1)
   C_DEFS += -DSC_INCLUDE_DYNAMIC_PROCESSES
 endif
-ifdef USING_CXX11
-  CXX_CMD += -std=c++11
-  #CXX_CMD += -stdlib=libc++
+ifeq (${USING_CXX11},1)
+  CXX11 += -std=c++11 $(if ${USING_CLANG},-stdlib=libc++)
+  LIBS  += -std=c++11 $(if ${USING_CLANG},-stdlib=libc++)
 endif
 CC_CMD  += -m${CPUWIDTH}
 CXX_CMD += -m${CPUWIDTH}
 LD_CMD  += -m${CPUWIDTH}
 C_DEFS  += -DW${CPUWIDTH}
 $(info Using ${CPUWIDTH}-bit architecture)
-ifdef USING_SCV
+ifeq (${USING_SCV},1)
   ifdef SYSTEMC_SCV
     ifneq "${SYSTEMC}" "$(SYSTEMC_SCV)"
-      INCDIRS += -I${SYSTEMC_SCV}/include
-      LIBDIRS += -L$(firstword $(wildcard ${SYSTEMC_SCV}/lib-${TARGET_ARCH} ${SYSTEMC_SCV}/lib))
+      INCDIRS += ${SYSTEMC_SCV}/include
+      LIBDIRS += $(firstword $(wildcard ${SYSTEMC_SCV}/lib-${TARGET_ARCH} ${SYSTEMC_SCV}/lib))
     endif
   endif
   LIBS   += -lscv
 endif
-ifdef USING_TLM
+ifeq (${USING_TLM},1)
   ifdef TLM_HOME
     ifndef SYSTEMC_TLM
       SYSTEMC_TLM:=${TLM_HOME}
     endif
   endif
   ifdef SYSTEMC_TLM
-    INCDIRS += -I${SYSTEMC_TLM}/include/tlm
+    INCDIRS += ${SYSTEMC_TLM}/include/tlm
   endif
 endif
 # Allow for other extensions
@@ -863,17 +838,19 @@ LDFLAGS += ${BDW_EXTRA_LDFLAGS}
 ifdef OTHER_DEFS
 C_DEFS    += ${OTHER_DEFS}
 endif
-$(info INFO: C_DEFS=$(C_DEFS))
+
+# Fixup
+INCDIRS := $(call Prefix_files,-I,${INCDIRS})
+LIBDIRS := $(call Prefix_files,-L,${LIBDIRS})
+
+INCDIRS := $(patsubst -I-I%,-I%,${INCDIRS})
+LIBDIRS := $(patsubst -L-L%,-L%,${LIBDIRS})
 
 INCDIRS := $(call Unique,${INCDIRS})
 LIBDIRS := $(call Unique,${LIBDIRS})
 C_DEFS  := $(call Unique,${C_DEFS})
 LIBS    := $(call Unique,${LIBS})
 OBJS    := $(call Unique,${OBJS})
-
-# Fixup
-INCDIRS := $(patsubst -I-I%,-I%,${INCDIRS})
-LIBDIRS := $(patsubst -L-L%,-L%,${LIBDIRS})
 
 FLAGS:=${CXXFLAGS} ${CFLAGS} ${OTHER_CFLAGS} ${PLUSFLAGS}
 
@@ -894,6 +871,9 @@ endif
 
 default_target: version ${DFLT}
 
+$(info INFO: C_DEFS=$(C_DEFS))
+$(info INFO: INCDIRS=$(INCDIRS))
+
 version:
 	@echo "INFO: GCC version " `${GCC_VERSION_PGM}`;
 ifdef SYSTEMC_VERSION
@@ -904,17 +884,15 @@ endif
 envv:
 	@echo "MAKEFILE_RULES = ${MAKEFILE_RULES}"
 
-targets:
-	@perl -ne 'if (m/^#: /) { s/^...//;print;}' ${MAKEFILE_RULES}
-
 help:
 ifdef MESSAGE
 	@clear; ${RULER};\
 	 echo "${MESSAGE}"; \
 	 ${RULER}; \
 	 REPLY="?";\
-         while [[ "$$REPLY" != "" && "$$REPLY" != "h" && "$$REPLY" != "H" ]]; do \
-           read -n 1 -t 3 -p "(Press return to quit or H for help)"; echo ""; \
+         while [[ "$$REPLY" != "q" && "$$REPLY" != "h" ]]; do \
+           read -n 1 -p "(Press Q to quit or H for help)"; echo ""; \
+           REPLY=`echo "$$REPLY" | tr /A-Z/a-z/`; \
            if [[ "$$REPLY" == "h" || "$$REPLY" == "H" ]]; then \
              perldoc ${MAKEFILE_RULES};\
            fi \
@@ -967,21 +945,26 @@ show:
 	@${RULER}
 #>>>
 
-debug: gdb
-gdb: exe
-	@echo 'printf "Begin ${UNIT}.gdb"'   >${UNIT}.gdb;
-	@echo 'set args ${RUNTIME_ARGS}'    >>${UNIT}.gdb;
+debug: exe
+	@echo 'printf "Begin ${UNIT}.gdb"'                      >${UNIT}.gdb;\
+	 test -r ~/.gdbinit && echo 'source ~/.gdbinit'        >>${UNIT}.gdb;\
+	 test -r .gdbinit && echo 'source .gdbinit'            >>${UNIT}.gdb;\
+	 echo 'set args ${RUNTIME_ARGS}'                       >>${UNIT}.gdb;
 ifdef BREAKPOINTS
 	@for bp in $(call Unique,sc_main ${BREAKPOINTS}); do \
            echo "break $$bp" >>${UNIT}.gdb;\
-           echo 'commands'                  >>${UNIT}.gdb;\
-           echo '  printf " ***'$$bp'\\n"'  >>${UNIT}.gdb;\
-           echo 'end'                       >>${UNIT}.gdb;\
+           echo 'commands'                                     >>${UNIT}.gdb;\
+           echo '  printf " ***'$$bp'\\n"'                     >>${UNIT}.gdb;\
+           echo 'end'                                          >>${UNIT}.gdb;\
            done
 endif
-	@echo 'run'                         >>${UNIT}.gdb;
-	@echo 'printf "End ${UNIT}.gdb"'    >>${UNIT}.gdb;
-	${GDB_PGM} -x ${UNIT}.gdb ${EXE}
+	@echo 'break main'                                     >>${UNIT}.gdb;\
+	 echo 'run'                                            >>${UNIT}.gdb;\
+	 echo 'printf "End ${UNIT}.gdb"'                       >>${UNIT}.gdb;
+	${GDB_PGM} -nx -x ${UNIT}.gdb ${EXE}
+
+gdb: exe
+	${GDB_PGM} ${EXE}
 
 ddd: exe
 	@echo "set args ${RUNTIME_ARGS}"  >${UNIT}.gdb;
@@ -1009,6 +992,7 @@ ifdef NOSCRIPT
 else
   SCRIPT=./${UNIT}.scr
 endif
+LDLIB:=$(call Env,LD_LIBRARY_PATH,${SYSTEMC}/lib-${TARGET_ARCH})
 run: ${EXE}
 	@${RULER};
 	@echo "RUNNING SIMULATION";
@@ -1163,8 +1147,10 @@ ifneq "$(findstring systemcc,${CXX_PGM})" ""
   endef
 else
   $(info INFO: Default ${CXX})
+  log:=/tmp/log.$(PID)
+  xit:=/tmp/xit.$(PID)
   define SYSTEMCC
-    (cd $1 && $2 $3 && cd -) 2>&1 | tee compile.log
+    (cd $1 && $2 $3 2>&1) | tee compile.log
   endef
 endif
 
@@ -1173,24 +1159,28 @@ endif
 	@${RULER}; $(call REPORT_TITLE,Compiling $<);
 	@-rm -f $@
 	@touch FAILED_TO_COMPILE.$(<F)
-	${SETUP} $(call SYSTEMCC,$(<D),${CXX_CMD},$(strip ${FLAGS} ${INCDIRS} ${C_DEFS} -o $(@F) -c $(<F)))
-	@rm FAILED_TO_COMPILE.$(<F)
+	${SETUP} $(call SYSTEMCC,$(<D),${CXX_CMD} ${CXX11},$(strip ${FLAGS} ${INCDIRS} ${C_DEFS} -o $(@F) -c $(<F)))
+	@mv compile.log FAILED_TO_COMPILE.$(<F)
+	@grep error: FAILED_TO_COMPILE.$(<F) >/dev/null 2>&1 || rm FAILED_TO_COMPILE.$(<F)
+	@test ! -r FAILED_TO_COMPILE.$(<F)
 
 # Compile C++
 %${OBJFLAVOR}.o: %.cxx
 	@${RULER}; $(call REPORT_TITLE,Compiling $<);
 	@-rm -f $@
 	@touch FAILED_TO_COMPILE.$(<F)
-	${SETUP} $(call SYSTEMCC,$(<D),${CXX_CMD},$(strip ${FLAGS} ${INCDIRS} ${C_DEFS} -o  $(@F) -c $(<F)))
-	@rm FAILED_TO_COMPILE.$(<F)
+	${SETUP} $(call SYSTEMCC,$(<D),${CXX_CMD} ${CXX11},$(strip ${FLAGS} ${INCDIRS} ${C_DEFS} -o  $(@F) -c $(<F)))
+	@grep error: FAILED_TO_COMPILE.$(<F) >/dev/null 2>&1 || rm FAILED_TO_COMPILE.$(<F)
+	@test ! -r FAILED_TO_COMPILE.$(<F)
 
 # Compile C++
 %${OBJFLAVOR}.o: %.cc
 	@${RULER}; $(call REPORT_TITLE,Compiling $<);
 	@-rm -f $@
 	@touch FAILED_TO_COMPILE.$(<F)
-	${SETUP} $(call SYSTEMCC,$(<D),${CXX_CMD},$(strip ${FLAGS} ${INCDIRS} ${C_DEFS} -o $(@F) -c $(<F)))
-	@rm FAILED_TO_COMPILE.$(<F)
+	${SETUP} $(call SYSTEMCC,$(<D),${CXX_CMD} ${CXX11},$(strip ${FLAGS} ${INCDIRS} ${C_DEFS} -o $(@F) -c $(<F)))
+	@grep error: FAILED_TO_COMPILE.$(<F) >/dev/null 2>&1 || rm FAILED_TO_COMPILE.$(<F)
+	@test ! -r FAILED_TO_COMPILE.$(<F)
 
 # Compile vanilla C if requested
 %${OBJFLAVOR}.o: %.c
@@ -1198,7 +1188,8 @@ endif
 	@-rm -f $@
 	@touch FAILED_TO_COMPILE.$(<F)
 	${SETUP} $(call SYSTEMCC,$(<D),${CC_CMD},$(strip ${CFLAGS} ${INCDIRS} ${C_DEFS} -o $(@F) -c $(<F)))
-	@rm FAILED_TO_COMPILE.$(<F)
+	@grep error: FAILED_TO_COMPILE.$(<F) >/dev/null 2>&1 || rm FAILED_TO_COMPILE.$(<F)
+	@test ! -r FAILED_TO_COMPILE.$(<F)
 
 ################################################################################
 #  
@@ -1215,7 +1206,7 @@ endif
 ################################################################################
 TARGET_HEADERS:=$(addprefix ${INCDIR}/,$(notdir ${HEADERS}))
 headers:
-ifdef USING_CLEARCASE
+ifeq (${USING_CLEARCASE},1)
 #------------------------------------------------------------------------------
 # Create links to headers.
 #
@@ -1230,7 +1221,7 @@ endif
 ${LIBPATH}: ${OBJS}
 	@$(call REPORT_TITLE,Archiving $(notdir $@));
 	mkdir -p ${LIBDIR}
-ifdef USING_CLEARCASE
+ifeq (${USING_CLEARCASE},1)
 # We need to checkout if not already
 	-cleartool ls $@ | grep -q CHECKEDOUT || cleartool co -nc $@
 endif
@@ -1240,7 +1231,7 @@ endif
 ${LIBPATH}(%.o): %.o
 	@$(call REPORT_TITLE,Updating $(notdir $@));
 	mkdir -p ${LIBDIR}
-ifdef USING_CLEARCASE
+ifeq (${USING_CLEARCASE},1)
 # We need to checkout if not already
 	-cleartool ls $@ | grep -q CHECKEDOUT || cleartool co -nc ${LIBPATH}
 endif
@@ -1402,7 +1393,7 @@ selftest:
 
 ${DEPENDENCIES_FILE}: $(wildcard ${SHARED_SRCS} ${SRCS})
 	@${RULER}; $(call REPORT_TITLE,Computing dependencies);
-	${SETUP} ${CXX_CMD} ${FLAGS} ${INCDIRS} ${C_DEFS} -MM $(wildcard ${SHARED_SRCS} ${SRCS}) > ${DEPENDENCIES_FILE}
+	${SETUP} ${CXX_CMD} ${CXX11} ${FLAGS} ${INCDIRS} ${C_DEFS} -MM $(wildcard ${SHARED_SRCS} ${SRCS}) > ${DEPENDENCIES_FILE}
 ifndef NOFIXDEPS
   ifneq "$(findstring fixdeps,${FIX_PGM})" ""
     ifdef OBJFLAVOR

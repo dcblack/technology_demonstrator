@@ -115,6 +115,13 @@ Report_debug=$(if ${DEBUG_MAKE},$(foreach n,$1,$(info DEBUG: $n=${$n})),)
 Report_here=$(info ************ HERE $1 ************)
 # $(Stop)
 Stop=$(error STOPPED BY USER)
+# $(call Env,VAR,VAL)
+Env=$shell perl -le '($$a,$$b)=@ARGV;print"env ",$$a,qq{="},(exists$$ENV{$$a}?qq{$$ENV{$$a}:}:"").qq{$$b"}' $1 $2
+# $(call Remove_prefix,PREFIX,FILELIST)
+Remove_prefix=$(patsubst $1%,%,$(patsubst $1%,%,$2))
+# $(call Prefix_files,PREFIX,FILELIST)
+# Foreach list element: removes prefix (if any), checks for real file, and adds prefix back
+Prefix_files=$(addprefix $1,$(wildcard $(call Remove_prefix,$1,$2)))
 
 $(call Require_make,3.81)
 $(info INFO: Using GNU make version $(MAKE_VERSION))
@@ -202,12 +209,20 @@ endef
 ################################################################################
 # Stuff important for easier debug of output log files
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-BOLDRED:=[01;31m
-BOLD:=[01m
-NONE:=[00m
+BOLD := [01m
+UNDR := [04m
+NONE := [00m
+CRED := [31m
+CGRN := [32m
+CYLW := [33m
+CBLU := [34m
+CMAG := [35m
+CCYN := [36m
+CWHT := [37m
+CBLK := [38m
 # RULER makes it easier to spot areas of output from a long make invocation
 define RULER
-echo "$(BOLDRED)################################################################################$(NONE)"
+echo "$(BOLD)$(CRED)################################################################################$(NONE)"
 endef
 # $(call REPORT_TITLE,Your title)
 define REPORT_TITLE

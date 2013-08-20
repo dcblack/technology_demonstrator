@@ -1,0 +1,188 @@
+////////////////////////////////////////////////////////////////////////////////
+// Implementation
+//------------------------------------------------------------------------------
+
+#include "matrix.h"
+#include <iomanip>
+#include <sstream>
+#include <random>
+#include <cassert>
+using namespace std;
+
+//------------------------------------------------------------------------------
+int    Matrix::next = 0;
+std::default_random_engine Matrix::gen;
+Matrix::Pattern_distribution       Matrix::distr(Matrix::FILL0,Matrix::RANDOM);
+
+//------------------------------------------------------------------------------
+Matrix::Matrix(size_t r, size_t c, Pattern_t patt, string name) //< Constructor
+: m_rows(r)
+, m_cols(c)
+, m(nullptr)
+, m_name(name)
+, m_id(next++)
+, m_patt(patt)
+{
+  assert(m_rows!=0 & m_cols!=0);
+  assert(m_rows*m_cols <= MAX_MATRIX_SIZE);
+  m = new Data_t[m_rows*m_cols];
+  fill_patt(patt);
+}
+
+//------------------------------------------------------------------------------
+Matrix::Matrix(const Matrix& rhs) // Copy constructor
+: m_rows(rhs.m_rows)
+, m_cols(rhs.m_cols)
+, m(new Data_t[m_rows*m_cols])
+, m_name(rhs.m_name)
+, m_id(next++)
+, m_patt(rhs.m_patt)
+{
+  for (Addr_t i=begin(); i!=end(); ++i) m[i] = rhs.m[i];
+}
+
+//------------------------------------------------------------------------------
+Matrix& Matrix::operator=(const Matrix& rhs) { //< Assignment
+  m_id = next++;
+  m_name = rhs.m_name;
+  m_rows = rhs.m_rows;
+  m_cols = rhs.m_cols;
+  delete[] m;
+  m = new Data_t[m_rows*m_cols];
+  for (Addr_t i=begin(); i!=end(); ++i) m[i] = rhs.m[i];
+  return *this;
+}
+
+//------------------------------------------------------------------------------
+bool Matrix::operator== (const Matrix& rhs) { //< Compare
+  bool result = true;
+  for (Addr_t i=begin(); i!=end(); result && ++i) {
+    result &= (m[i] == rhs.m[i]);
+  }
+  return result;
+}
+
+//------------------------------------------------------------------------------
+size_t Matrix::zeroes(void) const {
+  size_t result = 0;
+  for (Addr_t i=begin(); i!=end(); ++i) if (m[i] == 0) ++result;
+  return result;
+}
+
+//------------------------------------------------------------------------------
+void Matrix::fill(Data_t value) {
+  for (Addr_t i=begin(); i!=end(); ++i) m[i] = value;
+}
+
+//------------------------------------------------------------------------------
+// Fill matrix with various patterns
+void Matrix::fill_patt(Pattern_t patt) {
+  if (patt == NONE) return;
+  Data_t value = 0;
+  if (RANDOM <patt && patt<NONE) {
+    // Incrementing/decrementing patterns
+    for (Addr_t r=0; r!=m_rows; ++r) {
+      for (Addr_t c=0; c!=m_cols; ++c) {
+        switch (patt) {
+          case    MINUS2: m[c*m_rows+r] = value-=2     ; break;
+          case     PLUS1: m[r*m_cols+c] = value+=1     ; break;
+          case    MINUS1: m[r*m_cols+c] = value-=1     ; break;
+          case     PLUS3: m[r*m_cols+c] = value+=3     ; break;
+          default       : m[r*m_cols+c] = value=-value ; break;
+        }
+      }
+    }
+  } else if (FILL0 <= patt && patt < RANDOM) {
+    switch (patt) {
+      case    FILL0: fill(1);          break;
+      case    FILL1: fill(0xC0EDBABE); break;
+      case    FILL2: fill(42);         break;
+      case    FILL3: fill(0xFACE);     break;
+      default      :                   break;
+    }
+  } else if (patt == RANDOM) {
+    randomize();
+  } else /*RANDALL*/ {
+    fill_patt(distr(gen));
+  }
+}
+
+//------------------------------------------------------------------------------
+void Matrix::identity(Data_t value) {
+  assert(is_square());
+  for (Addr_t r=0; r!=m_rows; ++r) {
+    for (Addr_t c=0; c!=m_cols; ++c) {
+      if (r == c) m[r*m_cols+c] = value;
+      else        m[r*m_cols+c] = 0;
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
+void Matrix::randomize(void) {
+  for (Addr_t i=begin(); i!=end(); ++i) m[i] = gen();
+}
+
+//------------------------------------------------------------------------------
+string Matrix::name(void) const  {
+  ostringstream sout;
+  if (m_name.length() == 0) sout << "m" << m_id;
+  else                      sout << m_name;
+  return sout.str();
+}
+
+//------------------------------------------------------------------------------
+void Matrix::load(const Memory& mem, Addr_t from) {
+  Addr_t shape = mem.xget(from++);
+  assert(shape != 0 && Msize(shape) < MAX_MATRIX_SIZE);
+  delete[] m;
+  m_rows = Mrows(shape);
+  m_cols = Mcols(shape);
+  m = new Data_t[m_rows*m_cols];
+  for (Addr_t i=begin(); i!=end(); ++i) {
+    m[i] = mem.xget(from++);
+  }
+}
+
+//------------------------------------------------------------------------------
+void Matrix::store(Memory& mem, Addr_t to) {
+  mem.xset(to++, Mshape(m_rows,m_cols));
+  for (Addr_t i=begin(); i!=end(); ++i) {
+    mem.xset(to++,m[i]);
+  }
+}
+
+//------------------------------------------------------------------------------
+string Matrix::dump(void) {
+  ostringstream sout;
+  // Heading
+  sout << name() << "/ ";
+  for (Addr_t col=0; col!=m_cols; ++col) {
+    if (col != 0) sout << ", ";
+    sout << setw(2) << dec << col;
+  }
+  sout << "\n";
+
+  // Separator
+  sout << "----";
+  for (Addr_t col=0; col!=m_cols; ++col) {
+    if (col != 0) sout << "--";
+    sout << "--";
+  }
+  sout << "\n";
+
+  // Out data
+  for (Addr_t row=0; row!=m_rows; ++row) {
+    sout << setw(2) << dec << row << ": ";
+    // Output a row
+    for (Addr_t col=0; col!=m_cols; ++col) {
+      sout << setw(2) << dec << m[row*m_cols+col] << ", ";
+    }
+    sout << "\n";
+  }
+  sout << "\n";
+  sout << ends;
+  return sout.str();
+}
+
+// The end
