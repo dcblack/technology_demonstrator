@@ -169,5 +169,5 @@ int main(int argc, char* argv[])
   } else {
 	  cout << "Test FAILED with " << errors << " errors!" << endl;
   }
-  return (errors == 0ULL) ? 1 : 0;
+  return (errors == 0ULL) ? 0 : 1;
 }
