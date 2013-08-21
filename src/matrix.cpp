@@ -3,6 +3,7 @@
 //------------------------------------------------------------------------------
 
 #include "matrix.h"
+#include <cstdlib>
 #include <iomanip>
 #include <sstream>
 #ifdef CXX11
@@ -22,7 +23,7 @@ Matrix::Pattern_distribution       Matrix::distr(Matrix::FILL0,Matrix::RANDOM);
 Matrix::Matrix(size_t r, size_t c, Pattern_t patt, string name) //< Constructor
 : m_rows(r)
 , m_cols(c)
-, m(nullptr)
+, m(0)
 , m_name(name)
 , m_id(next++)
 , m_patt(patt)

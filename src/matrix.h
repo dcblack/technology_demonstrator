@@ -16,9 +16,9 @@ struct Matrix
   , NONE
   };
 
-  typedef std::uniform_int_distribution<Matrix::Pattern_t> Pattern_distribution;
   static int    next;
 #ifdef CXX11
+  typedef std::uniform_int_distribution<Matrix::Pattern_t> Pattern_distribution;
   static std::default_random_engine gen;
   static Pattern_distribution       distr;
 #endif
