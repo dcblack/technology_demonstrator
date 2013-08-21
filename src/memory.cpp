@@ -32,10 +32,10 @@ Memory::~Memory(void) { //< Destructor
 }
 
 Memory::Memory(const Memory& rhs)
-  : xmem(nullptr)
-  , xmem_mirror(nullptr)
-  , imem(nullptr)
-  , imem_mirror(nullptr)
+  : xmem(0)
+  , xmem_mirror(0)
+  , imem(0)
+  , imem_mirror(0)
 {
   cerr << "FATAL: Memory copy constructor not allowed!" << endl;
 }
