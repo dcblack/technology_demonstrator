@@ -4,6 +4,7 @@
 
 #include "command.h"
 #include "dev_util.h"
+#include <cstdlib>
 #include <iostream>
 #include <iomanip>
 #include <cassert>
@@ -171,9 +172,9 @@ std::ostream& operator<<(std::ostream& os, const Command& rhs) {
   unsigned char dest, src1, src2;
   rhs.get(op, dest, src1, src2);
   os << operation_name[op];
-  if ((rhs.command&0xFFFFFF) != 0xFFFFFF) os << hex << ", " << int(dest);
-  if ((rhs.command&0xFFFF  ) != 0xFFFF  ) os << hex << ", " << int(src1);
-  if ((rhs.command&0xFF    ) != 0xFF    ) os << hex << ", " << int(src2);
+  if ((rhs.command&0xFFFFFF) != 0xFFFFFF) os << dec << ", " << int(dest);
+  if ((rhs.command&0xFFFF  ) != 0xFFFF  ) os << dec << ", " << int(src1);
+  if ((rhs.command&0xFF    ) != 0xFF    ) os << dec << ", " << int(src2);
   os << dec << ";";
   for (size_t i=0; i!=rhs.REGS; ++i) {
     if (rhs.m_r[i] != 0xF00DFACE) {
