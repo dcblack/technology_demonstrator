@@ -472,18 +472,18 @@ ifndef LIBFILE
   LIBFILE:=lib${EA}
 endif
 
-USING_SYSTEMC:=0
-USING_CXX11:=0
-USING_SCV:=0
-USING_TLM:=0
-USING_FX:=0
-USING_DYNAMIC:=0
-USING_BOOST:=0
-USING_WXWIDGETS:=0
-#USING_HLDW:=0
-#USING_CLEARCASE:=0
-USING_CLANG:=0
-USING_DOULOS:=0
+USING_SYSTEMC:=
+USING_CXX11:=
+USING_SCV:=
+USING_TLM:=
+USING_FX:=
+USING_DYNAMIC:=
+USING_BOOST:=
+USING_WXWIDGETS:=
+#USING_HLDW:=
+#USING_CLEARCASE:=
+USING_CLANG:=
+USING_DOULOS:=
 
 ################################################################################
 # Test for features within source code
@@ -804,8 +804,8 @@ ifeq (${USING_DYNAMIC},1)
   C_DEFS += -DSC_INCLUDE_DYNAMIC_PROCESSES
 endif
 ifeq (${USING_CXX11},1)
-  CXX11 += -std=c++11 $(if ${USING_CLANG},-stdlib=libc++)
-  LIBS  += -std=c++11 $(if ${USING_CLANG},-stdlib=libc++)
+  CXX11 += -std=c++11 $(if ${USING_CLANG},-stdlib=libc++,)
+  LIBS  += -std=c++11 $(if ${USING_CLANG},-stdlib=libc++,)
 endif
 CC_CMD  += -m${CPUWIDTH}
 CXX_CMD += -m${CPUWIDTH}
