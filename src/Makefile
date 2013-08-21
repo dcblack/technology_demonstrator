@@ -27,7 +27,7 @@ SRCS:=$(strip   \
 )
 
 ifdef CXX11
-override CXX11:=-std=c++11 -stdlib=libc++
+override CXX11:=-std=c++11 $(if $(subst Linux,,$(shell uname -s)),-stdlib=libc++)
 endif
 
 # The following conditional allows an upper level to include this
