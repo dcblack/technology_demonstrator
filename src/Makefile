@@ -29,6 +29,8 @@ SRCS:=$(strip   \
 ifdef CXX11
 override CXX11:=-std=c++11 $(if $(subst Linux,,$(shell uname -s)),-stdlib=libc++)
 endif
+# Tell automation to ignore SystemC content
+NOT_SYSTEMC:=1
 
 # The following conditional allows an upper level to include this
 # makefile to obtain a list of source files:
