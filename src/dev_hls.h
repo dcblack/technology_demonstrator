@@ -11,6 +11,37 @@ typedef int          Data_t; //< 32-bits
 typedef unsigned int Addr_t; //< 32-bits
 typedef Data_t       Axi_t;  //< needed for SystemC
 
+#define XMATRICES 64
+#define XMEM_SIZE (MAX_MATRIX_SPACE*XMATRICES)
+#define IMATRICES 16
+#define IMEM_SIZE (IMATRICES*MAX_MATRIX_SIZE)
+#define IMEM_LAST (IMEM_SIZE-MAX_MATRIX_SIZE)
+#define DEV_REGS  16
+
+void dev_hls
+( volatile Data_t* reg_R0
+, volatile Data_t* reg_R1
+, volatile Data_t* reg_R2
+, volatile Data_t* reg_R3
+, volatile Data_t* reg_R4
+, volatile Data_t* reg_R5
+, volatile Data_t* reg_R6
+, volatile Data_t* reg_R7
+, volatile Data_t* reg_R8
+, volatile Data_t* reg_R9
+, volatile Data_t* reg_R10
+, volatile Data_t* reg_R11
+, volatile Data_t* reg_R12
+, volatile Data_t* reg_R13
+, volatile Data_t* reg_R14
+, volatile Data_t* reg_R15
+, volatile Data_t* reg_AXI_BASE
+, volatile Data_t* reg_COMMAND
+, volatile Data_t* reg_STATUS
+, Data_t  imem[IMEM_SIZE]
+, volatile Axi_t*  axibus
+);
+
 // Matrix points to a shape followed by the array itself
 // Shape is contained as two 16 bit fields in a word
 // Number of rows stored in the upper 16 bits
@@ -35,13 +66,6 @@ static void display_matrix(Data_t* M) {
   std::cout << std::endl;
 }
 #endif
-
-#define XMATRICES 64
-#define XMEM_SIZE (MAX_MATRIX_SPACE*XMATRICES)
-#define IMATRICES 16
-#define IMEM_SIZE (IMATRICES*MAX_MATRIX_SIZE)
-#define IMEM_LAST (IMEM_SIZE-MAX_MATRIX_SIZE)
-#define DEV_REGS  16
 
 enum Reg_t     // Byte addresses for registers (32 bits each)
 { R0           // Aka M0_SHAPE
