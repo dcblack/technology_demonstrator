@@ -4,7 +4,7 @@
 #include "dev_hls.h"
 #include <string.h>
 
-#define SET_REG(r, data) do {     \
+#define SET_REG(r, data) \
 switch (r) {                      \
   case  0: *reg_R0  = data; break;\
   case  1: *reg_R1  = data; break;\
@@ -22,9 +22,9 @@ switch (r) {                      \
   case 13: *reg_R13 = data; break;\
   case 14: *reg_R14 = data; break;\
   case 15: *reg_R15 = data; break;\
-}} while(0)
+}
 
-#define GET_REG(r, data) do {     \
+#define GET_REG(r, data) \
 switch (r) {                      \
   case  0: data = *reg_R0 ; break;\
   case  1: data = *reg_R1 ; break;\
@@ -42,16 +42,16 @@ switch (r) {                      \
   case 13: data = *reg_R13; break;\
   case 14: data = *reg_R14; break;\
   case 15: data = *reg_R15; break;\
-}} while(0)
+}
 
 #define VALIDATE_REGISTER(r)     \
-if ( r<0 || 15<r ) {             \
+if ( 15<r ) {             \
   *reg_STATUS = REGISTER_ERROR;  \
   break;                         \
 } r |= 0 /* to allow ; at end */
 
 #define VALIDATE_MATRIX(r)       \
-if ( r<0 || 14<r || r&1) {       \
+if ( 14<r || r&1) {       \
   *reg_STATUS = REGISTER_ERROR;  \
   break;                         \
 } r |= 0 /* to allow ; at end */
@@ -80,57 +80,57 @@ void dev_hls
 , volatile Data_t* reg_COMMAND     //< AXI slave
 , volatile Data_t* reg_STATUS      //< AXI slave
 ,          Data_t  imem[IMEM_SIZE] //< Device memory
-, volatile Data_t* axibus          //< AXI master
+, volatile Axi_t*  axibus          //< AXI master
 )
 {
 
-// Port mappings to hardware
-#pragma HLS interface ap_hs   port=reg_R0
-#pragma HLS interface ap_none port=reg_R1
-#pragma HLS interface ap_none port=reg_R2
-#pragma HLS interface ap_none port=reg_R3
-#pragma HLS interface ap_none port=reg_R4
-#pragma HLS interface ap_none port=reg_R5
-#pragma HLS interface ap_none port=reg_R6
-#pragma HLS interface ap_none port=reg_R7
-#pragma HLS interface ap_none port=reg_R8
-#pragma HLS interface ap_none port=reg_R9
-#pragma HLS interface ap_none port=reg_R10
-#pragma HLS interface ap_none port=reg_R11
-#pragma HLS interface ap_none port=reg_R12
-#pragma HLS interface ap_none port=reg_R13
-#pragma HLS interface ap_none port=reg_R14
-#pragma HLS interface ap_none port=reg_R15
-#pragma HLS interface ap_none port=reg_AXI_BASE
-#pragma HLS interface ap_none port=reg_COMMAND
-#pragma HLS interface ap_none port=reg_STATUS
+// Port mappings protcols
+#pragma HLS interface ap_hs     port=reg_R0      
+#pragma HLS interface ap_none   port=reg_R1      
+#pragma HLS interface ap_none   port=reg_R2      
+#pragma HLS interface ap_none   port=reg_R3      
+#pragma HLS interface ap_none   port=reg_R4      
+#pragma HLS interface ap_none   port=reg_R5      
+#pragma HLS interface ap_none   port=reg_R6      
+#pragma HLS interface ap_none   port=reg_R7      
+#pragma HLS interface ap_none   port=reg_R8      
+#pragma HLS interface ap_none   port=reg_R9      
+#pragma HLS interface ap_none   port=reg_R10     
+#pragma HLS interface ap_none   port=reg_R11     
+#pragma HLS interface ap_none   port=reg_R12     
+#pragma HLS interface ap_none   port=reg_R13     
+#pragma HLS interface ap_none   port=reg_R14     
+#pragma HLS interface ap_none   port=reg_R15     
+#pragma HLS interface ap_none   port=reg_AXI_BASE
+#pragma HLS interface ap_none   port=reg_COMMAND 
+#pragma HLS interface ap_none   port=reg_STATUS  
+#pragma HLS interface ap_memory port=imem        
+#pragma HLS interface ap_bus    port=axibus      
 
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R0
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R1
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R2
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R3
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R4
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R5
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R6
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R7
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R8
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R9
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R10
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R11
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R12
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R13
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R14
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_R15
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_AXI_BASE
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_COMMAND
-#pragma HLS resource core=AXILiteS metadata="-bus_bundle slave" variable=reg_STATUS
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_R0      
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_R1      
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_R2      
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_R3      
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_R4      
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_R5      
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_R6      
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_R7      
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_R8      
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_R9      
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_R10     
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_R11     
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_R12     
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_R13     
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_R14     
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_R15     
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_AXI_BASE
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_COMMAND 
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_STATUS  
+#pragma HLS resource core=RAM_T2P_BRAM variable=imem                                     
+#pragma HLS resource core=AXI4M variable=axibus
 
-#pragma HLS resource core=AXIM variable=axibus
-
-  FOREVER_LOOP:
-  for(;;) {
-    Data_t status = *reg_STATUS;
-    if (status != START) return;
+  Data_t status = *reg_STATUS;
+  if (status == START) {
 
     *reg_STATUS = BUSY;
 
@@ -196,13 +196,13 @@ void dev_hls
         base = *reg_AXI_BASE;
 
         VALIDATE_REGISTER(src1);
-        GET_REG(src1,x_ptr);
+        GET_REG(src1,x_ptr)
         x_ptr += base;
         shape = axibus[x_ptr++];
         
         VALIDATE_MATRIX(dest);
-        SET_REG(dest,shape);
-        GET_REG(dest+1,i_ptr);
+        SET_REG(dest,shape)
+        GET_REG(dest+1,i_ptr)
 
         // Make sure it's a valid shape
         if (shape == 0 || Msize(shape) > MAX_MATRIX_SIZE) {
@@ -215,11 +215,25 @@ void dev_hls
           *reg_STATUS = ADDRESS_ERROR;
           break;
         }
-        LOAD_LOOP:
+        
         unsigned int size = Msize(shape);
-        for (unsigned int i=0; i!=size; ++i) {
+        const unsigned int BURST = 8; //< must be power of 2
+        unsigned int remainder = size & (BURST-1);
+        size &= ~(BURST-1);
+        LOAD_BURST_LOOP: // Do bursts of 8
+        for (unsigned int i=0; i!=size; i+=BURST) {
+          Data_t buffer[BURST];
+          memcpy(&buffer, (void*)(axibus+x_ptr), BURST*sizeof(Data_t));
+          x_ptr += BURST;
+          WRITE_IMEM_LOOP:
+          for (unsigned int j=0; j!=BURST; ++j) {
+            imem[i_ptr++] = buffer[j];
+          }
+        }
+        LOAD_REMAINDER_LOOP:
+        for (int i=0; i!=remainder; ++i) {
           Data_t data;
-          data = axibus[x_ptr++];
+          data = *(axibus+x_ptr++);
           imem[i_ptr++] = data;
         }
         *reg_STATUS = DONE;
@@ -237,11 +251,11 @@ void dev_hls
         base = *reg_AXI_BASE;
 
         VALIDATE_MATRIX(dest);
-        GET_REG(dest,shape);
-        GET_REG(dest+1,i_ptr);
+        GET_REG(dest,shape)
+        GET_REG(dest+1,i_ptr)
 
         VALIDATE_REGISTER(src1);
-        GET_REG(src1,x_ptr);
+        GET_REG(src1,x_ptr)
         x_ptr += base;
         
         // Make sure it's a valid shape
@@ -255,12 +269,25 @@ void dev_hls
           *reg_STATUS = ADDRESS_ERROR;
           break;
         }
-        STORE_LOOP:
         unsigned int size = Msize(shape);
-        for (unsigned int i=0; i!=size; ++i) {
+        const unsigned int BURST = 8; //< must be power of 2
+        unsigned int remainder = size & (BURST-1);
+        size &= ~(BURST-1);
+        STORE_BURST_LOOP:
+        for (unsigned int i=0; i!=size; i+=BURST) {
+          Data_t buffer[BURST];
+          READ_IMEM_LOOP:
+          for (unsigned int j=0; j!=BURST; ++j) {
+            buffer[j] = imem[i_ptr++];
+          }
+          memcpy((void*)(axibus+x_ptr), &buffer, BURST*sizeof(Data_t));
+          x_ptr += BURST;
+        }
+        STORE_REMAINDER_LOOP:
+        for (int i=0; i!=remainder; ++i) {
           Data_t data;
           data = imem[i_ptr++];
-          axibus[x_ptr++] = data;
+          *(axibus+x_ptr++) = data;
         }
         *reg_STATUS = DONE;
         break;
@@ -274,12 +301,12 @@ void dev_hls
         Data_t dst_shape, src_shape;
 
         VALIDATE_MATRIX(dest);
-        GET_REG(dest,dst_ptr);
-        GET_REG(dest+1,dst_ptr);
+        GET_REG(dest,dst_ptr)
+        GET_REG(dest+1,dst_ptr)
 
         VALIDATE_MATRIX(src1);
-        GET_REG(src1,src_shape);
-        GET_REG(src1+1,src_ptr);
+        GET_REG(src1,src_shape)
+        GET_REG(src1+1,src_ptr)
 
         // Make sure pointers are within memory
         if (!Mvalid(src_ptr) || !Mvalid(dst_ptr)) {
@@ -319,9 +346,9 @@ void dev_hls
         }
         VALIDATE_MATRIX(src2);
 
-        GET_REG(dest,dest_shape);
-        if (not_KMUL) GET_REG(src1,src1_shape);
-        GET_REG(src2,src2_shape);
+        GET_REG(dest,dest_shape)
+        if (not_KMUL) GET_REG(src1,src1_shape)
+        GET_REG(src2,src2_shape)
 
         // Make sure shapes are valid
         if (not_KMUL && dest_shape != src1_shape) {
@@ -335,10 +362,10 @@ void dev_hls
 
         Addr_t dest_ptr, src1_ptr, src2_ptr;
         Data_t k;
-        GET_REG(dest+1,dest_ptr);
-        if (not_KMUL)          GET_REG(src1+1,src1_ptr);
-        else                   GET_REG(src1,k);
-        GET_REG(src2+1,src2_ptr);
+        GET_REG(dest+1,dest_ptr)
+        if (not_KMUL)          GET_REG(src1+1,src1_ptr)
+        else                   GET_REG(src1,k)
+        GET_REG(src2+1,src2_ptr)
 
         // Make sure pointers are withing memory
         if (!Mvalid(dest_ptr)
@@ -373,8 +400,8 @@ void dev_hls
         VALIDATE_MATRIX(src1);
         Addr_t src1_ptr;
         Data_t src1_shape;
-        GET_REG(src1,src1_shape);
-        GET_REG(src1+1,src1_ptr);
+        GET_REG(src1,src1_shape)
+        GET_REG(src1+1,src1_ptr)
         // Make sure pointer is within memory
         if (!Mvalid(src1_ptr)) {
           *reg_STATUS = ADDRESS_ERROR;
@@ -385,7 +412,7 @@ void dev_hls
         for (Addr_t i=Msize(src1_shape); i!=0; --i) {
           if (imem[src1_ptr++] == 0) ++count;
         }
-        SET_REG(dest,count);
+        SET_REG(dest,count)
         *reg_STATUS = DONE;
         break;
       }
@@ -432,9 +459,9 @@ void dev_hls
       {
         Addr_t val;
         VALIDATE_REGISTER(src1);
-        GET_REG(src1,val);
+        GET_REG(src1,val)
         VALIDATE_REGISTER(dest);
-        SET_REG(dest,val);
+        SET_REG(dest,val)
       }
       //--------------------------------------------------------------------------
       // Operation: Set register high half immediate
@@ -442,10 +469,10 @@ void dev_hls
       {
         Addr_t val;
         VALIDATE_REGISTER(dest);
-        GET_REG(dest,val);
+        GET_REG(dest,val)
         val &= 0xFFFF;
         val |= ((src1 << 8)|src2)<<16;
-        SET_REG(dest,val);
+        SET_REG(dest,val)
       }
       //--------------------------------------------------------------------------
       // Operation: Set register low half immediate
@@ -453,10 +480,10 @@ void dev_hls
       {
         Addr_t val;
         VALIDATE_REGISTER(dest);
-        GET_REG(dest,val);
+        GET_REG(dest,val)
         val &= ~0xFFFF;
         val |= ((src1 << 8)|src2);
-        SET_REG(dest,val);
+        SET_REG(dest,val)
       }
       //--------------------------------------------------------------------------
       default: // operation not implemented/supported
@@ -466,7 +493,6 @@ void dev_hls
         }
     }//endswitch
 
-  }//endforever
-  // Never gets here
+  }
 }
 // The end
