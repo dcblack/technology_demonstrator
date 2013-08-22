@@ -5,7 +5,11 @@
 #include <iomanip>
 #include <sstream>
 #include <cassert>
+#include <vector>
+#ifdef CXX11
+#include <functional>
 #include <random>
+#endif
 using namespace std;
 
 #include "command.h"
@@ -22,9 +26,11 @@ void debug(const string& label) {
 ////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char* argv[])
 {
+#ifdef CXX11
   static std::default_random_engine         generator;
   static std::uniform_int_distribution<int> distribution(1, 4);
   auto   rand_1_to_4 = std::bind(distribution, generator);
+#endif
   Registers dev;
   Memory    mem;
 
@@ -57,15 +63,15 @@ int main(int argc, char* argv[])
 
   // Copy matrices into external memory [track base address in mm]
   vector<Addr_t> matrix_address;
-  for (auto& matrix : matrices) {
-    cout << matrix->dump();
+  for (int i=0; i!=matrices.size(); ++i) {
+    cout << matrices[i]->dump();
     matrix_address.push_back(xmem_ptr);
-    matrix->store(mem, xmem_ptr);
-    xmem_ptr += matrix->space();
+    matrices[i]->store(mem, xmem_ptr);
+    xmem_ptr += matrices[i]->space();
   }
 
   cout << "Matrix xmem address mappings:" << "\n";
-  for (auto i=0; i!=matrix_address.size(); ++i) {
+  for (int i=0; i!=matrix_address.size(); ++i) {
     cout << "  m" << i << " -> " << matrix_address[i] << "\n";
   }
   cout << endl;
@@ -127,13 +133,13 @@ int main(int argc, char* argv[])
   clist.push_back(c);
 
   dev.reg_AXI_BASE = 0;
-  for (auto c : clist) {
-    dev.reg_COMMAND = c.command;
-    dev.reg_STATUS = c.status;
-    for (int i=0; i!=16; ++i) c.get_r(i, dev.reg[i]); // update changed registers
+  for (int ci=0; ci!=clist.size(); ++ci) {
+    dev.reg_COMMAND = clist[ci].command;
+    dev.reg_STATUS = clist[ci].status;
+    for (int i=0; i!=16; ++i) clist[ci].get_r(i, dev.reg[i]); // update changed registers
     mem.mirror();
 
-    cout << "\nExecuting command: " << c << endl;
+    cout << "\nExecuting command: " << clist[ci] << endl;
     dev_hls
       ( &(dev.reg[0])
       , &(dev.reg[1])
@@ -158,8 +164,8 @@ int main(int argc, char* argv[])
       , mem.xmem
       );
 
-    c.status = Status_t(dev.reg_STATUS);
-    cout << "Return status: " << c.result() << endl;
+    clist[ci].status = Status_t(dev.reg_STATUS);
+    cout << "Return status: " << clist[ci].result() << endl;
     mem.check();
   }
 
