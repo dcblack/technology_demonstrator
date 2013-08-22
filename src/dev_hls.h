@@ -7,9 +7,26 @@
 #define AW 2 /*log2(DW)*/
 #define H_SHFT 16
 #define L_MASK 0xFFFF
-typedef int          Data_t; //< 32-bits
-typedef unsigned int Addr_t; //< 32-bits
-typedef Data_t       Axi_t;  //< needed for SystemC
+#ifdef SC_VERSION
+#include "axibus.h"
+typedef unsigned int Addr_t;
+typedef sc_int<32>   Data_t;
+typedef Axibus       Axi_t;
+#define VOLATILE
+#else
+#ifdef __SYNTHESIS__
+#include "ap_int.h"
+#define VOLATILE volatile
+typedef ap_uint<32>  Addr_t;
+typedef ap_int<32>   Data_t;
+typedef Addr_t        Axi_t;
+#else /* standard C++ */
+#define VOLATILE volatile
+typedef unsigned int  Addr_t;
+typedef int           Data_t;
+typedef Addr_t        Axi_t;
+#endif
+#endif
 
 #define XMATRICES 64
 #define XMEM_SIZE (MAX_MATRIX_SPACE*XMATRICES)
@@ -17,6 +34,7 @@ typedef Data_t       Axi_t;  //< needed for SystemC
 #define IMEM_SIZE (IMATRICES*MAX_MATRIX_SIZE)
 #define IMEM_LAST (IMEM_SIZE-MAX_MATRIX_SIZE)
 #define DEV_REGS  16
+#define REGISTERS 19
 
 void dev_hls
 ( volatile Data_t* reg_R0
@@ -39,7 +57,7 @@ void dev_hls
 , volatile Data_t* reg_COMMAND
 , volatile Data_t* reg_STATUS
 , Data_t  imem[IMEM_SIZE]
-, volatile Axi_t*  axibus
+, VOLATILE Axi_t*  axibus
 );
 
 // Matrix points to a shape followed by the array itself
