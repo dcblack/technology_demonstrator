@@ -42,8 +42,8 @@ int main(int argc, char* argv[])
   // Create/initialize some matrices for testing
   vector<Matrix*> matrices;
   matrices.push_back(new Matrix(3, 4, Matrix::RANDALL)); //0
-  matrices.push_back(new Matrix(3, 4, Matrix::RANDALL)); //1
-  matrices.push_back(new Matrix(3, 4, Matrix::RANDALL)); //2
+  matrices.push_back(new Matrix(3, 4, Matrix::FILL0  )); //1
+  matrices.push_back(new Matrix(3, 4, Matrix::PLUS1  )); //2
   matrices.push_back(new Matrix(3, 4, Matrix::RANDALL)); //3
   matrices.push_back(new Matrix(3, 4, Matrix::RANDALL)); //4
                                                        
