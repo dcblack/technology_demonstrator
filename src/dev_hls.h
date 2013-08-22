@@ -9,6 +9,7 @@
 #define L_MASK 0xFFFF
 typedef int          Data_t; //< 32-bits
 typedef unsigned int Addr_t; //< 32-bits
+typedef Data_t       Axi_t;  //< needed for SystemC
 
 // Matrix points to a shape followed by the array itself
 // Shape is contained as two 16 bit fields in a word
