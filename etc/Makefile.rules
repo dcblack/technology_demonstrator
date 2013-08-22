@@ -487,9 +487,26 @@ USING_DOULOS:=
 
 ################################################################################
 # Test for features within source code
-#------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 ifneq "$(wildcard ${SRCS} ${SHARED_SRCS})" ""
  $(info INFO: Examining source files)
+ #------------------------------------------------------------------------------
+ ifndef NOT_CXX11
+ ifneq "$(strip $(call File_contains,nullptr|unique_ptr|(?:<memory|thread|random>),${SRCS} ${SHARED_SRCS}))" ""
+  USING_CXX11:=1
+ endif
+ ifneq "$(strip $(call File_contains,201103L|([/= ]c[+][+]11),${SRCS} ${SHARED_SRCS}))" ""
+  USING_CXX11:=1
+ endif
+ ifeq "${GCC_VERSION}" "4.7"
+  USING_CXX11:=1
+ endif
+ ifeq (${USING_CXX11},1)
+  $(info INFO: Using C++11)
+ endif
+ endif
+ #------------------------------------------------------------------------------
+ ifndef NOT_SYSTEMC
  ifneq "$(strip $(call File_contains,systemc|\bsc_,${SRCS} ${SHARED_SRCS}))" ""
   USING_SYSTEMC:=1
   $(info INFO: Using SystemC)
@@ -512,9 +529,6 @@ ifneq "$(wildcard ${SRCS} ${SHARED_SRCS})" ""
   SYSTEMC_FULL:=$(shell ${SYSTEMC_VERSION_PGM})-gcc${GCC_VERSION}
   $(info INFO: Using ${SYSTEMC_VERSION} library)
  endif
- ifneq "$(strip $(call File_contains,null_ptr|unique_ptr|(?:<memory|thread|random>),${SRCS} ${SHARED_SRCS}))" ""
-  USING_CXX11:=1
- endif
  ifneq "$(strip $(call File_contains,scv_,${SRCS} ${SHARED_SRCS}))" ""
   USING_SCV:=1
   $(info INFO: Using SCV library)
@@ -531,25 +545,28 @@ ifneq "$(wildcard ${SRCS} ${SHARED_SRCS})" ""
    USING_DYNAMIC:=1
    $(info INFO: Using dynamic processes library)
  endif
+ endif
+ #------------------------------------------------------------------------------
+ ifndef NOT_BOOST
  ifneq "$(strip $(call File_contains,boost/,${SRCS} ${SHARED_SRCS}))" ""
    USING_BOOST:=1
    $(info INFO: Using BOOST library)
  endif
+ endif
+ #------------------------------------------------------------------------------
+ ifndef NOT_WXWIDGETS
  ifneq "$(strip $(call File_contains,wx.h,${SRCS} ${SHARED_SRCS}))" ""
   USING_WXWIDGETS:=1
   $(info INFO: Using wxWidgets library)
  endif
- ifneq "$(strip $(call File_contains,201103L|([/= ]c[+][+]11),${SRCS} ${SHARED_SRCS}))" ""
-  USING_CXX11:=1
  endif
- ifeq "${GCC_VERSION}" "4.7"
-  USING_CXX11:=1
- endif
+ #------------------------------------------------------------------------------
 #ifneq "$(strip $(call File_contains,${EA}_,${SRCS} ${SHARED_SRCS}))" ""
 # USING_HLDW:=1
 # $(info INFO: Using HLDW library)
 #endif
 endif
+################################################################################
 ifndef LIBPATH
  ifeq (${USING_SYSTEMC},1)
   ifdef NC_SYSTEMC
@@ -621,10 +638,10 @@ ifndef FIX_PGM
   FIX_PGM :=$(call Findbin,fixdeps)
 endif
 ifndef GDB_PGM
-  GDB_PGM :=$(firstword $(wildcard /usr/bin/gdb /sw/bin/gdb $(call Find_executable,gdb)))
+  GDB_PGM :=$(firstword $(wildcard /usr/bin/gdb /sw/bin/gdb $(call Find_executable,gdb)) gdb)
 endif
 ifndef DDD_PGM
-  DDD_PGM :=$(firstword $(wildcard /usr/bin/ddd /sw/bin/ddd $(call Find_executable,ddd)))
+  DDD_PGM :=$(firstword $(wildcard /usr/bin/ddd /sw/bin/ddd $(call Find_executable,ddd)) ddd)
 endif
 ifndef NOPEDANTIC
   CFLAGS += -pedantic -Wno-long-long
