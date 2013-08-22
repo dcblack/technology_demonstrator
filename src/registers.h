@@ -2,8 +2,9 @@
 
 #include "dev_hls.h"
 #include <string>
+#ifdef CXX11
 #include <random>
-#include <array>
+#endif
 #include <cassert>
 
 struct Registers
@@ -22,5 +23,7 @@ struct Registers
 private:
   Registers(const Registers& rhs) { assert(0); }
   Registers& operator=(const Registers& rhs) {  assert(0); return *this; }
+#ifdef CXX11
   std::default_random_engine gen;
+#endif
 };//endclass Registers
