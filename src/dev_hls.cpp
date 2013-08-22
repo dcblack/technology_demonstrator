@@ -4,6 +4,21 @@
 #include "dev_hls.h"
 #include <string.h>
 
+// Macros to allow SystemC simulation
+#if      defined(__SYNTHESIS__) || ! defined(SC_VERSION)
+typedef Data_t Axi_t;
+#define axibus_read(addr,data)  data=axibus[addr]
+#define axibus_write(addr,data) axibus[addr]=data
+#define axibus_read_burst(addr,size,buffer) memcpy(buffer,addr,size)
+#define axibus_write_burst(addr,size,buffer) memcpy(addr,buffer,size)
+#else /* defined(_SYNTHESIS_) &&   defined(_SYSTEMC_) */
+typedef Axibus Axi_t;
+#define axibus_read(addr,data)  axibus->read(addr, data);
+#define axibus_write(addr,data) axibus->write(addr, data);
+#define axibus_read_burst(addr,size,buffer)  axibus->read_burst(addr,size,buffer)
+#define axibus_write_burst(addr,size,buffer) axibus->write_burst(addr,size,buffer)
+#endif
+
 #define SET_REG(r, data) \
 switch (r) {                      \
   case  0: *reg_R0  = data; break;\
@@ -198,7 +213,7 @@ void dev_hls
         VALIDATE_REGISTER(src1);
         GET_REG(src1,x_ptr)
         x_ptr += base;
-        shape = axibus[x_ptr++];
+        axibus_read(x_ptr++,shape);
         
         VALIDATE_MATRIX(dest);
         SET_REG(dest,shape)
@@ -223,7 +238,7 @@ void dev_hls
         LOAD_BURST_LOOP: // Do bursts of 8
         for (unsigned int i=0; i!=size; i+=BURST) {
           Data_t buffer[BURST];
-          memcpy(&buffer, (void*)(axibus+x_ptr), BURST*sizeof(Data_t));
+          axibus_read_burst((void*)(axibus+x_ptr), BURST*sizeof(Data_t),&buffer);
           x_ptr += BURST;
           WRITE_IMEM_LOOP:
           for (unsigned int j=0; j!=BURST; ++j) {
@@ -233,7 +248,7 @@ void dev_hls
         LOAD_REMAINDER_LOOP:
         for (int i=0; i!=remainder; ++i) {
           Data_t data;
-          data = *(axibus+x_ptr++);
+          axibus_read(x_ptr++,data);
           imem[i_ptr++] = data;
         }
         *reg_STATUS = DONE;
@@ -263,7 +278,7 @@ void dev_hls
           *reg_STATUS = SHAPE_ERROR;
           break;
         }
-        axibus[x_ptr++] = shape;
+        axibus_write(x_ptr++,shape);
         // Make sure it's a valid internal memory location
         if (!Mvalid(i_ptr)) {
           *reg_STATUS = ADDRESS_ERROR;
@@ -280,14 +295,14 @@ void dev_hls
           for (unsigned int j=0; j!=BURST; ++j) {
             buffer[j] = imem[i_ptr++];
           }
-          memcpy((void*)(axibus+x_ptr), &buffer, BURST*sizeof(Data_t));
+          axibus_write_burst((void*)(axibus+x_ptr),BURST*sizeof(Data_t),&buffer);
           x_ptr += BURST;
         }
         STORE_REMAINDER_LOOP:
         for (int i=0; i!=remainder; ++i) {
           Data_t data;
           data = imem[i_ptr++];
-          *(axibus+x_ptr++) = data;
+          axibus_write(x_ptr++,data);
         }
         *reg_STATUS = DONE;
         break;
