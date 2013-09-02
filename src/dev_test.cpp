@@ -40,106 +40,110 @@ int main(int argc, char* argv[])
   dev.fill(0xBADCAB1E);
 
   // Create/initialize some matrices for testing
-  vector<Matrix*> matrices;
-  matrices.push_back(new Matrix(3, 4, Matrix::RANDALL)); //0
-  matrices.push_back(new Matrix(3, 4, Matrix::FILL0  )); //1
-  matrices.push_back(new Matrix(3, 4, Matrix::PLUS1  )); //2
-  matrices.push_back(new Matrix(3, 4, Matrix::RANDALL)); //3
-  matrices.push_back(new Matrix(3, 4, Matrix::RANDALL)); //4
+  vector<Matrix*> matrix_list;
+  matrix_list.push_back(new Matrix(3, 4, Matrix::RANDALL)); //0
+  matrix_list.push_back(new Matrix(3, 4, Matrix::FILL0  )); //1
+  matrix_list.push_back(new Matrix(3, 4, Matrix::PLUS1  )); //2
+  matrix_list.push_back(new Matrix(3, 4, Matrix::RANDALL)); //3
+  matrix_list.push_back(new Matrix(3, 4, Matrix::RANDALL)); //4
                                                        
-  matrices.push_back(new Matrix(5, 5, Matrix::RANDALL)); //6
-  matrices.push_back(new Matrix(5, 5, Matrix::RANDALL)); //7
-  matrices.push_back(new Matrix(5, 5, Matrix::RANDALL)); //8
+  matrix_list.push_back(new Matrix(5, 5, Matrix::RANDALL)); //6
+  matrix_list.push_back(new Matrix(5, 5, Matrix::RANDALL)); //7
+  matrix_list.push_back(new Matrix(5, 5, Matrix::RANDALL)); //8
                                                        
-  matrices.push_back(new Matrix(4, 3, Matrix::RANDALL)); //9
-  matrices.push_back(new Matrix(4, 4, Matrix::RANDALL)); //10
-  matrices.push_back(new Matrix(4, 1, Matrix::RANDALL)); //11
-  matrices.push_back(new Matrix(1, 4, Matrix::RANDALL)); //12
-  matrices.push_back(new Matrix(1, 1, Matrix::RANDALL)); //13
-  matrices.push_back(new Matrix(3, 3, Matrix::RANDALL)); //14
-  matrices.push_back(new Matrix(2, 2, Matrix::RANDALL)); //15
+  matrix_list.push_back(new Matrix(4, 3, Matrix::RANDALL)); //9
+  matrix_list.push_back(new Matrix(4, 4, Matrix::RANDALL)); //10
+  matrix_list.push_back(new Matrix(4, 1, Matrix::RANDALL)); //11
+  matrix_list.push_back(new Matrix(1, 4, Matrix::RANDALL)); //12
+  matrix_list.push_back(new Matrix(1, 1, Matrix::RANDALL)); //13
+  matrix_list.push_back(new Matrix(3, 3, Matrix::RANDALL)); //14
+  matrix_list.push_back(new Matrix(2, 2, Matrix::RANDALL)); //15
 
   Addr_t xmem_ptr = 2; // stay away from nullptr
 
   // Copy matrices into external memory [track base address in mm]
   vector<Addr_t> matrix_address;
-  for (int i=0; i!=matrices.size(); ++i) {
-    cout << matrices[i]->dump();
+  for (int i=0; i!=matrix_list.size(); ++i) {
+    cout << matrix_list[i]->dump();
     matrix_address.push_back(xmem_ptr);
-    matrices[i]->store(mem, xmem_ptr);
-    xmem_ptr += matrices[i]->space();
+    matrix_list[i]->store(mem, xmem_ptr);
+    xmem_ptr += matrix_list[i]->space();
   }
 
   cout << "Matrix xmem address mappings:" << "\n";
   for (int i=0; i!=matrix_address.size(); ++i) {
-    cout << "  m" << i << " -> " << matrix_address[i] << "\n";
+    cout
+      << "  m" << dec << left << setw(2) << i << " -> "
+      << "0x" << hex << right << setfill('0') << setw(4) << matrix_address[i] << " "
+      << "(" << dec << matrix_address[i] << ")"
+      << "\n";
   }
   cout << endl;
 
   // Setup commands for hardware
-  vector<Command> clist;
-  Command c;
+  vector<Command> cmd_list;
+  Command cmd;
 
-  c.set(NOP);
+  cmd.set_cmd(NOP);
   // Setup internal matrix pointers
-  c.set_r(M0+1, 0*MAX_MATRIX_SIZE); //< internal address
-  c.set_r(M1+1, 1*MAX_MATRIX_SIZE); //< internal address
-  c.set_r(M2+1, 2*MAX_MATRIX_SIZE); //< internal address
-  c.set_r(M3+1, 3*MAX_MATRIX_SIZE); //< internal address
-  c.set_r(M4+1, 4*MAX_MATRIX_SIZE); //< internal address
-  c.set_r(M5+1, 5*MAX_MATRIX_SIZE); //< internal address
-  c.set_r(M6+1, 6*MAX_MATRIX_SIZE); //< internal address
-  clist.push_back(c);
+  cmd.set_reg(M0+1, 0*MAX_MATRIX_SIZE); //< internal address
+  cmd.set_reg(M1+1, 1*MAX_MATRIX_SIZE); //< internal address
+  cmd.set_reg(M2+1, 2*MAX_MATRIX_SIZE); //< internal address
+  cmd.set_reg(M3+1, 3*MAX_MATRIX_SIZE); //< internal address
+  cmd.set_reg(M4+1, 4*MAX_MATRIX_SIZE); //< internal address
+  cmd.set_reg(M5+1, 5*MAX_MATRIX_SIZE); //< internal address
+  cmd.set_reg(M6+1, 6*MAX_MATRIX_SIZE); //< internal address
+  cmd_list.push_back(cmd);
 
-  c.set(NOP);
-  clist.push_back(c);
+  cmd.set_cmd(NOP);
+  cmd_list.push_back(cmd);
 
-  c.set(LOAD, M0, R12);
-  c.set_r(R12, matrix_address[0]);  //< external address
-  clist.push_back(c);
+  cmd.set_cmd(LOAD, M0, R12);
+  cmd.set_reg(R12, matrix_address[0]);  //< external address
+  cmd_list.push_back(cmd);
 
-  c.set(LOAD, M1, R12);
-  c.set_r(R12, matrix_address[1]);  //< external address
-  clist.push_back(c);
+  cmd.set_cmd(LOAD, M1, R12);
+  cmd.set_reg(R12, matrix_address[1]);  //< external address
+  cmd_list.push_back(cmd);
 
-  c.set(LOAD, M2, R12);
-  c.set_r(R12, matrix_address[2]);  //< external address
-  clist.push_back(c);
+  cmd.set_cmd(LOAD, M2, R12);
+  cmd.set_reg(R12, matrix_address[2]);  //< external address
+  cmd_list.push_back(cmd);
 
-  c.set(LOAD, M3, R12);
-  c.set_r(R12, matrix_address[3]);  //< external address
-  clist.push_back(c);
+  cmd.set_cmd(LOAD, M3, R12);
+  cmd.set_reg(R12, matrix_address[3]);  //< external address
+  cmd_list.push_back(cmd);
 
-  c.set(MADD, M0, M1, M2);
-  clist.push_back(c);
+  cmd.set_cmd(MADD, M0, M1, M2);
+  cmd_list.push_back(cmd);
 
-  c.set(STORE, M0, R13);
-  c.set_r(R13, matrix_address[3]);  //< external address
-  clist.push_back(c);
+  cmd.set_cmd(STORE, M0, R13);
+  cmd.set_reg(R13, matrix_address[3]);  //< external address
+  cmd_list.push_back(cmd);
 
-  c.set(MSUB, M0, M0, M3);
-  clist.push_back(c);
+  cmd.set_cmd(MSUB, M0, M0, M3);
+  cmd_list.push_back(cmd);
 
-  c.set(RSUB, M0, M0, M3);
-  clist.push_back(c);
+  cmd.set_cmd(RSUB, M0, M0, M3);
+  cmd_list.push_back(cmd);
 
-  c.set(MZERO, R11, M0);
-  clist.push_back(c);
+  cmd.set_cmd(MZERO, R11, M0);
+  cmd_list.push_back(cmd);
 
-  c.set(RESET);
-  clist.push_back(c);
+  cmd.set_cmd(RESET);
+  cmd_list.push_back(cmd);
 
-  c.set(HALT);
-  clist.push_back(c);
+  cmd.set_cmd(HALT);
+  cmd_list.push_back(cmd);
 
   dev.reg_AXI_BASE = 0;
-  for (int ci=0; ci!=clist.size(); ++ci) {
-    dev.reg_COMMAND = clist[ci].command;
-    dev.reg_STATUS = clist[ci].status;
-    for (int i=0; i!=16; ++i) clist[ci].get_r(i, dev.reg[i]); // update changed registers
+  for (int ci=0; ci!=cmd_list.size(); ++ci) {
+    dev.reg_COMMAND = cmd_list[ci].command;
+    dev.reg_STATUS = cmd_list[ci].status;
+    for (int i=0; i!=16; ++i) cmd_list[ci].get_reg(i, dev.reg[i]); // update changed registers
     mem.mirror();
 
-    cout << "\nExecuting command: " << clist[ci] << endl;
+    cout << "\nExecuting command: " << cmd_list[ci] << endl;
     dev_hls
       ( &(dev.reg[0])
       , &(dev.reg[1])
@@ -164,8 +168,8 @@ int main(int argc, char* argv[])
       , mem.xmem
       );
 
-    clist[ci].status = Status_t(dev.reg_STATUS);
-    cout << "Return status: " << clist[ci].result() << endl;
+    cmd_list[ci].status = CmdState_t(dev.reg_STATUS);
+    cout << "Return status: " << cmd_list[ci].result() << endl;
     mem.check();
   }
 

@@ -18,35 +18,35 @@ struct Command
   Data_t   command;
   Data_t   m_r[REGS];
   bool     m_c[REGS];
-  Status_t status;
-  Status_t expected;
+  CmdState_t status;
+  CmdState_t expected;
   // Methods
   Command //< Constructor
     ( Operation_t   op   = NOP
     , unsigned char dest = 0xFF
     , unsigned char src1 = 0xFF
     , unsigned char src2 = 0xFF
-    , Status_t    expect = START
+    , CmdState_t  expect = START
     );
   Command(const Command& rhs); //< Copy constructor
   Command& operator=(const Command& rhs); //< Assignment
   bool operator==(const Command& rhs); //< Compare
-  void set
+  void set_cmd
     ( Operation_t   op   = NOP
     , unsigned char dest = 0xFF
     , unsigned char src1 = 0xFF
     , unsigned char src2 = 0xFF
-    , Status_t expect=START
+    , CmdState_t  expect = START
     );
-  void get
+  void get_cmd
     ( Operation_t& op
     , unsigned char& dest
     , unsigned char& src1
     , unsigned char& src2
     ) const;
   Data_t& r(size_t i) { return m_r[i]; }
-  void set_r(size_t i, Data_t  value);
-  void get_r(size_t i, Data_t& value, bool always=false);
+  void set_reg(size_t i, Data_t  value);
+  void get_reg(size_t i, Data_t& value, bool always=false);
   void clear(void);
   void randomize(void);
   std::string result(void);
@@ -54,7 +54,7 @@ struct Command
   //----------------------------------------------------------------------------
 private:
   // Helpers
-  void set_expected(Status_t expect=START);
+  void set_expected(CmdState_t expect=START);
   // Hidden attributes
   Operation_t m_op;
 };//endclass Command

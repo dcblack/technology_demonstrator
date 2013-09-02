@@ -23,7 +23,7 @@ Command::Command //< Constructor
 , unsigned char dest
 , unsigned char src1
 , unsigned char src2
-, Status_t      expect
+, CmdState_t    expect
 )
 : command((op<<3*8)|(dest<<2*8)|(src1<<1*8)|(src2<<0*8))
 , status(IDLE)
@@ -78,7 +78,7 @@ bool Command::operator==(const Command& rhs) { //< Compare
 }
 
 // This is where we determine expected results
-void Command::set_expected(Status_t expect) {
+void Command::set_expected(CmdState_t expect) {
   if (expect != START)    expected = expect;
   else if (m_op == NOP)   expected = IDLE;
   else if (m_op == RESET) expected = IDLE;
@@ -95,7 +95,7 @@ void Command::set_expected(Status_t expect) {
 }
 
 //----------------------------------------------------------------------------
-void Command::set(Operation_t op, unsigned char dest, unsigned char src1, unsigned char src2, Status_t expect) {
+void Command::set_cmd(Operation_t op, unsigned char dest, unsigned char src1, unsigned char src2, CmdState_t expect) {
   command = ((op&0xFF)<<(3*8))|((dest&0xFF)<<(2*8))|((src1&0xFF)<<(1*8))|((src2&0xFF)<<(0*8));
   m_op = op;
   if (op != NOP) status = START;
@@ -103,7 +103,7 @@ void Command::set(Operation_t op, unsigned char dest, unsigned char src1, unsign
 }
 
 //----------------------------------------------------------------------------
-void Command::get
+void Command::get_cmd
 ( Operation_t& op
 , unsigned char& dest
 , unsigned char& src1
@@ -116,13 +116,13 @@ void Command::get
 }
 
 //----------------------------------------------------------------------------
-void Command::set_r(size_t i, Data_t  value) {
+void Command::set_reg(size_t i, Data_t  value) {
   m_r[i]=value;
   m_c[i]=true;    
 }
 
 //----------------------------------------------------------------------------
-void Command::get_r(size_t i, Data_t& value, bool always) {
+void Command::get_reg(size_t i, Data_t& value, bool always) {
   assert(i<REGS);
   if (always||m_c[i]) {
     value=m_r[i];
@@ -148,7 +148,7 @@ void Command::randomize(void) {
   dest = gen();
   src1 = gen();
   src2 = gen();
-  set(op,dest,src1,src2);
+  set_cmd(op,dest,src1,src2);
 #else
   command = random();
 #endif
@@ -156,10 +156,10 @@ void Command::randomize(void) {
 
 //----------------------------------------------------------------------------
 string Command::result(void) {
-  string msg = (status <= GENERIC_ERROR)? status_name[status] : "UNKNOWN_ERROR";
+  string msg = (status <= GENERIC_ERROR)? cmd_state_name[status] : "UNKNOWN_ERROR";
   if (status != expected) {
     msg += " != expected ";
-    msg += status_name[expected];
+    msg += cmd_state_name[expected];
     msg += " (ERROR)";
     ++errors;
   }
@@ -170,9 +170,9 @@ string Command::result(void) {
 std::ostream& operator<<(std::ostream& os, const Command& rhs) {
   Operation_t op;
   unsigned char dest, src1, src2;
-  rhs.get(op, dest, src1, src2);
+  rhs.get_cmd(op, dest, src1, src2);
   os << operation_name[op];
-  if ((rhs.command&0xFFFFFF) != 0xFFFFFF) os << dec << ", " << int(dest);
+  if ((rhs.command&0xFFFFFF) != 0xFFFFFF) os << dec << int(dest);
   if ((rhs.command&0xFFFF  ) != 0xFFFF  ) os << dec << ", " << int(src1);
   if ((rhs.command&0xFF    ) != 0xFF    ) os << dec << ", " << int(src2);
   os << dec << ";";

@@ -5,6 +5,6 @@
 
 extern const char* const reg_name[];
 extern const char* const operation_name[];
-extern const char* const status_name[];
+extern const char* const cmd_state_name[];
 
 #endif /*DEV_UTIL_H*/

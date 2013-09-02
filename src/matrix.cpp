@@ -140,7 +140,7 @@ void Matrix::randomize(void) {
 
 //------------------------------------------------------------------------------
 string Matrix::name(void) const  {
-  ostringstream sout;
+  ostringstream sout("");
   if (m_name.length() == 0) sout << "m" << m_id;
   else                      sout << m_name;
   return sout.str();
@@ -169,34 +169,44 @@ void Matrix::store(Memory& mem, Addr_t to) {
 
 //------------------------------------------------------------------------------
 string Matrix::dump(void) {
-  ostringstream sout;
+  ostringstream sout("");
+  static const int aw = 3;
+  static const int dw = 4;
+  // Separator
+  sout << string(aw,'=') << "==";
+  for (Addr_t col=0; col!=m_cols; ++col) {
+    if (col != 0) sout << "==";
+    sout << string(dw,'=');
+  }
+  sout << "\n";
+
   // Heading
-  sout << name() << "/ ";
+  sout << setw(aw) << setfill(' ') << name() << "/ ";
   for (Addr_t col=0; col!=m_cols; ++col) {
     if (col != 0) sout << ", ";
-    sout << setw(2) << dec << col;
+    sout << setw(dw) << dec << col;
   }
   sout << "\n";
 
   // Separator
-  sout << "----";
+  sout << string(aw,'-') << "--";
   for (Addr_t col=0; col!=m_cols; ++col) {
     if (col != 0) sout << "--";
-    sout << "--";
+    sout << string(dw,'-');
   }
   sout << "\n";
 
   // Out data
   for (Addr_t row=0; row!=m_rows; ++row) {
-    sout << setw(2) << dec << row << ": ";
+    sout << setw(aw) << dec << row << ": ";
     // Output a row
     for (Addr_t col=0; col!=m_cols; ++col) {
-      sout << setw(2) << dec << m[row*m_cols+col] << ", ";
+      sout << setw(dw) << dec << m[row*m_cols+col];
+      if (col != m_cols-1) sout << ", ";
     }
     sout << "\n";
   }
   sout << "\n";
-  sout << ends;
   return sout.str();
 }
 

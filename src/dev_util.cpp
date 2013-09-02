@@ -44,10 +44,11 @@ const char * const operation_name[] =
 , "RSETH"
 , "RSETL"
 , "RESET"
+, "EXEC "
 , "HALT "
 };
 
-const char * const status_name[] =
+const char * const cmd_state_name[] =
 { "IDLE"
 , "START"
 , "BUSY"
@@ -58,6 +59,7 @@ const char * const status_name[] =
 , "REGISTER_ERROR"
 , "ADDRESS_ERROR"
 , "GENERIC_ERROR"
+, "UNKNOWN_STATUS"
 };
 
 //EOF
