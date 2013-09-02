@@ -7,34 +7,41 @@
 #define AW 2 /*log2(DW)*/
 #define H_SHFT 16
 #define L_MASK 0xFFFF
+
 #ifdef SC_VERSION
 #include "axibus.h"
 typedef unsigned int Addr_t;
 typedef sc_int<32>   Data_t;
+typedef sc_int<32>   Cmd_t;
 typedef Axibus       Axi_t;
 #define VOLATILE
 #else
+
 #ifdef __SYNTHESIS__
 #include "ap_int.h"
 #define VOLATILE volatile
 typedef ap_uint<32>  Addr_t;
 typedef ap_int<32>   Data_t;
+typedef ap_int<32>    Cmd_t;  // 32-bits
 typedef Addr_t        Axi_t;
+
 #else /* standard C++ */
 #define VOLATILE volatile
-typedef unsigned int  Addr_t;
-typedef int           Data_t;
-typedef Addr_t        Axi_t;
+typedef unsigned int  Addr_t; // 32-bits
+typedef int           Data_t; // 32-bits
+typedef int           Cmd_t;  // 32-bits
+typedef Data_t        Axi_t;  // 32-bits
 #endif
 #endif
 
-#define XMATRICES 64
-#define XMEM_SIZE (MAX_MATRIX_SPACE*XMATRICES)
-#define IMATRICES 16
-#define IMEM_SIZE (IMATRICES*MAX_MATRIX_SIZE)
-#define IMEM_LAST (IMEM_SIZE-MAX_MATRIX_SIZE)
-#define DEV_REGS  16
-#define REGISTERS 19
+#define XMATRICES   64
+#define XMEM_SIZE   (MAX_MATRIX_SPACE*XMATRICES)
+#define IMATRICES   16
+#define IMEM_SIZE   (IMATRICES*MAX_MATRIX_SIZE)
+#define IMEM_LAST   (IMEM_SIZE-MAX_MATRIX_SIZE)
+#define DEV_REGS    16
+#define REGISTERS   19
+#define ALIGN_CMND  0x3
 
 void dev_hls
 ( volatile Data_t* reg_R0
@@ -57,7 +64,7 @@ void dev_hls
 , volatile Data_t* reg_COMMAND
 , volatile Data_t* reg_STATUS
 , Data_t  imem[IMEM_SIZE]
-, VOLATILE Axi_t*  axibus
+, volatile Axi_t*  axibus
 );
 
 // Matrix points to a shape followed by the array itself
@@ -135,10 +142,11 @@ enum Operation_t // Operations {:TODO:_not_all_implemented:}
 , RSETH  // R(dest)[31:16] = (src1<<8)|src2; // register set hi
 , RSETL  // R(dest)[15:00] = (src1<<8)|src2; // register set lo
 , RESET  // clear all registers
+, EXEC   // execute sequence starting from M(R(15))
 , HALT   // stop processing
 };
 
-enum Status_t
+enum CmdState_t
 { IDLE   // waiting
 , START  // begin executing
 , BUSY   // active
@@ -149,7 +157,11 @@ enum Status_t
 , REGISTER_ERROR
 , ADDRESS_ERROR
 , GENERIC_ERROR
+, UNKNOWN_STATUS
 };
+#define STATE_BITS 0xFF
+#define EXEC_BIT   0x100
+#define AUTOMATIC (EXEC_BIT | DONE)
 
 // Helpful aliases
 #define M0 2*0

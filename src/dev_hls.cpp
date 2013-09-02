@@ -6,13 +6,11 @@
 
 // Macros to allow SystemC simulation
 #if      defined(__SYNTHESIS__) || ! defined(SC_VERSION)
-typedef Data_t Axi_t;
 #define axibus_read(addr,data)  data=axibus[addr]
 #define axibus_write(addr,data) axibus[addr]=data
 #define axibus_read_burst(addr,size,buffer) memcpy(buffer,addr,size)
 #define axibus_write_burst(addr,size,buffer) memcpy(addr,buffer,size)
 #else /* defined(_SYNTHESIS_) &&   defined(_SYSTEMC_) */
-typedef Axibus Axi_t;
 #define axibus_read(addr,data)  axibus->read(addr, data);
 #define axibus_write(addr,data) axibus->write(addr, data);
 #define axibus_read_burst(addr,size,buffer)  axibus->read_burst(addr,size,buffer)
@@ -59,16 +57,16 @@ switch (r) {                      \
   case 15: data = *reg_R15; break;\
 }
 
-#define VALIDATE_REGISTER(r)     \
-if ( 15<r ) {             \
-  *reg_STATUS = REGISTER_ERROR;  \
-  break;                         \
+#define VALIDATE_REGISTER(r)             \
+if ( 15<r ) {                            \
+  *reg_STATUS = status | REGISTER_ERROR; \
+  break;                                 \
 } r |= 0 /* to allow ; at end */
 
-#define VALIDATE_MATRIX(r)       \
-if ( 14<r || r&1) {       \
-  *reg_STATUS = REGISTER_ERROR;  \
-  break;                         \
+#define VALIDATE_MATRIX(r)               \
+if ( 14<r || r&1) {                      \
+  *reg_STATUS = status | REGISTER_ERROR; \
+  break;                                 \
 } r |= 0 /* to allow ; at end */
 
 
@@ -145,12 +143,29 @@ void dev_hls
 #pragma HLS resource core=AXI4M variable=axibus
 
   Data_t status = *reg_STATUS;
-  if (status == START) {
 
-    *reg_STATUS = BUSY;
+  unsigned char cmd_state = status & STATE_BITS;
+  unsigned char run = (status & EXEC_BIT) != 0;
 
-    Data_t command = *reg_COMMAND;
-    
+  status &= ~STATE_BITS; // Clear state bits
+
+  if (cmd_state == START || (run == 1 && cmd_state == DONE)) {
+
+    *reg_STATUS = status | BUSY;
+
+    Cmd_t command;
+
+    if (run == 1) {
+      Addr_t pc   = *reg_R15;
+      Addr_t base = *reg_AXI_BASE;
+      pc &= ~ALIGN_CMND;
+      pc += sizeof(Cmd_t);
+      axibus_read(pc+base,command);
+      *reg_R15 = pc;
+    } else {
+      command = *reg_COMMAND;
+    }
+
     unsigned char operation = (command >> 3*8) & 0xFF;
     unsigned char dest      = (command >> 2*8) & 0xFF;
     unsigned char src1      = (command >> 1*8) & 0xFF;
@@ -180,7 +195,7 @@ void dev_hls
         *reg_R14 = 0;
         *reg_R15 = 0;
         *reg_COMMAND = NOP;
-        *reg_STATUS = IDLE;
+        *reg_STATUS = status | IDLE;
         break;
       }
 
@@ -188,7 +203,15 @@ void dev_hls
       // Operation: Do nothing
       case NOP:
       {
-        *reg_STATUS = DONE;
+        *reg_STATUS = status | DONE;
+        break;
+      }
+
+      //--------------------------------------------------------------------------
+      // Operation: Execute sequence starting at M(R15)
+      case EXEC:
+      {
+        *reg_STATUS = status | EXEC_BIT | DONE;
         break;
       }
 
@@ -196,7 +219,8 @@ void dev_hls
       // Operation: Stop processing (when auto is implemented)
       case HALT:
       {
-        *reg_STATUS = HALTED;
+        status &= ~EXEC_BIT;
+        *reg_STATUS = status | HALTED;
         break;
       }
 
@@ -221,13 +245,13 @@ void dev_hls
 
         // Make sure it's a valid shape
         if (shape == 0 || Msize(shape) > MAX_MATRIX_SIZE) {
-          *reg_STATUS = SHAPE_ERROR;
+          *reg_STATUS = status | SHAPE_ERROR;
           break;
         }
 
         // Make sure it's a valid internal memory location
         if (!Mvalid(i_ptr)) {
-          *reg_STATUS = ADDRESS_ERROR;
+          *reg_STATUS = status | ADDRESS_ERROR;
           break;
         }
         
@@ -251,7 +275,7 @@ void dev_hls
           axibus_read(x_ptr++,data);
           imem[i_ptr++] = data;
         }
-        *reg_STATUS = DONE;
+        *reg_STATUS = status | DONE;
         break;
       }
 
@@ -275,13 +299,13 @@ void dev_hls
         
         // Make sure it's a valid shape
         if (shape == 0 || Msize(shape) > MAX_MATRIX_SIZE) {
-          *reg_STATUS = SHAPE_ERROR;
+          *reg_STATUS = status | SHAPE_ERROR;
           break;
         }
         axibus_write(x_ptr++,shape);
         // Make sure it's a valid internal memory location
         if (!Mvalid(i_ptr)) {
-          *reg_STATUS = ADDRESS_ERROR;
+          *reg_STATUS = status | ADDRESS_ERROR;
           break;
         }
         unsigned int size = Msize(shape);
@@ -304,7 +328,7 @@ void dev_hls
           data = imem[i_ptr++];
           axibus_write(x_ptr++,data);
         }
-        *reg_STATUS = DONE;
+        *reg_STATUS = status | DONE;
         break;
       }
 
@@ -325,11 +349,11 @@ void dev_hls
 
         // Make sure pointers are within memory
         if (!Mvalid(src_ptr) || !Mvalid(dst_ptr)) {
-          *reg_STATUS = ADDRESS_ERROR;
+          *reg_STATUS = status | ADDRESS_ERROR;
           break;
         }
         if (dst_shape != src_shape) {
-          *reg_STATUS = SHAPE_ERROR;
+          *reg_STATUS = status | SHAPE_ERROR;
           break;
         }
 
@@ -339,7 +363,7 @@ void dev_hls
           data = imem[src_ptr++];
           imem[dst_ptr++] = data;
         }
-        *reg_STATUS = DONE;
+        *reg_STATUS = status | DONE;
         break;
       }
 
@@ -367,11 +391,11 @@ void dev_hls
 
         // Make sure shapes are valid
         if (not_KMUL && dest_shape != src1_shape) {
-          *reg_STATUS = SHAPE_ERROR;
+          *reg_STATUS = status | SHAPE_ERROR;
           break;
         }
         if (dest_shape != src2_shape) {
-          *reg_STATUS = SHAPE_ERROR;
+          *reg_STATUS = status | SHAPE_ERROR;
           break;
         }
 
@@ -386,7 +410,7 @@ void dev_hls
         if (!Mvalid(dest_ptr)
         ||  !(not_KMUL && Mvalid(src1_ptr))
         || !Mvalid(src2_ptr)) {
-          *reg_STATUS = ADDRESS_ERROR;
+          *reg_STATUS = status | ADDRESS_ERROR;
           break;
         }
         Data_t data1, data2;
@@ -402,7 +426,7 @@ void dev_hls
           //{:TODO:Detect over/underflow:}
           imem[dest_ptr++] = data0;
         }
-        *reg_STATUS = DONE;
+        *reg_STATUS = status | DONE;
         break;
       }
 
@@ -419,7 +443,7 @@ void dev_hls
         GET_REG(src1+1,src1_ptr)
         // Make sure pointer is within memory
         if (!Mvalid(src1_ptr)) {
-          *reg_STATUS = ADDRESS_ERROR;
+          *reg_STATUS = status | ADDRESS_ERROR;
           break;
         }
         Data_t count;
@@ -428,7 +452,7 @@ void dev_hls
           if (imem[src1_ptr++] == 0) ++count;
         }
         SET_REG(dest,count)
-        *reg_STATUS = DONE;
+        *reg_STATUS = status | DONE;
         break;
       }
 
@@ -503,7 +527,7 @@ void dev_hls
       //--------------------------------------------------------------------------
       default: // operation not implemented/supported
         {
-          *reg_STATUS = UNSUPPORTED_ERROR;
+          *reg_STATUS = status | UNSUPPORTED_ERROR;
           break;
         }
     }//endswitch
