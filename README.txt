@@ -95,26 +95,41 @@ ABOUT THE SOURCE
 ================
 
 SystemC code for simulated portion:
-----------------------------------
+-----------------------------------
 
-* sc_literals.cpp -- C++11 feature to make SystemC feel more natural
-* netlist.cpp -- displays a simple netlist of the design
-* report.cpp -- convenience features to improve reporting
-* tlmx_packet.cpp -- TLM-like class used over sockets. Includes serialization.
-* tlmx_channel.cpp -- Thread-safe SystemC channel
-* async_adaptor.cpp -- OS thread receiving TCP/IP traffic to forward to SystemC
-* dev.cpp -- dummy "device" used as target
-* top.cpp -- top-level netlist
-* main.cpp -- SystemC main including report summary
+* sysc/Makefile -- customized for this directory
+* sysc/dev.cpp -- "device" used as target
+* sysc/dev_hls.cpp -- HLS implementation embedded in dev to implement functionality
+* sysc/main.cpp -- SystemC main including report summary
+* sysc/memory_manager.cpp -- TLM 2.0 memory manager
+* sysc/netlist.cpp -- displays a simple netlist of the design
+* sysc/report.cpp -- convenience features to improve reporting
+* sysc/sc_literals.cpp -- C++11 feature to make SystemC feel more natural
+* sysc/tcp_initiator.cpp -- OS thread receiving TCP/IP traffic to forward to SystemC
+* sysc/tlmx_channel.cpp -- Thread-safe SystemC channel
+* sysc/tlmx_packet.cpp -- TLM-like class used over sockets. Includes serialization.
+* sysc/top.cpp -- top-level netlist
 
 C-code for embedded system:
 ---------------------------
 
-* random.c -- implements standard srandom/random
-* creport.c -- simplifies error reporting
-* tlmx_packet.c -- describes the TLM-like structure used over sockets. Includes
-  serialization.
-* driver.c -- where the driver lives
-* software.c -- main
+* zedboard/Makefile -- customized for this directory
+* zedboard/creport.c -- simplifies error reporting
+* zedboard/driver.c -- where the driver lives
+* zedboard/random.c -- implements standard srandom/random
+* zedboard/software.c -- main
+* zedboard/tlmx_packet.c -- describes the TLM-like structure used over sockets. Includes serialization.
+
+C++ code for high-level synthesis
+---------------------------------
+
+* src/Makefile -- customized for this directory
+* src/command.cpp -- models commands
+* src/dev_hls.cpp -- implements the hardware device compliant to Vivado_HLS
+* src/dev_test.cpp -- testbench for the device
+* src/dev_util.cpp --
+* src/matrix.cpp -- models matrix object to simplify testing
+* src/memory.cpp -- stores internal and external memories including shadows. Can display differences.
+* src/registers.cpp -- models registers
 
 TAF!
