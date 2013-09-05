@@ -1,0 +1,364 @@
+# CMND: bmake 
+-- INK = . .. ../.. ../../.. /hd2/home/dcblack
+-- MKF = Bmakefile bmakefile GNUmakefile makefile Makefile
+eval `envv set PLUSDEFINES ' '`
+eval `envv set PLUSFLAGS ' '`
+/usr/bin/gmake -f ./makefile
+Including ../etc/Makefile.rules
+INFO: $ Makefile.rules,v 1.1 2012/09/01 05:26:56 dcblack Exp $
+INFO: Including /media/psf/Home/Dropbox/Doulos-Main/Papers/DVCON2013/DVCON2013-SystemC_Tutorial/Example/etc/Makefile.macros
+INFO: $Id: Makefile.macros,v 1.1 2013/03/25 05:43:15 dcblack Exp $
+INFO: Using GNU make version 3.81
+INFO: PLATFORM=Linux MACHINE=x86_64 TARGET_ARCH=linux64
+INFO: Examining source files
+INFO: Using C++11
+INFO: Using  for compiling
+Using 64-bit architecture
+INFO: C_DEFS=-DW64
+INFO: INCDIRS=-I. -I../include -I../src
+INFO: Default g++
+[01m[31m################################################################################[00m
+INFO: Computing dependencies
+g++ -m64  -std=c++11    -pedantic -Wno-long-long -ggdb -Wno-deprecated -O0    -I. -I../include -I../src -DW64 -MM dev_hls.cpp command.cpp matrix.cpp memory.cpp registers.cpp dev_util.cpp dev_test.cpp > hls_test.deps
+fixdeps hls_test.deps
+Including ../etc/Makefile.rules
+INFO: $ Makefile.rules,v 1.1 2012/09/01 05:26:56 dcblack Exp $
+INFO: Including /media/psf/Home/Dropbox/Doulos-Main/Papers/DVCON2013/DVCON2013-SystemC_Tutorial/Example/etc/Makefile.macros
+INFO: $Id: Makefile.macros,v 1.1 2013/03/25 05:43:15 dcblack Exp $
+INFO: Using GNU make version 3.81
+INFO: PLATFORM=Linux MACHINE=x86_64 TARGET_ARCH=linux64
+INFO: Examining source files
+INFO: Using C++11
+INFO: Using  for compiling
+Using 64-bit architecture
+INFO: C_DEFS=-DW64
+INFO: INCDIRS=-I. -I../include -I../src
+INFO: Default g++
+INFO: GCC version  4.7
+[01m[31m################################################################################[00m
+[01m[31m################################################################################[00m
+INFO: Compiling command.cpp
+(cd . && g++ -m64  -std=c++11  -pedantic -Wno-long-long -ggdb -Wno-deprecated -O0 -I. -I../include -I../src -DW64 -o command.o -c command.cpp 2>&1) | tee compile.log
+In file included from command.h:4:0,
+                 from command.cpp:5:
+dev_hls.h:54:2: warning: #warning is a GCC extension [enabled by default]
+dev_hls.h:54:2: warning: #warning "INFO: Using standard C++" [-Wcpp]
+[01m[31m################################################################################[00m
+INFO: Compiling dev_hls.cpp
+(cd . && g++ -m64  -std=c++11  -pedantic -Wno-long-long -ggdb -Wno-deprecated -O0 -I. -I../include -I../src -DW64 -o dev_hls.o -c dev_hls.cpp 2>&1) | tee compile.log
+In file included from dev_hls.cpp:4:0:
+dev_hls.h:54:2: warning: #warning is a GCC extension [enabled by default]
+dev_hls.h:54:2: warning: #warning "INFO: Using standard C++" [-Wcpp]
+[01m[31m################################################################################[00m
+INFO: Compiling dev_test.cpp
+(cd . && g++ -m64  -std=c++11  -pedantic -Wno-long-long -ggdb -Wno-deprecated -O0 -I. -I../include -I../src -DW64 -o dev_test.o -c dev_test.cpp 2>&1) | tee compile.log
+In file included from dev_test.cpp:1:0:
+dev_hls.h:54:2: warning: #warning is a GCC extension [enabled by default]
+dev_hls.h:54:2: warning: #warning "INFO: Using standard C++" [-Wcpp]
+[01m[31m################################################################################[00m
+INFO: Compiling dev_util.cpp
+(cd . && g++ -m64  -std=c++11  -pedantic -Wno-long-long -ggdb -Wno-deprecated -O0 -I. -I../include -I../src -DW64 -o dev_util.o -c dev_util.cpp 2>&1) | tee compile.log
+In file included from dev_util.h:4:0,
+                 from dev_util.cpp:1:
+dev_hls.h:54:2: warning: #warning is a GCC extension [enabled by default]
+dev_hls.h:54:2: warning: #warning "INFO: Using standard C++" [-Wcpp]
+[01m[31m################################################################################[00m
+INFO: Compiling matrix.cpp
+(cd . && g++ -m64  -std=c++11  -pedantic -Wno-long-long -ggdb -Wno-deprecated -O0 -I. -I../include -I../src -DW64 -o matrix.o -c matrix.cpp 2>&1) | tee compile.log
+In file included from matrix.h:4:0,
+                 from matrix.cpp:5:
+dev_hls.h:54:2: warning: #warning is a GCC extension [enabled by default]
+dev_hls.h:54:2: warning: #warning "INFO: Using standard C++" [-Wcpp]
+[01m[31m################################################################################[00m
+INFO: Compiling memory.cpp
+(cd . && g++ -m64  -std=c++11  -pedantic -Wno-long-long -ggdb -Wno-deprecated -O0 -I. -I../include -I../src -DW64 -o memory.o -c memory.cpp 2>&1) | tee compile.log
+In file included from memory.h:4:0,
+                 from memory.cpp:5:
+dev_hls.h:54:2: warning: #warning is a GCC extension [enabled by default]
+dev_hls.h:54:2: warning: #warning "INFO: Using standard C++" [-Wcpp]
+[01m[31m################################################################################[00m
+INFO: Compiling registers.cpp
+(cd . && g++ -m64  -std=c++11  -pedantic -Wno-long-long -ggdb -Wno-deprecated -O0 -I. -I../include -I../src -DW64 -o registers.o -c registers.cpp 2>&1) | tee compile.log
+In file included from registers.h:3:0,
+                 from registers.cpp:5:
+dev_hls.h:54:2: warning: #warning is a GCC extension [enabled by default]
+dev_hls.h:54:2: warning: #warning "INFO: Using standard C++" [-Wcpp]
+[01m[31m################################################################################[00m
+LINK TO CREATE EXECUTABLE
+[01m[31m################################################################################[00m
+INFO: Linking hls_test-linux64.x
+( g++ -m64 -L. -o hls_test-linux64.x command.o dev_hls.o dev_test.o dev_util.o matrix.o memory.o registers.o -std=c++11 2>&1 | c++filt ) | tee link.log 
+[01m[31m################################################################################[00m
+RUNNING SIMULATION
+[01m[31m################################################################################[00m
+[01m[31m################################################################################[00m
+hls_test-linux64.x 
+===========================
+ m0/    0,    1,    2,    3
+---------------------------
+  0:   -2,  -10,  -18,   -4
+  1:  -12,  -20,   -6,  -14
+  2:  -22,   -8,  -16,  -24
+
+===========================
+ m1/    0,    1,    2,    3
+---------------------------
+  0:    1,    1,    1,    1
+  1:    1,    1,    1,    1
+  2:    1,    1,    1,    1
+
+===========================
+ m2/    0,    1,    2,    3
+---------------------------
+  0:    1,    2,    3,    4
+  1:    5,    6,    7,    8
+  2:    9,   10,   11,   12
+
+===========================
+ m3/    0,    1,    2,    3
+---------------------------
+  0:    3,    6,    9,   12
+  1:   15,   18,   21,   24
+  2:   27,   30,   33,   36
+
+===========================
+ m4/    0,    1,    2,    3
+---------------------------
+  0:   -1,   -2,   -3,   -4
+  1:   -5,   -6,   -7,   -8
+  2:   -9,  -10,  -11,  -12
+
+=================================
+ m5/    0,    1,    2,    3,    4
+---------------------------------
+  0:   -2,  -12,  -22,  -32,  -42
+  1:   -4,  -14,  -24,  -34,  -44
+  2:   -6,  -16,  -26,  -36,  -46
+  3:   -8,  -18,  -28,  -38,  -48
+  4:  -10,  -20,  -30,  -40,  -50
+
+=================================
+ m6/    0,    1,    2,    3,    4
+---------------------------------
+  0: 424238335, 719885386, 1649760492, 596516649, 1189641421
+  1: 1025202362, 1350490027, 783368690, 1102520059, 2044897763
+  2: 1967513926, 1365180540, 1540383426, 304089172, 1303455736
+  3: 35005211, 521595368, 294702567, 1726956429, 336465782
+  4: 861021530, 278722862, 233665123, 2145174067, 468703135
+
+=================================
+ m7/    0,    1,    2,    3,    4
+---------------------------------
+  0: 1801979802, 1315634022, 635723058, 1369133069, 1125898167
+  1: 1059961393, 2089018456, 628175011, 1656478042, 1131176229
+  2: 1653377373, 859484421, 1914544919, 608413784, 756898537
+  3: 1734575198, 1973594324, 149798315, 2038664370, 1129566413
+  4: 184803526, 412776091, 1424268980, 1911759956, 749241873
+
+=====================
+ m8/    0,    1,    2
+---------------------
+  0: -1058161986, -1058161986, -1058161986
+  1: -1058161986, -1058161986, -1058161986
+  2: -1058161986, -1058161986, -1058161986
+  3: -1058161986, -1058161986, -1058161986
+
+===========================
+ m9/    0,    1,    2,    3
+---------------------------
+  0: -1058161986, -1058161986, -1058161986, -1058161986
+  1: -1058161986, -1058161986, -1058161986, -1058161986
+  2: -1058161986, -1058161986, -1058161986, -1058161986
+  3: -1058161986, -1058161986, -1058161986, -1058161986
+
+=========
+m10/    0
+---------
+  0: 64206
+  1: 64206
+  2: 64206
+  3: 64206
+
+===========================
+m11/    0,    1,    2,    3
+---------------------------
+  0:    1,    1,    1,    1
+
+=========
+m12/    0
+---------
+  0:   -1
+
+=====================
+m13/    0,    1,    2
+---------------------
+  0:   -1,   -2,   -3
+  1:   -4,   -5,   -6
+  2:   -7,   -8,   -9
+
+===============
+m14/    0,    1
+---------------
+  0:    1,    2
+  1:    3,    4
+
+Matrix xmem address mappings:
+  m0  -> 0x0002 (2)
+  m10 -> 0x000f (15)
+  m20 -> 0x001c (28)
+  m30 -> 0x0029 (41)
+  m40 -> 0x0036 (54)
+  m50 -> 0x0043 (67)
+  m60 -> 0x005d (93)
+  m70 -> 0x0077 (119)
+  m80 -> 0x0091 (145)
+  m90 -> 0x009e (158)
+  m10 -> 0x00af (175)
+  m11 -> 0x00b4 (180)
+  m12 -> 0x00b9 (185)
+  m13 -> 0x00bb (187)
+  m14 -> 0x00c5 (197)
+
+
+Executing command: NOP  ; R1=0x0; R3=0x400; R5=0x800; R7=0xc00; R9=0x1000; R11=0x1400; R13=0x1800;
+Results: 
+Return status: IDLE
+Checking memory for differences...none
+
+Executing command: NOP  ;
+Results: 
+Return status: IDLE
+Checking memory for differences...none
+
+Executing command: LOAD  0, 12; R12=0x2;
+Results:  R0=0x30004;
+Return status: DONE
+Checking memory for differences...
+imem differences:
+00000: FFFFFFFE FFFFFFF6 FFFFFFEE FFFFFFFC FFFFFFF4 FFFFFFEC FFFFFFFA FFFFFFF2 
+00008: FFFFFFEA FFFFFFF8 FFFFFFF0 FFFFFFE8 DEADBEEF DEADBEEF DEADBEEF DEADBEEF 
+
+
+Executing command: LOAD  2, 12; R12=0xf;
+Results:  R2=0x30004;
+Return status: DONE
+Checking memory for differences...
+imem differences:
+01024: 00000001 00000001 00000001 00000001 00000001 00000001 00000001 00000001 
+01032: 00000001 00000001 00000001 00000001 DEADBEEF DEADBEEF DEADBEEF DEADBEEF 
+
+
+Executing command: LOAD  4, 12; R12=0x1c;
+Results:  R4=0x30004;
+Return status: DONE
+Checking memory for differences...
+imem differences:
+02048: 00000001 00000002 00000003 00000004 00000005 00000006 00000007 00000008 
+02056: 00000009 0000000A 0000000B 0000000C DEADBEEF DEADBEEF DEADBEEF DEADBEEF 
+
+
+Executing command: LOAD  6, 12; R12=0x29;
+Results:  R6=0x30004;
+Return status: DONE
+Checking memory for differences...
+imem differences:
+03072: 00000003 00000006 00000009 0000000C 0000000F 00000012 00000015 00000018 
+03080: 0000001B 0000001E 00000021 00000024 DEADBEEF DEADBEEF DEADBEEF DEADBEEF 
+
+
+Executing command: MADD  0, 2, 4;
+Results: 
+Return status: DONE
+Checking memory for differences...
+imem differences:
+00000: 00000002 00000003 00000004 00000005 00000006 00000007 00000008 00000009 
+00008: 0000000A 0000000B 0000000C 0000000D DEADBEEF DEADBEEF DEADBEEF DEADBEEF 
+
+
+Executing command: STORE 0, 13; R13=0x29;
+Results: 
+Return status: DONE
+Checking memory for differences...
+xmem differences:
+00040: 0000000C 00030004 00000002 00000003 00000004 00000005 00000006 00000007 
+00048: 00000008 00000009 0000000A 0000000B 0000000C 0000000D 00030004 FFFFFFFF 
+
+
+Executing command: MSUB  0, 0, 6;
+Results: 
+Return status: DONE
+Checking memory for differences...
+imem differences:
+00000: FFFFFFFF FFFFFFFD FFFFFFFB FFFFFFF9 FFFFFFF7 FFFFFFF5 FFFFFFF3 FFFFFFF1 
+00008: FFFFFFEF FFFFFFED FFFFFFEB FFFFFFE9 DEADBEEF DEADBEEF DEADBEEF DEADBEEF 
+
+
+Executing command: RSUB  0, 0, 6;
+Results: 
+Return status: DONE
+Checking memory for differences...
+imem differences:
+00000: 00000004 00000009 0000000E 00000013 00000018 0000001D 00000022 00000027 
+00008: 0000002C 00000031 00000036 0000003B DEADBEEF DEADBEEF DEADBEEF DEADBEEF 
+
+
+Executing command: MZERO 11, 0;
+Results:  R11=0x0;
+Return status: DONE
+Checking memory for differences...none
+
+Executing command: RSETX 11, 170, 170;
+Results:  R11=0xffffaaaa;
+Return status: DONE
+Checking memory for differences...none
+
+Executing command: FILL  0, 11;
+Results: 
+Return status: DONE
+Checking memory for differences...
+imem differences:
+00000: FFFFAAAA FFFFAAAA FFFFAAAA FFFFAAAA FFFFAAAA FFFFAAAA FFFFAAAA FFFFAAAA 
+00008: FFFFAAAA FFFFAAAA FFFFAAAA FFFFAAAA DEADBEEF DEADBEEF DEADBEEF DEADBEEF 
+
+
+Executing command: MZERO 11, 0;
+Results:  R11=0x0;
+Return status: DONE
+Checking memory for differences...none
+
+Executing command: RSETX 11, 0, 0;
+Results: 
+Return status: DONE
+Checking memory for differences...none
+
+Executing command: FILL  0, 11;
+Results: 
+Return status: DONE
+Checking memory for differences...
+imem differences:
+00000: 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 
+00008: 00000000 00000000 00000000 00000000 DEADBEEF DEADBEEF DEADBEEF DEADBEEF 
+
+
+Executing command: MZERO 11, 0;
+Results:  R11=0xc;
+Return status: DONE
+Checking memory for differences...none
+
+Executing command: RESET;
+Results:  R0=0x0; R2=0x0; R3=0x0; R4=0x0; R5=0x0; R6=0x0; R7=0x0; R8=0x0; R9=0x0; R10=0x0; R11=0x0; R12=0x0; R13=0x0; R14=0x0; R15=0x0;
+Return status: IDLE
+Checking memory for differences...none
+
+Executing command: HALT ;
+Results: 
+Return status: HALTED
+Checking memory for differences...none
+
+Test PASSED.
+
+real	0m0.030s
+user	0m0.010s
+sys	0m0.010s
+[01m[31m################################################################################[00m
+INFO: Done
