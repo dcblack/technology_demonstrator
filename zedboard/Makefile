@@ -29,12 +29,13 @@
 
 UNIT := software
 SRCS :=\
-  random.c\
-  creport.c\
-  tlmx_packet.c\
-  driver.c\
-  ledsw.c\
-  flashem.c\
+  random.c      \
+  creport.c     \
+  tlmx_packet.c \
+  driver.c      \
+  ledsw.c       \
+  flashem.c     \
+  application.c \
   software.c
 
 # The following conditional allows an upper level to include us to
