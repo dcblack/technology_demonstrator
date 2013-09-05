@@ -8,29 +8,56 @@
 #define H_SHFT 16
 #define L_MASK 0xFFFF
 
-#ifdef SC_VERSION
-#include "axibus.h"
-typedef unsigned int Addr_t;
-typedef sc_int<32>   Data_t;
-typedef sc_int<32>   Cmd_t;
-typedef Axibus       Axi_t;
+#ifdef USING_SYSTEMC
+typedef unsigned char*      Byte_ptr;
+#ifdef BIT_ACCURATE
+#warning "INFO: Using bit accurate SystemC"
+typedef sc_dt::sc_uint<32>  Addr_t;
+typedef sc_dt::sc_int<32>   Data_t;
+typedef sc_dt::sc_int<32>   Cmd_t;
+class Axibus;
+typedef Axibus              Axi_t;
 #define VOLATILE
 #else
 
+//warning "INFO: Using fast SystemC"
+#include "stdint.h"
+typedef uint32_t            Addr_t;
+typedef int32_t             Data_t;
+typedef uint32_t            Cmd_t;
+class Axibus;
+typedef Axibus              Axi_t;
+#define VOLATILE
+#endif
+#else
+
 #ifdef __SYNTHESIS__
+#ifdef USE_APINT
+#warning "INFO: Using HLS synthesis with ap_int"
 #include "ap_int.h"
-#define VOLATILE volatile
-typedef ap_uint<32>  Addr_t;
-typedef ap_int<32>   Data_t;
-typedef ap_int<32>    Cmd_t;  // 32-bits
-typedef Addr_t        Axi_t;
+typedef ap_uint<32>         Addr_t;
+typedef ap_int<32>          Data_t;
+typedef ap_int<32>          Cmd_t;
+typedef Addr_t              Axi_t;
+#define VOLATILE
+
+#else
+#warning "INFO: Using HLS synthesis with C++ int"
+typedef unsigned int        Addr_t;
+typedef int                 Data_t;
+typedef int                 Cmd_t;
+typedef Data_t              Axi_t;
+#define VOLATILE
+#endif
 
 #else /* standard C++ */
-#define VOLATILE volatile
-typedef unsigned int  Addr_t; // 32-bits
-typedef int           Data_t; // 32-bits
-typedef int           Cmd_t;  // 32-bits
-typedef Data_t        Axi_t;  // 32-bits
+#warning "INFO: Using standard C++"
+#include "stdint.h"
+typedef unsigned int        Addr_t;
+typedef int                 Data_t;
+typedef int                 Cmd_t;
+typedef Data_t              Axi_t;
+#define VOLATILE
 #endif
 #endif
 
@@ -64,7 +91,7 @@ void dev_hls
 , volatile Data_t* reg_COMMAND
 , volatile Data_t* reg_STATUS
 , Data_t  imem[IMEM_SIZE]
-, volatile Axi_t*  axibus
+, VOLATILE Axi_t*  axibus
 );
 
 // Matrix points to a shape followed by the array itself
@@ -74,7 +101,7 @@ void dev_hls
 // Array organized in row major order and contains 32
 // bit values thusly { D[0,0], D[0,1] ... }
 //
-// The following reaonably displays the matrix for small matrices:
+// The following reaonably displays the matrix for small (<=18x18) matrices:
 #ifndef SYNTHESIS
 #include <iostream>
 #include <iomanip>
@@ -92,7 +119,7 @@ static void display_matrix(Data_t* M) {
 }
 #endif
 
-enum Reg_t     // Byte addresses for registers (32 bits each)
+enum Reg_t     // Word offsets for registers (32 bits each)
 { R0           // Aka M0_SHAPE
 , R1           // Aka M0_ARRAY
 , R2           // Aka M1_SHAPE
@@ -124,7 +151,7 @@ inline bool   Mvalid(Addr_t ptr) { return ptr%MAX_MATRIX_SIZE==0 && ptr<=IMEM_LA
 enum Operation_t // Operations {:TODO:_not_all_implemented:}
 { NOP    // no operation
 , LOAD   // M(R(dest)) = xmem(base+R(src1))
-, STORE  // xmem(base+R(src1)) = M(R(dest)
+, STORE  // xmem(base+R(src1)) = M(R(dest))
 , MCOPY  // M(dest) = M(src1);
 , MADD   // M(dest) = M(src1) + M(src2); // matrix add
 , MSUB   // M(dest) = M(src1) - M(src2); // matrix subtract
@@ -139,6 +166,7 @@ enum Operation_t // Operations {:TODO:_not_all_implemented:}
 , FILL   // M(dest) = R(src1); // fill matrix
 , IDENT  // M(dest) = indentity(R2);
 , RCOPY  // R(dest) = R(src1); // register copy
+, RSETX  // R(dest)[31:00] = (src1<<8)|src2; // register set with sign-extend
 , RSETH  // R(dest)[31:16] = (src1<<8)|src2; // register set hi
 , RSETL  // R(dest)[15:00] = (src1<<8)|src2; // register set lo
 , RESET  // clear all registers
@@ -161,7 +189,8 @@ enum CmdState_t
 };
 #define STATE_BITS 0xFF
 #define EXEC_BIT   0x100
-#define AUTOMATIC (EXEC_BIT | DONE)
+#define INTR_BIT   0x800
+#define AUTOMATIC(status) (((status) & (EXEC_BIT|STATE_BITS)) == (EXEC_BIT|DONE))
 
 // Helpful aliases
 #define M0 2*0
@@ -172,35 +201,53 @@ enum CmdState_t
 #define M5 2*5
 #define M6 2*6
 
-#define reg_M0       reg0
-#define reg_M0_SHAPE reg0
-#define reg_M0_ARRAY reg1
+#define reg_M0       R0
+#define reg_M0_SHAPE R0
+#define reg_M0_ARRAY R1
 
-#define reg_M1       reg2
-#define reg_M1_SHAPE reg2
-#define reg_M1_ARRAY reg3
+#define reg_M1       R2
+#define reg_M1_SHAPE R2
+#define reg_M1_ARRAY R3
 
-#define reg_M2       reg4
-#define reg_M2_SHAPE reg4
-#define reg_M2_ARRAY reg5
+#define reg_M2       R4
+#define reg_M2_SHAPE R4
+#define reg_M2_ARRAY R5
 
-#define reg_M3       reg6
-#define reg_M3_SHAPE reg6
-#define reg_M3_ARRAY reg7
+#define reg_M3       R6
+#define reg_M3_SHAPE R6
+#define reg_M3_ARRAY R7
 
-#define reg_M4       reg8
-#define reg_M4_SHAPE reg8
-#define reg_M4_ARRAY reg9
+#define reg_M4       R8
+#define reg_M4_SHAPE R8
+#define reg_M4_ARRAY R9
 
-#define reg_M5       reg10
-#define reg_M5_SHAPE reg10
-#define reg_M5_ARRAY reg11
+#define reg_M5       R10
+#define reg_M5_SHAPE R10
+#define reg_M5_ARRAY R11
 
-#define reg_M6       reg12
-#define reg_M6_SHAPE reg12
-#define reg_M6_ARRAY reg13
+#define reg_M6       R12
+#define reg_M6_SHAPE R12
+#define reg_M6_ARRAY R13
 
-#define reg_SR reg14
-#define reg_PC reg15
+#define reg_SR R14
+#define reg_PC R15
 
+
+//------------------------------------------------------------------------------
+// $LICENSE: Apache 2.0 $ <<<
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  L<http://www.apache.org/licenses/LICENSE-2.0>
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//--------------------------------------------------------------------------->>>
+// The end!
 #endif /*DEV_HLS_H*/

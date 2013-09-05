@@ -45,9 +45,12 @@ struct Command
     , unsigned char& src2
     ) const;
   Data_t& r(size_t i) { return m_r[i]; }
+  void clear_flags(void);
+  void reset_reg(size_t i, Data_t  value);
   void set_reg(size_t i, Data_t  value);
   void get_reg(size_t i, Data_t& value, bool always=false);
-  void clear(void);
+  std::string regstr(bool all = false) const;
+  std::string cmdstr(void) const;
   void randomize(void);
   std::string result(void);
   friend std::ostream& operator<<(std::ostream& os, const Command& rhs);
