@@ -21,85 +21,64 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "random.h"
 #include "creport.h"
+#include "ctype.h"
 
 static const char* MSGID="/Doulos/example/software";
 
-int REGCNT  =  4; /* number of registers  in device*/
-int TESTCNT = 20; /* number of tests to perform */
+extern int appl_main(int argc, char* argv[]);
 
-int main(int argc, char* argv[])
+int startup_main(int argc, char* argv[])
 {
-  long int port = 0;
-  char* endptr = 0;
-
-  srandom(1);
+  int  port_arr[3] = {4000, 4001, 4100};
+  char* begptr  = NULL;
+  char* endptr  = NULL;
 
   //----------------------------------------------------------------------------
   // Parse command-line
   //----------------------------------------------------------------------------
-  if (argc != 3) {
-    REPORT_ERROR("Syntax: %s HOSTNAME PORTNUMBER\n",argv[0]);
+  if (argc != 2 && argc != 3) {
+    REPORT_ERROR("Syntax: %s HOSTNAME PORTLIST\n",argv[0]);
   }
-  port = strtol(argv[2],&endptr,10);
-  if (port == 0L) {
-    REPORT_ERROR("Unable to parse port number.\n");
-  } else if (port < 2000 || port > 65535) {
-    REPORT_ERROR("Bad port number (%ld) specified. Port number restricted to between 2000 and 65535.\n",port);
-  }
+  if (argc >= 3) begptr = argv[2];
+  for (int i=0; i!= 3; ++i) {
+    long int port;
+    port = 0;
+    if (begptr == NULL || *begptr == '\0') break;
+    port = strtol(begptr,&endptr,10);
+    if (endptr != NULL && strchr(",:;",*endptr) != NULL) begptr = endptr + 1;
+    else                begptr = NULL;
+    if (port == 0L) {
+      REPORT_ERROR("Unable to parse port number.\n");
+    } else if (port < 2000 || port > 65535) {
+      REPORT_ERROR("Bad port number (%ld) specified. Port number restricted to between 2000 and 65535.\n",port);
+    } else {
+      port_arr[i] = port;
+    }//endif
+  }//endfor
   if (error_count) {
     REPORT_INFO("Please fix above errors and retry.\n");
     return 1;
   }
 
-  dev_open(argv[1],port);
+  dev_open(argv[1],port_arr);
   REPORT_INFO("Device connection opened...\n");
+}
 
-  int count[REGCNT];
-  // Initialize
-  for (int t=0; t!=REGCNT; ++t) {
-    count[REGCNT] = 0;
-  }
-
-  //----------------------------------------------------------------------------
-  // Perform TESTCNT tests
-  //----------------------------------------------------------------------------
-  int data;
-  for (int i=0; i!=TESTCNT; ++i) {
-    /* Write to all registers */
-    for (int t=0; t!=REGCNT; ++t) {
-//    if (count[t] != 0) break; /*< not yet done */
-//    if (random()&1) break; /* 50% chance */
-      data = abs(random()%5000) + 1000; /*< 1000..5999 */
-//    REPORT_DEBUG("Attempting to put...\n");
-      if (dev_put(DEV_COUNT1_REG+4*t,(unsigned char*)(&data),sizeof(data))<0) {
-        REPORT_ERROR("Unable to set DEV_COUNT%d\n",t+1);
-      } else {
-        count[t] = data; /*< indicate in progress */
-      }
-    }//endfor t=0..REGCNT-1
-    //dev_wait();
-    /* Check status */
-    if (dev_get(DEV_STATUS_REG,(unsigned char*)(&data),sizeof(data))<0) {
-      REPORT_ERROR("Unable to get DEV_STATUS\n");
-    }
-    REPORT_INFO("Status = %04x\n",data);
-    for (int t=0; t!=REGCNT; ++t) {
-      if (dev_get(DEV_COUNT1_REG+4*t,(unsigned char*)(&data),sizeof(data))<0) {
-        REPORT_ERROR("Unable to get DEV_COUNT%d\n",t+1);
-      } else {
-        REPORT_INFO("DEV_COUNT%d = %04x\n",t+1,data);
-        count[t] = data; /*< indicate current value */
-      }
-    }//endfor t=0..REGCNT-1
-  }//endfor i=0..19
-
+int shutdown_main(int argc, char* argv[])
+{
   //----------------------------------------------------------------------------
   // Exit
   //----------------------------------------------------------------------------
   dev_close();
-  REPORT_INFO("Exiting\n");
+  REPORT_INFO("Exiting Pseudo-OS\n");
+}//endmain
+
+int main(int argc, char* argv[])
+{
+  startup_main(argc,argv);
+  application_main(argc,argv);
+  shutdown_main(argc,argv);
   report_summary();
   return error_status();
-}//endmain
+}
