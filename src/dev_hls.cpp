@@ -5,16 +5,17 @@
 #include <string.h>
 
 // Macros to allow SystemC simulation
-#if      defined(__SYNTHESIS__) || ! defined(SC_VERSION)
+#if      defined(__SYNTHESIS__) || ! defined(USING_SYSTEMC)
 #define axibus_read(addr,data)  data=axibus[addr]
 #define axibus_write(addr,data) axibus[addr]=data
-#define axibus_read_burst(addr,size,buffer) memcpy(buffer,addr,size)
-#define axibus_write_burst(addr,size,buffer) memcpy(addr,buffer,size)
-#else /* defined(_SYNTHESIS_) &&   defined(_SYSTEMC_) */
-#define axibus_read(addr,data)  axibus->read(addr, data);
-#define axibus_write(addr,data) axibus->write(addr, data);
-#define axibus_read_burst(addr,size,buffer)  axibus->read_burst(addr,size,buffer)
-#define axibus_write_burst(addr,size,buffer) axibus->write_burst(addr,size,buffer)
+#define axibus_read_burst(addr,buffer,size)  memcpy((void*)buffer,(axibus+addr),size)
+#define axibus_write_burst(addr,buffer,size) memcpy((void*)(axibus+addr),buffer,size)
+#else /* !defined(_SYNTHESIS_) &&   defined(_SYSTEMC_) */
+#include "axibus.h"
+#define axibus_read(addr,data)  axibus->axi_read (addr, data);
+#define axibus_write(addr,data) axibus->axi_write(addr, data);
+#define axibus_read_burst(addr,buffer,size)  axibus->axi_read_burst (addr,buffer,size)
+#define axibus_write_burst(addr,buffer,size) axibus->axi_write_burst(addr,buffer,size)
 #endif
 
 #define SET_REG(r, data) \
@@ -61,13 +62,13 @@ switch (r) {                      \
 if ( 15<r ) {                            \
   *reg_STATUS = status | REGISTER_ERROR; \
   break;                                 \
-} r |= 0 /* to allow ; at end */
+} else ;
 
 #define VALIDATE_MATRIX(r)               \
 if ( 14<r || r&1) {                      \
   *reg_STATUS = status | REGISTER_ERROR; \
   break;                                 \
-} r |= 0 /* to allow ; at end */
+} else ;
 
 
 // NOTE: _ARRAY's are indexes to internal memory locations
@@ -93,7 +94,7 @@ void dev_hls
 , volatile Data_t* reg_COMMAND     //< AXI slave
 , volatile Data_t* reg_STATUS      //< AXI slave
 ,          Data_t  imem[IMEM_SIZE] //< Device memory
-, volatile Axi_t*  axibus          //< AXI master
+, VOLATILE Axi_t*  axibus          //< AXI master
 )
 {
 
@@ -234,12 +235,12 @@ void dev_hls
 
         base = *reg_AXI_BASE;
 
-        VALIDATE_REGISTER(src1);
+        VALIDATE_REGISTER(src1)
         GET_REG(src1,x_ptr)
         x_ptr += base;
         axibus_read(x_ptr++,shape);
         
-        VALIDATE_MATRIX(dest);
+        VALIDATE_MATRIX(dest)
         SET_REG(dest,shape)
         GET_REG(dest+1,i_ptr)
 
@@ -262,7 +263,7 @@ void dev_hls
         LOAD_BURST_LOOP: // Do bursts of 8
         for (unsigned int i=0; i!=size; i+=BURST) {
           Data_t buffer[BURST];
-          axibus_read_burst((void*)(axibus+x_ptr), BURST*sizeof(Data_t),&buffer);
+          axibus_read_burst(x_ptr,buffer,BURST*sizeof(Data_t));
           x_ptr += BURST;
           WRITE_IMEM_LOOP:
           for (unsigned int j=0; j!=BURST; ++j) {
@@ -289,11 +290,11 @@ void dev_hls
 
         base = *reg_AXI_BASE;
 
-        VALIDATE_MATRIX(dest);
+        VALIDATE_MATRIX(dest)
         GET_REG(dest,shape)
         GET_REG(dest+1,i_ptr)
 
-        VALIDATE_REGISTER(src1);
+        VALIDATE_REGISTER(src1)
         GET_REG(src1,x_ptr)
         x_ptr += base;
         
@@ -319,7 +320,7 @@ void dev_hls
           for (unsigned int j=0; j!=BURST; ++j) {
             buffer[j] = imem[i_ptr++];
           }
-          axibus_write_burst((void*)(axibus+x_ptr),BURST*sizeof(Data_t),&buffer);
+          axibus_write_burst(x_ptr,buffer,BURST*sizeof(Data_t));
           x_ptr += BURST;
         }
         STORE_REMAINDER_LOOP:
@@ -339,11 +340,11 @@ void dev_hls
         Addr_t dst_ptr, src_ptr;
         Data_t dst_shape, src_shape;
 
-        VALIDATE_MATRIX(dest);
+        VALIDATE_MATRIX(dest)
         GET_REG(dest,dst_ptr)
         GET_REG(dest+1,dst_ptr)
 
-        VALIDATE_MATRIX(src1);
+        VALIDATE_MATRIX(src1)
         GET_REG(src1,src_shape)
         GET_REG(src1+1,src_ptr)
 
@@ -377,13 +378,13 @@ void dev_hls
         Data_t dest_shape, src1_shape, src2_shape;
         bool not_KMUL = (operation != KMUL);
 
-        VALIDATE_MATRIX(dest);
+        VALIDATE_MATRIX(dest)
         if (not_KMUL) {
-          VALIDATE_MATRIX(src1);
+          VALIDATE_MATRIX(src1)
         } else {
-          VALIDATE_REGISTER(src1);
+          VALIDATE_REGISTER(src1)
         }
-        VALIDATE_MATRIX(src2);
+        VALIDATE_MATRIX(src2)
 
         GET_REG(dest,dest_shape)
         if (not_KMUL) GET_REG(src1,src1_shape)
@@ -434,9 +435,9 @@ void dev_hls
       // Operation: Count zeroes
       case MZERO: // R(dest) = zeroes(M(src1))
       {
-        VALIDATE_REGISTER(dest);
+        VALIDATE_REGISTER(dest)
 
-        VALIDATE_MATRIX(src1);
+        VALIDATE_MATRIX(src1)
         Addr_t src1_ptr;
         Data_t src1_shape;
         GET_REG(src1,src1_shape)
@@ -446,7 +447,7 @@ void dev_hls
           *reg_STATUS = status | ADDRESS_ERROR;
           break;
         }
-        Data_t count;
+        Data_t count = 0;
         COUNT_LOOP:
         for (Addr_t i=Msize(src1_shape); i!=0; --i) {
           if (imem[src1_ptr++] == 0) ++count;
@@ -461,68 +462,113 @@ void dev_hls
       // Operation: Matrix multiply
       case MMUL:  // R(dest) = M(src1) x M(src2)
       {
+        *reg_STATUS = status | UNSUPPORTED_ERROR;
+        break;
       }
       //--------------------------------------------------------------------------
       // Operation: Sum of elements
       case MSUM:  // R(dest) = sum(M(src1)[i]);
       {
+        *reg_STATUS = status | UNSUPPORTED_ERROR;
+        break;
       }
       //--------------------------------------------------------------------------
       // Operation: Determinant
       case MDET0: // R(dest) = determinant(M0);
       {
+        *reg_STATUS = status | UNSUPPORTED_ERROR;
+        break;
       }
       //--------------------------------------------------------------------------
       // Operation: Compare matrices
       case EQUAL: // R(dest) = M(dest) == M(src1);
       {
+        *reg_STATUS = status | UNSUPPORTED_ERROR;
+        break;
       }
       //--------------------------------------------------------------------------
       // Operation: Matrix transpose
       case TRANS: // M(dest) = transpose(M(src1));
       {
+        *reg_STATUS = status | UNSUPPORTED_ERROR;
+        break;
       }
       //--------------------------------------------------------------------------
       // Operation: Fill matrix with constant
       case FILL:  // M(dest) = R(src1); // fill matrix
       {
+        VALIDATE_MATRIX(dest)
+        VALIDATE_REGISTER(src1)
+        Data_t fill;
+        GET_REG(src1,fill)
+        Addr_t dest_ptr;
+        Data_t dest_shape;
+        GET_REG(dest,dest_shape)
+        GET_REG(dest+1,dest_ptr)
+        FILL_LOOP:
+        for (Addr_t i=Msize(dest_shape); i!=0; --i) {
+          imem[dest_ptr++] = fill;
+        }
+        *reg_STATUS = status | DONE;
+        break;
       }
       //--------------------------------------------------------------------------
       // Operation: Set matrix to identity
       case IDENT: // M(dest) = indentity(R2);
       {
+        *reg_STATUS = status | UNSUPPORTED_ERROR;
+        break;
       }
       //--------------------------------------------------------------------------
       // Operation: Copy register
       case RCOPY: // R(dest) = R(src1); // register copy
       {
         Addr_t val;
-        VALIDATE_REGISTER(src1);
+        VALIDATE_REGISTER(src1)
         GET_REG(src1,val)
-        VALIDATE_REGISTER(dest);
+        VALIDATE_REGISTER(dest)
         SET_REG(dest,val)
+        *reg_STATUS = status | DONE;
+        break;
+      }
+      //--------------------------------------------------------------------------
+      // Operation: Set register low and sign extend
+      case RSETX: // R(dest)[31:0] = (src1<<8)|src2; // register set hi
+      {
+        Addr_t val;
+        VALIDATE_REGISTER(dest)
+        GET_REG(dest,val)
+        val = ((src1 << 8)|src2);
+        val |= (val&0x8000) ? 0xFFFF0000 : 0; // sign extend
+        SET_REG(dest,val)
+        *reg_STATUS = status | DONE;
+        break;
       }
       //--------------------------------------------------------------------------
       // Operation: Set register high half immediate
       case RSETH: // R(dest)[31:16] = (src1<<8)|src2; // register set hi
       {
         Addr_t val;
-        VALIDATE_REGISTER(dest);
+        VALIDATE_REGISTER(dest)
         GET_REG(dest,val)
         val &= 0xFFFF;
         val |= ((src1 << 8)|src2)<<16;
         SET_REG(dest,val)
+        *reg_STATUS = status | DONE;
+        break;
       }
       //--------------------------------------------------------------------------
       // Operation: Set register low half immediate
       case RSETL: // R(dest)[15:00] = (src1<<8)|src2; // register set lo
       {
         Addr_t val;
-        VALIDATE_REGISTER(dest);
+        VALIDATE_REGISTER(dest)
         GET_REG(dest,val)
         val &= ~0xFFFF;
         val |= ((src1 << 8)|src2);
         SET_REG(dest,val)
+        *reg_STATUS = status | DONE;
+        break;
       }
       //--------------------------------------------------------------------------
       default: // operation not implemented/supported

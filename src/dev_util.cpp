@@ -41,6 +41,7 @@ const char * const operation_name[] =
 , "FILL "
 , "IDENT"
 , "RMOVE"
+, "RSETX"
 , "RSETH"
 , "RSETL"
 , "RESET"

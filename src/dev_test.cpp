@@ -94,6 +94,7 @@ int main(int argc, char* argv[])
   cmd.set_reg(M5+1, 5*MAX_MATRIX_SIZE); //< internal address
   cmd.set_reg(M6+1, 6*MAX_MATRIX_SIZE); //< internal address
   cmd_list.push_back(cmd);
+  cmd.clear_flags();
 
   cmd.set_cmd(NOP);
   cmd_list.push_back(cmd);
@@ -101,18 +102,22 @@ int main(int argc, char* argv[])
   cmd.set_cmd(LOAD, M0, R12);
   cmd.set_reg(R12, matrix_address[0]);  //< external address
   cmd_list.push_back(cmd);
+  cmd.clear_flags();
 
   cmd.set_cmd(LOAD, M1, R12);
   cmd.set_reg(R12, matrix_address[1]);  //< external address
   cmd_list.push_back(cmd);
+  cmd.clear_flags();
 
   cmd.set_cmd(LOAD, M2, R12);
   cmd.set_reg(R12, matrix_address[2]);  //< external address
   cmd_list.push_back(cmd);
+  cmd.clear_flags();
 
   cmd.set_cmd(LOAD, M3, R12);
   cmd.set_reg(R12, matrix_address[3]);  //< external address
   cmd_list.push_back(cmd);
+  cmd.clear_flags();
 
   cmd.set_cmd(MADD, M0, M1, M2);
   cmd_list.push_back(cmd);
@@ -120,11 +125,30 @@ int main(int argc, char* argv[])
   cmd.set_cmd(STORE, M0, R13);
   cmd.set_reg(R13, matrix_address[3]);  //< external address
   cmd_list.push_back(cmd);
+  cmd.clear_flags();
 
   cmd.set_cmd(MSUB, M0, M0, M3);
   cmd_list.push_back(cmd);
 
   cmd.set_cmd(RSUB, M0, M0, M3);
+  cmd_list.push_back(cmd);
+
+  cmd.set_cmd(MZERO, R11, M0);
+  cmd_list.push_back(cmd);
+
+  cmd.set_cmd(RSETX, R11, 0xAA, 0xAA);
+  cmd_list.push_back(cmd);
+
+  cmd.set_cmd(FILL, M0, R11);
+  cmd_list.push_back(cmd);
+
+  cmd.set_cmd(MZERO, R11, M0);
+  cmd_list.push_back(cmd);
+
+  cmd.set_cmd(RSETX, R11, 0x00, 0x00);
+  cmd_list.push_back(cmd);
+
+  cmd.set_cmd(FILL, M0, R11);
   cmd_list.push_back(cmd);
 
   cmd.set_cmd(MZERO, R11, M0);
@@ -138,12 +162,15 @@ int main(int argc, char* argv[])
 
   dev.reg_AXI_BASE = 0;
   for (int ci=0; ci!=cmd_list.size(); ++ci) {
+    cout << "\nExecuting command: " << cmd_list[ci] << endl;
     dev.reg_COMMAND = cmd_list[ci].command;
     dev.reg_STATUS = cmd_list[ci].status;
-    for (int i=0; i!=16; ++i) cmd_list[ci].get_reg(i, dev.reg[i]); // update changed registers
+    for (int i=0; i!=16; ++i) {
+      cmd_list[ci].get_reg(i, dev.reg[i]); // update changed registers
+      cmd_list[ci].reset_reg(i, dev.reg[i]); // update changed registers
+    }
     mem.mirror();
 
-    cout << "\nExecuting command: " << cmd_list[ci] << endl;
     dev_hls
       ( &(dev.reg[0])
       , &(dev.reg[1])
@@ -168,6 +195,8 @@ int main(int argc, char* argv[])
       , mem.xmem
       );
 
+    for (int i=0; i!=16; ++i) cmd_list[ci].set_reg(i, dev.reg[i]); // update changed registers
+    cout << "Results: " << cmd_list[ci].regstr() << endl;
     cmd_list[ci].status = CmdState_t(dev.reg_STATUS);
     cout << "Return status: " << cmd_list[ci].result() << endl;
     mem.check();

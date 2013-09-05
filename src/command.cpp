@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 #include <cassert>
 using namespace std;
 
@@ -19,21 +20,21 @@ static std::uniform_int_distribution<Operation_t> Command::distr(NOP, HALT);
 
 //----------------------------------------------------------------------------
 Command::Command //< Constructor
-( Operation_t op
+( Operation_t oper
 , unsigned char dest
 , unsigned char src1
 , unsigned char src2
 , CmdState_t    expect
 )
-: command((op<<3*8)|(dest<<2*8)|(src1<<1*8)|(src2<<0*8))
+: command((oper<<3*8)|(dest<<2*8)|(src1<<1*8)|(src2<<0*8))
 , status(IDLE)
-, m_op(op)
+, m_op(oper)
 {
   for (size_t i=0; i!=REGS; ++i) {
     m_r[i] = 0xF00DFACE;
     m_c[i] = false;
   }
-  if (op != NOP) status = START;
+  if (oper != NOP) status = START;
   set_expected(expect);
 }
 
@@ -95,30 +96,44 @@ void Command::set_expected(CmdState_t expect) {
 }
 
 //----------------------------------------------------------------------------
-void Command::set_cmd(Operation_t op, unsigned char dest, unsigned char src1, unsigned char src2, CmdState_t expect) {
-  command = ((op&0xFF)<<(3*8))|((dest&0xFF)<<(2*8))|((src1&0xFF)<<(1*8))|((src2&0xFF)<<(0*8));
-  m_op = op;
-  if (op != NOP) status = START;
+void Command::set_cmd(Operation_t oper, unsigned char dest, unsigned char src1, unsigned char src2, CmdState_t expect) {
+  command = ((oper&0xFF)<<(3*8))|((dest&0xFF)<<(2*8))|((src1&0xFF)<<(1*8))|((src2&0xFF)<<(0*8));
+  m_op = oper;
+  if (oper != NOP) status = START;
   set_expected(expect);
 }
 
 //----------------------------------------------------------------------------
 void Command::get_cmd
-( Operation_t& op
+( Operation_t& oper
 , unsigned char& dest
 , unsigned char& src1
 , unsigned char& src2
 ) const {
-  op   = Operation_t((command>>(3*8))&0xFF);
+  oper = Operation_t((command>>(3*8))&0xFF);
   dest = (command>>(2*8))&0xFF;
   src1 = (command>>(1*8))&0xFF;
   src2 = (command>>(0*8))&0xFF;
 }
 
 //----------------------------------------------------------------------------
-void Command::set_reg(size_t i, Data_t  value) {
+void Command::clear_flags(void) {
+  for (size_t i=0; i!=REGS; ++i) {
+    m_c[i]=false;
+  }
+}
+
+//----------------------------------------------------------------------------
+void Command::reset_reg(size_t i, Data_t  value) {
   m_r[i]=value;
-  m_c[i]=true;    
+}
+
+//----------------------------------------------------------------------------
+void Command::set_reg(size_t i, Data_t  value) {
+  if (m_r[i] != value) {
+    m_r[i]=value;
+    m_c[i]=true;    
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -131,24 +146,17 @@ void Command::get_reg(size_t i, Data_t& value, bool always) {
 }
 
 //----------------------------------------------------------------------------
-void Command::clear(void) {
-  for (size_t i=0; i!=REGS; ++i) {
-    m_c[i] = false;
-  }
-}
-
-//----------------------------------------------------------------------------
 void Command::randomize(void) {
 #ifdef CXX11
-  Operation_t& op;
+  Operation_t& oper;
   unsigned char& dest;
   unsigned char& src1;
   unsigned char& src2;
-  op = distr(gen);
+  oper = distr(gen);
   dest = gen();
   src1 = gen();
   src2 = gen();
-  set_cmd(op,dest,src1,src2);
+  set_cmd(oper,dest,src1,src2);
 #else
   command = random();
 #endif
@@ -166,21 +174,32 @@ string Command::result(void) {
   return msg;
 }
 
-//----------------------------------------------------------------------------
-std::ostream& operator<<(std::ostream& os, const Command& rhs) {
-  Operation_t op;
-  unsigned char dest, src1, src2;
-  rhs.get_cmd(op, dest, src1, src2);
-  os << operation_name[op];
-  if ((rhs.command&0xFFFFFF) != 0xFFFFFF) os << dec << int(dest);
-  if ((rhs.command&0xFFFF  ) != 0xFFFF  ) os << dec << ", " << int(src1);
-  if ((rhs.command&0xFF    ) != 0xFF    ) os << dec << ", " << int(src2);
-  os << dec << ";";
-  for (size_t i=0; i!=rhs.REGS; ++i) {
-    if (rhs.m_r[i] != 0xF00DFACE) {
-      os << " R" << dec << i << "=0x" << hex << rhs.m_r[i] << ";";
+std::string Command::regstr(bool all) const {
+  std::ostringstream os;
+  for (size_t i=0; i!=REGS; ++i) {
+    if (m_c[i] || all) {
+      os << " R" << dec << i << "=0x" << hex << m_r[i] << ";";
     }
   }
+  return os.str();
+}
+
+std::string Command::cmdstr(void) const {
+  std::ostringstream os;
+  Operation_t oper;
+  unsigned char dest, src1, src2;
+  get_cmd(oper, dest, src1, src2);
+  os << operation_name[oper];
+  if ((command&0xFFFFFF) != 0xFFFFFF) os << dec << " "  << int(dest);
+  if ((command&0xFFFF  ) != 0xFFFF  ) os << dec << ", " << int(src1);
+  if ((command&0xFF    ) != 0xFF    ) os << dec << ", " << int(src2);
+  os << dec << ";";
+  return os.str();
+}
+
+//----------------------------------------------------------------------------
+std::ostream& operator<<(std::ostream& os, const Command& rhs) {
+  os << rhs.cmdstr() << rhs.regstr();
   return os;
 }
 
