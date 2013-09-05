@@ -81,9 +81,9 @@ Require_all_real=$(if $(findstring( -$(words $(wildcard $1))-,-$(words $1)-),$1,
 # $(call Warn_if_missing,FILE) will issue a warning unless the FILE exists
 Warn_if_missing=$(if $(wildcard $1),,$(warning Missing directory $1))$1
 # $(call Find_executable,PROGRAM_NAME) expands to full path of the executable if found; otherwise, empty
-Find_executable:=$(firstword $(wildcard $(foreach pgm,$1,$(addsuffix /${pgm},$(subst :, ,${PATH})))))
+Find_executable:=$(firstword $(wildcard $(foreach pgm,$(1),$(addsuffix /${pgm},$(subst :, ,${PATH})))))
 # $(call Find1st,PGMS) will return first executable found
-Find1st=$(firstword $(wildcard $(foreach pgm,$1,$(addsuffix /${pgm},$(subst :, ,${PATH})))))
+Find1st:=$(firstword $(wildcard $(foreach pgm,$(1),$(addsuffix /${pgm},$(subst :, ,${PATH})))))
 # $(call Get_dirs,PATHS) will return only those elements that are real directories
 Get_dirs=$(foreach pth,$1,$(if $(wildcard ${pth}/.),${pth},))
 # $(call Get_notdirs,PATHS) will return only those elements that are not directories

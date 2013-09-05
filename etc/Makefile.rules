@@ -619,9 +619,8 @@ endif
 ifdef NDEBUG
   NDEBUG_SYSTEMC := 1
 endif
-ifeq "${PLATFORM}" "Darwin2"
+ifeq "${PLATFORM}" "Darwin"
   ifndef CXX
-  #ifeq "${CXX}" "g++"
   $(info DEBUG: using clang++)
     USING_CLANG := 1
     CPUWIDTH := 64
@@ -757,7 +756,7 @@ ifeq "${TARGET_ARCH}" "macosx64"
 endif
 ifndef CPUWIDTH
   CPUWIDTH:=32
-  $(info defaulting to 32 bits)
+  $(info INFO: Defaulting to 32 bits)
 endif
 
 ifdef NDEBUG
@@ -779,6 +778,7 @@ ifeq (${USING_BOOST},1)
 endif
 ifeq (${USING_SYSTEMC},1)
   ifdef SYSTEMC
+    C_DEFS += -DUSING_SYSTEMC=1
     ifdef SYSTEMC_VERSION
       C_DEFS += -D${SYSTEMC_VERSION}
     endif
@@ -882,9 +882,7 @@ endif
 ################################################################################
 .SUFFIXES: .cc .cpp .o .x
 
-ifndef DFLT
-  DFLT:=exe
-endif
+DFLT?=exe
 
 default_target: version ${DFLT}
 
