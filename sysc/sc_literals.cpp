@@ -65,4 +65,9 @@ sc_time operator "" _ns  (unsigned long long val) { return sc_time(double(val),S
 sc_time operator "" _ps  (unsigned long long val) { return sc_time(double(val),SC_PS );  }
 sc_time operator "" _fs  (unsigned long long val) { return sc_time(double(val),SC_FS );  }
 
+// The following makes kilo, mega, giga byte specifications easier
+sc_dt::uint64 operator "" _KB (unsigned long long val) { return sc_dt::uint64(val*1024); }
+sc_dt::uint64 operator "" _MB (unsigned long long val) { return sc_dt::uint64(val*1024*1024); }
+sc_dt::uint64 operator "" _GB (unsigned long long val) { return sc_dt::uint64(val*1024*1024*1024); }
+
 //TAF!

@@ -12,7 +12,7 @@
 if [[ "$USER" != dcblack ]]; then
   echo "You probably need to modify $0"
 fi
-SETUP_SCRIPT='/opt/centos/devtoolset-1.0/enable'
+SETUP_SCRIPT='/opt/centos/devtoolset-1.1/enable'
 test -r "$SETUP_SCRIPT" && source "$SETUP_SCRIPT"
 
 # The end

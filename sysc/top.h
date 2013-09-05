@@ -3,6 +3,43 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Top-level module where everything is hooked up.
 
+#include <systemc>
+#include <memory>
+#include "report.h"
+#include "tcpip_initiator.h"
+#include "local_initiator.h"
+class Dev_module;
+class Mem_module;
+class Bus_module;
+
+class Top_module
+: public sc_core::sc_module
+{
+  util::report setup;/*< used to extend reporting -- ONLY do this in the topmost module */
+public:
+  // Ports - NONE (this is the top-level)
+  // Channels - NONE (everything is TLM 2.0 - i.e. effectively modules ARE channels due to sockets)
+  // Structure (e.g. submodules)
+  // NOTE:  C++11 unique_ptr<> is *safe alternative to raw pointers* and better than C++03 auto_ptr<>
+  std::unique_ptr<tcpip_initiator_module> tcpip_initiator;
+  std::unique_ptr<Local_initiator_module> local_initiator;
+  std::unique_ptr<Dev_module>             dev;
+  std::unique_ptr<Mem_module>             mem;
+  std::unique_ptr<Bus_module>             bus;
+
+  // Constructor
+  Top_module(sc_core::sc_module_name instance_name);
+  // Destructor
+  virtual ~Top_module(void);
+  // Callbacks
+  void before_end_of_elaboration(void) override; //< e.g. modify netlist (rare)
+  void end_of_elaboration(void) override; //< e.g. add sc_trace
+  void start_of_simulation(void) override; //< e.g. channel initializations
+  void end_of_simulation(void) override; //< e.g. cleanup, statistics
+  // Processes
+  void top_thread(void);
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // $License: Apache 2.0 $
 //
@@ -17,35 +54,5 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-#include <systemc>
-#include <memory>
-#include "report.h"
-#include "tcpip_initiator.h"
-#include "dev.h"
-
-class top_module
-: public sc_core::sc_module
-{
-  util::report setup;/*< used to extend reporting -- ONLY do this in the topmost module */
-public:
-  // Ports - NONE (this is the top-level)
-  // Channels - NONE (everything is TLM 2.0 - i.e. effectively modules ARE channels due to sockets)
-  // Structure (e.g. submodules)
-  std::unique_ptr<tcpip_initiator_module> tcpip_initiator_instance; // ** safe alternative to raw pointers **
-  std::unique_ptr<dev_module>  dev_instance;  // ** replace with unique_ptr under C++11 **
-
-  // Constructor
-  top_module(sc_core::sc_module_name instance_name);
-  // Destructor
-  virtual ~top_module(void);
-  // Callbacks
-  void before_end_of_elaboration(void) override; //< e.g. modify netlist (rare)
-  void end_of_elaboration(void) override; //< e.g. add sc_trace
-  void start_of_simulation(void) override; //< e.g. channel initializations
-  void end_of_simulation(void) override; //< e.g. cleanup, statistics
-  // Processes
-  void top_thread(void);
-};
 
 #endif

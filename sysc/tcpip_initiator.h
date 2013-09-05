@@ -21,6 +21,7 @@
 
 #include "tlmx_channel.h"
 #include "tlm_utils/simple_initiator_socket.h"
+#include "memory_manager.h"
 #include <systemc>
 #include <thread>
 #include <mutex>
@@ -33,7 +34,7 @@ public:
   tlm_utils::simple_initiator_socket<tcpip_initiator_module> initiator_socket;
   // Channels
   tlmx_channel             m_async_channel;
-  sc_core::sc_signal<bool> m_keep_alive_signal;
+  sc_core::sc_buffer<bool> m_keep_alive_signal;
   // Constructor
   tcpip_initiator_module(sc_core::sc_module_name instance_name);
   // Destructor
@@ -57,6 +58,7 @@ private:
   std::mutex   m_allow_pthread; //< must be declared before m_lock_permission
   std::unique_ptr<std::lock_guard<std::mutex>> m_lock_permission; //< must be declared before m_pthread
   std::thread  m_pthread;
+  memory_manager* m_memory_manager; // Memory manager
   static int   s_stop_requests;
 };
 

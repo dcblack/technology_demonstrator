@@ -1,6 +1,5 @@
 #include "sighandler.h"
 #include <signal.h>
-using namespace std;
 
 static unsigned int interrupts{0U};
 Sighandler* Sighandler::singleton{nullptr};

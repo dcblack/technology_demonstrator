@@ -1,8 +1,48 @@
 #ifndef DEV_H
 #define DEV_H
 
-///////////////////////////////////////////////////////////////////////////////
-// $License: Apache 2.0 $
+#include "dev_hls.h"
+#include "axibus.h"
+#include <systemc>
+#include "tlm_utils/simple_initiator_socket.h"
+#include "tlm_utils/simple_target_socket.h"
+#include <stdint.h>
+
+class Axibus;
+
+struct Dev_module
+: sc_core::sc_module
+{
+  // Ports
+  tlm_utils::simple_target_socket<Dev_module>                  target_socket;
+  tlm_utils::simple_initiator_socket<Dev_module>               initiator_socket;
+  sc_core::sc_port<sc_core::sc_signal_out_if<sc_dt::sc_logic>> interrupt_port;
+  // Constructor
+  Dev_module
+  ( sc_core::sc_module_name instance_name
+  );
+  // Destructor
+  virtual ~Dev_module( void );
+  // SystemC Processes
+  void execute_thread ( void );
+  // SC_MODULE callbacks - NONE
+  // TLM-2 forward methods
+  void     b_transport   ( tlm::tlm_generic_payload& trans, sc_core::sc_time& delay );
+  unsigned transport_dbg ( tlm::tlm_generic_payload& trans );
+  void     interrupt     ( void );
+private:
+  sc_dt::uint64     m_register_count; //< number of registers in this device
+  Data_t*           m_register; // register array
+  int               m_byte_width; //< byte width of socket
+  sc_core::sc_time  m_latency;
+  Axibus*           m_axibus;
+  Data_t            m_imem[IMEM_SIZE];
+  sc_core::sc_event m_register_write_event;
+};
+
+
+////////////////////////////////////////////////////////////////////////////////
+// $License: Apache 2.0 $ <<<
 //
 // This file is licensed under the Apache License, Version 2.0 (the "License").
 // You may not use this file except in compliance with the License.
@@ -15,31 +55,5 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-#include <systemc>
-#include "tlm_utils/simple_target_socket.h"
-#include <stdint.h>
-
-struct dev_module
-: sc_core::sc_module
-{
-  // Ports
-  tlm_utils::simple_target_socket<dev_module> target_socket;
-  // Constructor
-  dev_module
-  ( sc_core::sc_module_name instance_name
-  );
-  // Destructor
-  virtual ~dev_module(void);
-  // SC_MODULE callbacks - NONE
-  // TLM-2 forward methods
-  void b_transport  ( tlm::tlm_generic_payload& trans, sc_core::sc_time& delay );
-  unsigned int  transport_dbg( tlm::tlm_generic_payload& trans );
-private:
-  sc_dt::uint64    m_register_count; //< number of registers in this device
-  int32_t*         m_register; // register array
-  int              m_byte_width; //< byte width of socket
-  sc_core::sc_time m_latency;
-};
-
+/////////////////////////////////////////////////////////////////////////////>>>
 #endif

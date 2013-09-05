@@ -1,7 +1,7 @@
 //BEGIN tcpip_initiator.cpp (systemc)
 // -*- C++ -*- vim600:sw=2:tw=80:fdm=marker:fmr=<<<,>>>
 ///////////////////////////////////////////////////////////////////////////////
-// $Info: tcpip_initiator interface implementation $
+// $Info: tcpip initiator interface implementation $
 //
 // BRIEF DESCRIPTION:
 // Implements a TLM initiator that performs transactions via TCP IP socket
@@ -9,8 +9,8 @@
 //
 // DETAILED DESCRIPTION:
 //
-// 1. Async_os_thread sets up TCP/IP socket to receive TLMX packets.
-// 2. When a packet is received a push is executed on the thread-safe
+// 1. async_os_thread sets up TCP/IP socket to receive TLMX packets.
+// 2. When a packet is received, a push is executed on the thread-safe
 //    async_channel, which generates a SystemC event.
 // 3. initiator_thread wakes up, gets the data from the async_channel, formats
 //    it for TLM 2.0 and initiates a transport call out its TLM 2.0 initiator
@@ -21,17 +21,27 @@
 // 6. async_os_thread wakes up and pulls the data from async_channel and sends
 //    back to the external connection via the TCP/IP socket connection.
 //
-// +----------+  recv  +------+ push  +-------+ event +---------+           +------+
-// |External  |==TLMX=>|async |=tlmx=>|async  |------>|initiator|           |TLM2.0|
-// |OS thread |        |_os_  |       |channel|    get|_sysc_   | transport |target|
-// |or process|        |thread|       |       |=tlmx=>|thread_  |=tlm2=====>|      |
-// |          |        |      |       |       |       |process  |           |      |
-// |          |        |      | event |       |    put|         |<==========|      |
-// |          |        |      |<------|       |<=tlmx=|         |           |      |
-// |          |        |      |       |       |       |         |           |      |
-// |          |   send |      | pull  |       |       |         |           |      |
-// |          |<=TLMX==|      |<======|       |       |         |           |      |
-// +----------+        +------+       +-------+       +---------+           +------+
+// +----------+        +------+        +-------+        +---------+           +------+
+// |External  |  recv  |async | push   |async  | event  |initiator|           |TLM2.0|
+// |OS thread |==TLMX=>|_os_  |=TLMX==>|channel|------->|_sysc_   |           |target|
+// |or process|request |thread|request |       |     get|thread_  | transport |      |
+// |or remote |        |      |        |       |=TLMX==>|process  |=TLM2=====>|      |
+// |   host   |        |      |        |       | request|         | request   |      |
+// |          |        |      |  event |       |        |         |           |      |
+// |          |        |      |<-------|       |     put|         |<=TLM2=====|      |
+// |          |        |      |        |       |<==TLMX=|         | response  |      |
+// |          |  send  |      | pull   |       |response|         |           |      |
+// |          |<=TLMX==|      |<=======|       |        |         |           |      |
+// |          |response|      |response|       |        |         |           |      |
+// +----------+        +------+        +-------+        +---------+           +------+
+//
+// +-------------+-------------------------+-----------------------------------------+
+// | External    |        Async            |                 SystemC                 |
+// | OS thread   |        OS thread        |                 OS thread               |
+// + - - - - - - + - - - - - - - - - - - - : - - - - - - - - - - - - - - - - - - - - +
+// | External    |                            SystemC                                |
+// | OS process  |                            OS process                             |
+// +-------------+-------------------------------------------------------------------+
 
 ///////////////////////////////////////////////////////////////////////////////
 // $License: Apache 2.0 $
@@ -50,12 +60,13 @@
 
 #include "tcpip_initiator.h"
 #include "report.h"
+#include "sighandler.h"
 #include <iomanip>
 #include <sys/socket.h>
 #include <sys/errno.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <signal.h>
+#include <string>
 
 using namespace std;
 using namespace sc_core;
@@ -69,11 +80,12 @@ namespace {
   //                                        FILENAME  VER DATE     TIME  USERNAME
 }
 
-int tcpip_initiator_module::s_stop_requests{0};
 
 ///////////////////////////////////////////////////////////////////////////////
 // Constructor <<
-tcpip_initiator_module::tcpip_initiator_module(sc_module_name instance_name)
+tcpip_initiator_module::tcpip_initiator_module
+( sc_module_name instance_name
+)
 : sc_module(instance_name)
 , initiator_socket("initiator_socket")
 , m_async_channel("m_async_channel")
@@ -81,22 +93,19 @@ tcpip_initiator_module::tcpip_initiator_module(sc_module_name instance_name)
 , m_tcpip_port(4000)
 , m_lock_permission(new std::lock_guard<std::mutex>(m_allow_pthread))
 , m_pthread(&tcpip_initiator_module::async_os_thread,this,std::ref(m_async_channel))
+, m_memory_manager ( memory_manager::get_memory_manager() )
 {
-  signal(SIGINT,&tcpip_initiator_module::sighandler); //< allow for graceful interrupts
-
+  Sighandler::init();
   //----------------------------------------------------------------------------
   // Parse command-line arguments
   //----------------------------------------------------------------------------
+  string portopt("-port:");
+  portopt += name();
+  portopt += "=";
   for (int i=1; i<sc_argc(); ++i) {
     string arg(sc_argv()[i]);
-    if      (arg.find("-debug")  == 0) sc_report_handler::set_verbosity_level(SC_DEBUG);
-    else if (arg.find("-quiet")  == 0) sc_report_handler::set_verbosity_level(SC_NONE);
-    else if (arg.find("-low")    == 0) sc_report_handler::set_verbosity_level(SC_LOW);
-    else if (arg.find("-medium") == 0) sc_report_handler::set_verbosity_level(SC_MEDIUM);
-    else if (arg.find("-high")   == 0) sc_report_handler::set_verbosity_level(SC_HIGH);
-    else if (arg.find("-full")   == 0) sc_report_handler::set_verbosity_level(SC_FULL);
-    else if (arg.find("-port=")  == 0) {
-      m_tcpip_port = atoi(arg.substr(6).c_str());
+    if (arg.find(portopt)   == 0) {
+      m_tcpip_port = atoi(arg.substr(portopt.length()).c_str());
     }//endif
   }//endfor
 
@@ -104,9 +113,8 @@ tcpip_initiator_module::tcpip_initiator_module(sc_module_name instance_name)
   // Report configuration
   //----------------------------------------------------------------------------
   REPORT_INFO("\n===================================================================================\n"
-           << "CONFIGURATION\n"
+           << "CONFIGURATION(" << name() << ")\n"
            << ">   Listening on port " << m_tcpip_port << "\n"
-           << ">   Verbosity is " << sc_report_handler::get_verbosity_level() << "\n"
            << "===================================================================================\n"
            );
 
@@ -118,6 +126,7 @@ tcpip_initiator_module::tcpip_initiator_module(sc_module_name instance_name)
   SC_HAS_PROCESS(tcpip_initiator_module);
   SC_THREAD(initiator_sysc_thread_process);
   SC_THREAD(keep_alive_process);
+
   REPORT_INFO("Constructed " << name());
 }//endconstructor
 
@@ -153,7 +162,8 @@ void tcpip_initiator_module::end_of_simulation(void)
 
 ///////////////////////////////////////////////////////////////////////////////
 // External threads
-void tcpip_initiator_module::async_os_thread(tlmx_channel& async_channel) {
+void tcpip_initiator_module::async_os_thread(tlmx_channel& async_channel)
+{
   REPORT_INFO("Starting " << __func__ << " ...");
 
   //----------------------------------------------------------------------------
@@ -188,12 +198,7 @@ void tcpip_initiator_module::async_os_thread(tlmx_channel& async_channel) {
   //----------------------------------------------------------------------------
   // Bind socket in preparation to listening
   //----------------------------------------------------------------------------
-  if ( bind
-       ( listening_socket
-       , (struct sockaddr *)&local_server 
-       , sizeof(local_server)
-       ) < 0
-  ) {
+  if (0!=::bind(listening_socket,(struct sockaddr *)&local_server,sizeof(local_server))) {
     REPORT_FATAL("Bind failed");
     exit(1);
   }
@@ -230,19 +235,17 @@ void tcpip_initiator_module::async_os_thread(tlmx_channel& async_channel) {
   REPORT_NOTE("Connection accepted...");
 
   //----------------------------------------------------------------------------
-  //
-  //  #     # 
-  //  ##   ##     #     ###  #    #      #      ####    ####   ##### 
-  //  # # # #    # #     #   ##   #      #     #    #  #    #  #    #
-  //  #  #  #   #   #    #   # #  #      #     #    #  #    #  #    #
-  //  #     #  #######   #   #  # #      #     #    #  #    #  ##### 
-  //  #     #  #     #   #   #   ##      #     #    #  #    #  #     
-  //  #     #  #     #  ###  #    #      #####  ####    ####   #                        
-  //
+  //   ####  ##### #####  #     # ##### #####         #      ####   ####  #####  
+  //  #    # #     #    # #     # #     #    #        #     #    # #    # #    # 
+  //  #      #     #    # #     # #     #    #        #     #    # #    # #    # 
+  //   ####  ##### #####  #     # ##### #####         #     #    # #    # #####  
+  //       # #     #  #    #   #  #     #  #          #     #    # #    # #      
+  //  #    # #     #   #    # #   #     #   #         #     #    # #    # #      
+  //   ####  ##### #    #    #    ##### #    # ###### #####  ####   ####  #      
   //----------------------------------------------------------------------------
   // Begin receiving and transmitting data
   //----------------------------------------------------------------------------
-  for(;;) {
+  server_loop: for(;;) {
 
     //--------------------------------------------------------------------------
     // Get data
@@ -316,7 +319,7 @@ void tcpip_initiator_module::async_os_thread(tlmx_channel& async_channel) {
       REPORT_ERROR("TCPIP write/send failed" << strerror(errno));
     }
     sc_assert(send_count == packed_size);
-  }//endforever
+  }//endforever server_loop
 
   REPORT_INFO("Closing down...");
 
@@ -338,8 +341,8 @@ void tcpip_initiator_module::initiator_sysc_thread_process(void)  {
   for(;;) {
     // Wait for data to arrive from remote
     m_keep_alive_signal.write(true); //< this could be removed iff we know for a certainty there is other traffic/computations
-    wait(m_async_channel.sysc_put_event());
-    REPORT_NOTE("Received sysc_put_event");
+    wait(m_async_channel.sysc_pushed_event());
+    REPORT_NOTE("Received sysc_pushed_event");
     m_keep_alive_signal.write(false);
 
     // Setup place to receive incoming payload
@@ -352,10 +355,10 @@ void tcpip_initiator_module::initiator_sysc_thread_process(void)  {
     }
 
     // Setup TLM 2.0 generic payload
-    tlm2_trans.set_address         ( tlmx_trans_ptr->address         );
-    tlm2_trans.set_data_ptr        ( tlmx_trans_ptr->data_ptr        );
-    tlm2_trans.set_data_length     ( tlmx_trans_ptr->data_len        );
-    tlm2_trans.set_streaming_width ( tlmx_trans_ptr->data_len        );
+    tlm2_trans.set_address         ( tlmx_trans_ptr->address      );
+    tlm2_trans.set_data_ptr        ( tlmx_trans_ptr->data_ptr     );
+    tlm2_trans.set_data_length     ( tlmx_trans_ptr->data_len     );
+    tlm2_trans.set_streaming_width ( tlmx_trans_ptr->data_len     );
     tlm2_trans.set_byte_enable_ptr ( nullptr                      );
     tlm2_trans.set_dmi_allowed     ( false                        );
     tlm2_trans.set_response_status ( tlm::TLM_INCOMPLETE_RESPONSE );
@@ -410,7 +413,7 @@ void tcpip_initiator_module::initiator_sysc_thread_process(void)  {
 void tcpip_initiator_module::keep_alive_process(void)  {
   REPORT_INFO("Started " << __func__ << " " << name());
   for(;;) {
-    if ( s_stop_requests > 0 ) break;
+    if ( Sighandler::stop_requests > 0 ) break;
     if (!m_keep_alive_signal.read()) {
       wait(m_keep_alive_signal.default_event());
     }
@@ -420,11 +423,6 @@ void tcpip_initiator_module::keep_alive_process(void)  {
   REPORT_INFO("Exiting due to stop request.");
   sc_stop();
 }//end tcpip_initiator_module::keep_alive_process()
-
-void tcpip_initiator_module::sighandler(int sig)
-{
-  ++s_stop_requests;
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Helper methods -NONE-

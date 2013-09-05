@@ -63,7 +63,7 @@ bool tlmx_channel::can_get(void) const
 
 void tlmx_channel::get(tlmx_packet_ptr& tlmx_payload_ptr)
 {
-  while (not nb_get(tlmx_payload_ptr)) wait(m_sysc_get_event);
+  while (not nb_get(tlmx_payload_ptr)) wait(m_sysc_pulled_event);
 }
 
 tlmx_packet_ptr& tlmx_channel::get(void)
@@ -136,14 +136,14 @@ bool tlmx_channel::nb_pull(tlmx_packet_ptr& tlmx_payload_ptr)
   return true;
 }
 
-const sc_core::sc_event& tlmx_channel::sysc_put_event(void) const
+const sc_core::sc_event& tlmx_channel::sysc_pushed_event(void) const
 {
-  return m_sysc_put_event;
+  return m_sysc_pushed_event;
 }
 
-const sc_core::sc_event& tlmx_channel::sysc_get_event(void) const
+const sc_core::sc_event& tlmx_channel::sysc_pulled_event(void) const
 {
-  return m_sysc_get_event;
+  return m_sysc_pulled_event;
 }
 
 void tlmx_channel::update(void)
@@ -151,14 +151,14 @@ void tlmx_channel::update(void)
   { // Handle push
     std::lock_guard<std::mutex> protect(m_mutex_to_sysc);
     if (m_thread_did_push) {
-      m_sysc_put_event.notify(SC_ZERO_TIME);
+      m_sysc_pushed_event.notify(SC_ZERO_TIME);
       m_thread_did_push = false;
     }
   }
   { // Handle get
     std::lock_guard<std::mutex> protect(m_mutex_fm_sysc);
     if (m_thread_did_pull) {
-      m_sysc_get_event.notify(SC_ZERO_TIME);
+      m_sysc_pulled_event.notify(SC_ZERO_TIME);
       m_thread_did_pull = false;
     }
   }
