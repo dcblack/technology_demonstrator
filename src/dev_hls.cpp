@@ -73,7 +73,7 @@ if ( 14<r || r&1) {                      \
 
 // NOTE: _ARRAY's are indexes to internal memory locations
 //
-void dev_hls
+Data_t dev_hls
 ( volatile Data_t* reg_R0          //< AXI slave
 , volatile Data_t* reg_R1          //< AXI slave
 , volatile Data_t* reg_R2          //< AXI slave
@@ -99,27 +99,28 @@ void dev_hls
 {
 
 // Port mappings protcols
-#pragma HLS interface ap_hs     port=reg_R0      
-#pragma HLS interface ap_none   port=reg_R1      
-#pragma HLS interface ap_none   port=reg_R2      
-#pragma HLS interface ap_none   port=reg_R3      
-#pragma HLS interface ap_none   port=reg_R4      
-#pragma HLS interface ap_none   port=reg_R5      
-#pragma HLS interface ap_none   port=reg_R6      
-#pragma HLS interface ap_none   port=reg_R7      
-#pragma HLS interface ap_none   port=reg_R8      
-#pragma HLS interface ap_none   port=reg_R9      
-#pragma HLS interface ap_none   port=reg_R10     
-#pragma HLS interface ap_none   port=reg_R11     
-#pragma HLS interface ap_none   port=reg_R12     
-#pragma HLS interface ap_none   port=reg_R13     
-#pragma HLS interface ap_none   port=reg_R14     
-#pragma HLS interface ap_none   port=reg_R15     
-#pragma HLS interface ap_none   port=reg_AXI_BASE
-#pragma HLS interface ap_none   port=reg_COMMAND 
-#pragma HLS interface ap_none   port=reg_STATUS  
-#pragma HLS interface ap_memory port=imem        
-#pragma HLS interface ap_bus    port=axibus      
+#pragma HLS interface ap_hs      depth=1000  port=reg_R0       
+#pragma HLS interface ap_none    depth=1000  port=reg_R1       
+#pragma HLS interface ap_none    depth=1000  port=reg_R2       
+#pragma HLS interface ap_none    depth=1000  port=reg_R3       
+#pragma HLS interface ap_none    depth=1000  port=reg_R4       
+#pragma HLS interface ap_none    depth=1000  port=reg_R5       
+#pragma HLS interface ap_none    depth=1000  port=reg_R6       
+#pragma HLS interface ap_none    depth=1000  port=reg_R7       
+#pragma HLS interface ap_none    depth=1000  port=reg_R8       
+#pragma HLS interface ap_none    depth=1000  port=reg_R9       
+#pragma HLS interface ap_none    depth=1000  port=reg_R10      
+#pragma HLS interface ap_none    depth=1000  port=reg_R11      
+#pragma HLS interface ap_none    depth=1000  port=reg_R12      
+#pragma HLS interface ap_none    depth=1000  port=reg_R13      
+#pragma HLS interface ap_none    depth=1000  port=reg_R14      
+#pragma HLS interface ap_none    depth=1000  port=reg_R15      
+#pragma HLS interface ap_none    depth=10    port=reg_AXI_BASE 
+#pragma HLS interface ap_none    depth=10    port=reg_COMMAND  
+#pragma HLS interface ap_none    depth=10    port=reg_STATUS
+#pragma HLS interface ap_ctrl_hs port=return register
+#pragma HLS interface ap_memory              port=imem
+#pragma HLS interface ap_bus     depth=10000 port=axibus
 
 #pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_R0      
 #pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_R1      
@@ -140,6 +141,7 @@ void dev_hls
 #pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_AXI_BASE
 #pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_COMMAND 
 #pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=reg_STATUS  
+#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle slave" variable=return
 #pragma HLS resource core=RAM_T2P_BRAM variable=imem                                     
 #pragma HLS resource core=AXI4M variable=axibus
 
@@ -579,5 +581,6 @@ void dev_hls
     }//endswitch
 
   }
+  return status;
 }
 // The end

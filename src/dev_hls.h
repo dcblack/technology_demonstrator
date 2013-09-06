@@ -70,7 +70,7 @@ typedef Data_t              Axi_t;
 #define REGISTERS   19
 #define ALIGN_CMND  0x3
 
-void dev_hls
+Data_t dev_hls
 ( volatile Data_t* reg_R0
 , volatile Data_t* reg_R1
 , volatile Data_t* reg_R2

@@ -35,6 +35,7 @@ int main(int argc, char* argv[])
   Memory    mem;
 
   Addr_t base  = 0;
+  Data_t retcode = 0;
 
   // Initialize
   dev.fill(0xBADCAB1E);
@@ -171,7 +172,7 @@ int main(int argc, char* argv[])
     }
     mem.mirror();
 
-    dev_hls
+    retcode = dev_hls
       ( &(dev.reg[0])
       , &(dev.reg[1])
       , &(dev.reg[2])
