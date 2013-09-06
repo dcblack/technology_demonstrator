@@ -1,14 +1,21 @@
 DESCRIPTION
 ===========
 
-This directory and its contents contain a project that ties a zedboard design to
-a SystemC ESL design.  This was described in a presentation entitled "A SystemC
-Technology Demonstrator" at the SystemC Tutorial at DVCon 2013
-in San Jose. The goal of the project was to demonstrate multiple technologies
-including:
+This directory and its contents contain a project that ties a C++ HLS design to
+a Xilinx Zynq on a Zedboard and a SystemC ESL design. 
 
+This was first described in a presentation entitled "A SystemC Technology
+Demonstrator" at the SystemC Tutorial at DVCon 2013 in San Jose.
+
+The goal of this project is to demonstrate multiple technologies including:
+
+- An HLS design used to augment software
+- Effective use of HLS synthesis with SystemC
+- Devepment of code that can run on Zedboard (under Linux), in SystemC and
+  stand-alone to test an algorithm implemented with the HLS design.
 - ZedBoard containing Xylinx Zynq-7000 FPGA technology (contains dual Cortex
   A9's and many peripherals)
+- How to embed a C++ design in SystemC TLM 2.0 with minimal hassle as a device
 - How to have OS threads safely communicate with SystemC
 - Use of TCPIP sockets, POSIX threads, and mutexes in C
 - SystemC code using both IEEE 1666-2011 (C++) and ISO-IEC 14882-2011 (C++)
@@ -24,11 +31,15 @@ including:
   * SystemC dumping a netlist
   * Managing sc_reporting
 
-This directory contains two subdirectories: sysc/ and zedboard/ representing the
-component parts. There are also a few supporting directories: docs/ contains
-information about the project. bin/ contains some supporting scripts for one of
-two makefile flows (systemc related). NOTE: You probably do not need to
-understand the two makefile flows in any detail.
+This directory contains several subdirectories: hls/, rtl/, src/, sysc/ and
+zedboard/ representing the component parts. There are also a few supporting
+directories: docs/ contains information about the project. bin/ contains some
+supporting scripts for one of several makefile flows (systemc related). etc/
+contains makefile automation. NOTE: Hopefully you do not need to understand the
+two makefile flows in any detail.
+
+The core design is represented by src/dev_hls.cpp. Other files under src/ are
+for stand-alone testing.
 
 The zedboard/ directory contains C-code for a zedboard; although, it can be
 compiled for execution any any standard linux environment that supports POSIX
@@ -38,6 +49,10 @@ driver that communicates with sockets to a remote SystemC design.
 The sysc/ directory contains C++ code for a SystemC adaptor that takes TLMX
 packets and converts them to TLM 2.0 payloads, which are then sent to the TLM
 target.
+
+The hls/ directory contains a script to run the Vivado_HLS synthesis tool.
+
+The rtl/ directory contains Vivado output (also a script to automate).
 
 REQUIREMENTS
 ============
@@ -51,8 +66,23 @@ REQUIREMENTS
 * SystemC installation compliant to IEEE-1666-2011 such as ASI's
   proof-of-concept version 2.3.
 
+* Vivado_HLS 21013.2 or better
+
+* Vivado     21013.2 or better including IP Integrator (IPI)
+
 * Zedboard (around 400 $US at time of writing) -- go to zedboard.org for more
   information
+
+
+      #     #    #    #####  #     # ### #     #  #### 
+      #  #  #   # #   #    # ##    #  #  ##    # #    #
+      #  #  #  #   #  #    # # #   #  #  # #   # #     
+      #  #  # #     # #####  #  #  #  #  #  #  # #  ###
+      #  #  # ####### #  #   #   # #  #  #   # # #    #
+      #  #  # #     # #   #  #    ##  #  #    ## #    #
+       ## ##  #     # #    # #     # ### #     #  #### 
+
+   {:WARNING: Below here following needs to be updated.:}
 
 HOW TO BUILD
 ============
