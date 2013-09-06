@@ -73,7 +73,7 @@ void Dev_module::execute_thread(void)
       interrupt_port->write(SC_LOGIC_0); //< clear interrupt
     }//endif
     bool watch = (m_register[STATUS] == START);
-    dev_hls
+    Data_t retcode = dev_hls
     ( &m_register[ R0]
     , &m_register[ R1]
     , &m_register[ R2]
