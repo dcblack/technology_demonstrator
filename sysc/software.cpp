@@ -13,11 +13,12 @@ int Software::sw_main(void)
   const size_t dev_addr = 0;
   const size_t mem_addr = 1*GB;
   int retcode = 0; // Overall status
+  int error_count = 0;
 
   Mtx::devbase = dev_addr;
 
   // Open the device driver
-  fd = Mtx::open("/dev/mtx",0);
+  fd = mtx_open("/dev/mtx",0);
   if (fd == -1) {
     printf("FATAL: Device open failed\n");
     return 1;
@@ -27,13 +28,19 @@ int Software::sw_main(void)
   // Main application begins
   printf("INFO: Running main application\n");
 
+  printf("INFO: malloc(1MB)\n"); fflush(stdout);
+  int* xmem = (int*) sys->malloc(1*MB);
+  sys->cycles(50); //< simulate passing of time
+
   // A few C++ liberties in the interest of time...
   std::vector<int> cmd(1000,0); //< list of commands
   for (auto& v : cmd) v = Mtx::command(HALT); //< fill with HALT
+  std::vector<int> exp(1000,0); //< list of expected status
+  for (auto& v : exp) v = Mtx::exp(DONE); //< fill with HALT
   mtx_t mtx; //< local image of device registers
   int retval = 0;
   for (auto& v : mtx.reg) v = 0xBADF00d5; //< fill local copy of registers
-  retval = Mtx::ioctl(fd,Mtx::READ,&mtx);
+  retval = mtx_ioctl(fd,Mtx::READ,&mtx);
   if (retval != 0) {
     printf("FATAL: Device ioctl failed with %d\n", retval);
     if (retcode == 0) retcode = retval;
@@ -42,7 +49,7 @@ int Software::sw_main(void)
   printf("INFO: Initial values:\n");
   Mtx::dump(&mtx);
   for (auto& v : mtx.reg) v = 0x2DECADE5; //< fill local copy of registers
-  retval = Mtx::ioctl(fd,Mtx::WRITE,&mtx);
+  retval = mtx_ioctl(fd,Mtx::WRITE,&mtx);
   if (retval != 0) {
     printf("FATAL: Device ioctl failed with %d\n", retval);
     if (retcode == 0) retcode = retval;
@@ -52,52 +59,64 @@ int Software::sw_main(void)
   int i=0;
   cmd[i++] = Mtx::command(NOP);
   cmd[i++] = Mtx::command(RESET);
+  exp[i-1] = IDLE;
+
+// Simplify test writing
+#define DoCmnd1(op,dest,src1,src2)  cmd[i++] = Mtx::command(op)
+#define DoCmnd2(op,dest,src1,src2)  cmd[i++] = Mtx::command(op, dest)
+#define DoCmnd3(op,dest,src1,src2)  cmd[i++] = Mtx::command(op, dest, src1)
+#define DoCmnd4(op,dest,src1,src2)  cmd[i++] = Mtx::command(op, dest, src1, src2)
+#define LoadI16(op,dest,value)      cmd[i++] = Mtx::command(op, dest, ((value>>8)&#0xFF), (value&0xFF))
+#define LoadI32(dest,value)         LoadI16(RSETH,dest,(value>>16)); LoadI16(RSETL,dest,value);
+#define SetRegX(dest,value)         LoadI16(RSETX,dest,value)
+#define MatrixI(dest,rows,cols,ptr) LoadI32(dest,Mshape(rows,cols)); LoadI32(dest+1,ptr)
 
   // M0 = fill(0x0000BEAD)
-  cmd[i++] = Mtx::command(RSETX, 8,0xBE,0xAD);
-  cmd[i++] = Mtx::command(RSETH, 0,0x00,0x03);
-  cmd[i++] = Mtx::command(RSETL, 0,0x00,0x04);
-  cmd[i++] = Mtx::command(RSETH, 1,0x00,0x00);
-  cmd[i++] = Mtx::command(RSETL, 1,0x00,0x00);
-  cmd[i++] = Mtx::command(FILL,0,8);
+  Matrix  m0(3,4);
+  MatrixI(M0,3,4,0x0000);
+  SetRegX(R8,0xBEAD);
+  DoCmnd2(FILL,M0,R8);
 
-  // M1 = fill(0x1)
-  cmd[i++] = Mtx::command(RSETX, 8,0x00,0x01);
-  cmd[i++] = Mtx::command(RSETH, 2,0x00,0x03);
-  cmd[i++] = Mtx::command(RSETL, 2,0x00,0x04);
-  cmd[i++] = Mtx::command(RSETH, 3,0x00,0x00);
-  cmd[i++] = Mtx::command(RSETL, 3,0x00,0x00);
-  cmd[i++] = Mtx::command(FILL,2,8);
+  // m1 = fill(0x1)
+  Matrix  m1(3,4);
+  MatrixI(M1,3,4,0x0010);
+  SetRegX(R8,1);
+  DoCmnd2(FILL,M2,R8);
 
-  // M2 = M0 + M1
-  cmd[i++] = Mtx::command(RSETH, 4,0x00,0x03);
-  cmd[i++] = Mtx::command(RSETL, 5,0x00,0x04);
-  cmd[i++] = Mtx::command(MADD,4,0,2);
+  // m2 = M0 + M1
+  Matrix  m2(3,4);
+  MatrixI(M2,3,4,0x0020);
+  DoCmnd24(MADD,M3,M0,M1);
 
   // Store M0
-  cmd[i++] = Mtx::command(RSETH, 9,mem_addr>>24,mem_addr>>16);
-  cmd[i++] = Mtx::command(RSETL, 9,mem_addr>>8,mem_addr);
-  cmd[i++] = Mtx::command(STORE, 9,4);
+  LoadI32(R9,mem_addr);
+  DoCmnd3(STORE, R9,M2);
 
-  cmd[i++] = Mtx::command(NOP);
-  cmd[i++] = Mtx::command(HALT);
+  DoCmnd1(NOP);
+  DoCmnd1(HALT);
   
   int last=i;
-
-  printf("INFO: malloc(1MB)\n"); fflush(stdout);
-  int* xmem = (int*) sys->malloc(1*MB);
-  sys->cycles(50); //< simulate passing of time
+  printf("INFO: Preparing to test %d commands\n",last);
 
   printf("INFO: Execute %d commands\n",last); fflush(stdout);
   int command, status;
   Mtx::read(fd,&status,0); //< 0 clears any outstanding interrupt
   for (i=0; i!= last; ++i) {
     command = cmd[i];
-    Mtx::disasm(command); fflush(stdout);
-    Mtx::write(fd,&command,sizeof(command));
+    Mtx::display_command(command); fflush(stdout);
+    // Send command
+    mtx_write(fd,&command,sizeof(command));
+    // Wait for results
     sys->wait_dev();
-    Mtx::read(fd,&status,0); //< 0 clears interrupt
-    printf("INFO: Status: %s\n",Mtx::status_cstr(status)); fflush(stdout);
+    mtx_read(fd,&status,0); //< 0 clears interrupt
+    // Check results
+    if (status == exp[i]) {
+      printf("INFO: Status: %s\n",Mtx::status_cstr(status)); fflush(stdout);
+    } else {
+      printf("ERROR: Status: %s\n",Mtx::status_cstr(status)); fflush(stdout);
+      ++error_count;
+    }//endif
+    // Read registers
     retval = Mtx::ioctl(fd,Mtx::READ,&mtx);
     if (retval != 0) {
       printf("FATAL: Device ioctl failed with %d\n", retval);
@@ -107,6 +126,13 @@ int Software::sw_main(void)
     Mtx::dump(&mtx);
     printf("\n");
   }
+
+  if (error_count == 0) {
+    printf("INFO: Test PASSED.\n");
+  } else {
+    printf("INFO: Test FAILED with %d errors\n",error_count);
+    if (retcode == 0) retcode = 1;
+  }//endif
 
   // exitcode closes device
   return exitcode(retcode);
@@ -128,7 +154,7 @@ void Software::interrupt_handler(void)
 ////////////////////////////////////////////////////////////////////////////////
 int Software::exitcode(int retcode)
 {
-  int closed = Mtx::close(fd);
+  int closed = mtx_close(fd);
   if (closed != 0) {
     printf("FATAL: Device open failed with %d\n", closed);
     if (retcode == 0) retcode = closed;
