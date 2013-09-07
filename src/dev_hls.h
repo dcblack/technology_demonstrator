@@ -145,6 +145,9 @@ inline Addr_t Mrows (Addr_t shape) { return (shape>>H_SHFT) & L_MASK; }
 inline Addr_t Mcols (Addr_t shape) { return  shape          & L_MASK; }
 inline Addr_t Mshape(Addr_t rows, Addr_t cols) { return (rows<<H_SHFT)+(cols&L_MASK); }
 inline Addr_t Msize (Addr_t shape) { return Mrows(shape)*Mcols(shape); }
+inline Addr_t Mspace(Addr_t shape) { return Msize(shape)+1; }
+inline Addr_t Mspace(Addr_t rows, Addr_t cols) { return rows*cols + 1; }
+inline Addr_t Mindex(Addr_t cols, Addr_t x, Addr_t y) { return x*cols + y + 1; }
 inline bool   Msquare(Addr_t shape) { return Mrows(shape) == Mcols(shape); }
 inline bool   Mvalid(Addr_t ptr) { return ptr%MAX_MATRIX_SIZE==0 && ptr<=IMEM_LAST; }
 
@@ -175,17 +178,18 @@ enum Operation_t // Operations {:TODO:_not_all_implemented:}
 };
 
 enum CmdState_t
-{ IDLE   // waiting
-, START  // begin executing
-, BUSY   // active
-, DONE   // completed command
-, HALTED // result of STOP command
-, UNSUPPORTED_ERROR
-, SHAPE_ERROR
-, REGISTER_ERROR
-, ADDRESS_ERROR
-, GENERIC_ERROR
-, UNKNOWN_STATUS
+{ IDLE               = 0 // waiting
+, START              = 1 // begin executing
+, BUSY               = 2 // active
+, DONE               = 3 // completed command
+, HALTED             = 4 // result of STOP command
+, UNSUPPORTED_ERROR  = 5
+, ADDRESS_ERROR      = 6
+, GENERIC_ERROR      = 7
+, SHAPE_ERROR        = 0x10
+, REGISTER_ERROR     = 0x20
+, SHAPE_MISMATCH     = 0x30
+, UNKNOWN_STATUS     = 0x31
 };
 #define STATE_BITS 0xFF
 #define EXEC_BIT   0x100

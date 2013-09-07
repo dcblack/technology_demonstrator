@@ -248,7 +248,7 @@ Data_t dev_hls
 
         // Make sure it's a valid shape
         if (shape == 0 || Msize(shape) > MAX_MATRIX_SIZE) {
-          *reg_STATUS = status | SHAPE_ERROR;
+          *reg_STATUS = status | SHAPE_ERROR | dest;
           break;
         }
 
@@ -302,7 +302,7 @@ Data_t dev_hls
         
         // Make sure it's a valid shape
         if (shape == 0 || Msize(shape) > MAX_MATRIX_SIZE) {
-          *reg_STATUS = status | SHAPE_ERROR;
+          *reg_STATUS = status | SHAPE_ERROR | dest;
           break;
         }
         axibus_write(x_ptr++,shape);
@@ -356,7 +356,7 @@ Data_t dev_hls
           break;
         }
         if (dst_shape != src_shape) {
-          *reg_STATUS = status | SHAPE_ERROR;
+          *reg_STATUS = status | SHAPE_MISMATCH;
           break;
         }
 
@@ -394,11 +394,11 @@ Data_t dev_hls
 
         // Make sure shapes are valid
         if (not_KMUL && dest_shape != src1_shape) {
-          *reg_STATUS = status | SHAPE_ERROR;
+          *reg_STATUS = status | SHAPE_MISMATCH;
           break;
         }
         if (dest_shape != src2_shape) {
-          *reg_STATUS = status | SHAPE_ERROR;
+          *reg_STATUS = status | SHAPE_MISMATCH;
           break;
         }
 
