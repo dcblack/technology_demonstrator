@@ -3,12 +3,12 @@
 
 #include <cstring>
 
-#define mtx__open  Mtx::open
-#define mtx__close Mtx::close
-#define mtx__dump  Mtx::dump
-#define mtx__read  Mtx::read
-#define mtx__write Mtx::write
-#define mtx__ioctl Mtx::ioctl
+// Allow it to look more like C
+#define mtx_open  Mtx::open
+#define mtx_close Mtx::close
+#define mtx_read  Mtx::read
+#define mtx_write Mtx::write
+#define mtx_ioctl Mtx::ioctl
 
 #include "dev_hls.h"
 
@@ -36,9 +36,10 @@ struct Mtx
   static int ioctl(int fd, Request_t request, mtx_t* ctrl);
   static int close(int fd);
   // Conveniences
-  static void dump(mtx_t* ctrl);
+  static void dump_registers(mtx_t* ctrl);
   static int command(Operation_t op,int dest=0xFF,int src1=0xFF, int src2=0xFF);
-  static void disasm(int cmd);
+  static void display_command(int cmd);
+  static const char* command_cstr(int status);
   static const char* status_cstr(int status);
   // Access to hardware
   static Local_initiator_module* sys;
@@ -47,7 +48,7 @@ private:
   static int error(int error) { s_error = error; return BAD; }
   static int s_owner;
   static int s_error;
-  static const int FD = 0x0D00F1E;
+  static const int FD = 0x0D00F1E; // doofie magic number
   friend class Local_initiator_module;
   Mtx(Local_initiator_module* _sys, size_t _base=0) { sys = _sys; devbase = _base; }
 };

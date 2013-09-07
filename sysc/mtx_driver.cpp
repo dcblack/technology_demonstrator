@@ -3,6 +3,8 @@
 #include "dev_util.h"
 #include <memory>
 #include <cstdio>
+#include <sstream>
+#include <iomanip>
 using namespace std;
 
 int    Mtx::s_owner = 0;
@@ -64,7 +66,7 @@ int Mtx::close(int fd)
   return (fd == FD) ? Mtx::OK : error(ERR_FD);
 }
 
-void Mtx::dump(mtx_t* ctrl)
+void Mtx::dump_registers(mtx_t* ctrl)
 {
   for (int i=0; i!=REGISTERS; ++i) {
     printf("  R%02d=0x%08x",i,ctrl->reg[i]);
@@ -82,15 +84,25 @@ int Mtx::command(Operation_t oper,int dest,int src1, int src2)
         ;
 }
 
-void Mtx::disasm(int cmd)
+void Mtx::display_command(int cmd)
 {
-  Operation_t oper;
-  int dest,src1,src2;
-  oper = Operation_t(( cmd >> 24 ) & 0xFF);
-  dest =             ( cmd >> 16 ) & 0xFF;
-  src1 =             ( cmd >>  8 ) & 0xFF;
-  src2 =             ( cmd       ) & 0xFF;
-  printf("NOTE: %s 0x%02x 0x%02x 0x%02x\n",operation_name[oper],dest,src1,src2);
+  printf("NOTE: Command: %s\n",Mtx::command_cstr(cmd));
+}
+
+const char* Mtx::command_cstr(int cmd)
+{
+  ostringstream os;
+  Operation_t oper(( cmd >> 24 ) & 0xFF);
+  int dest(( cmd >> 16 ) & 0xFF);
+  int src1(( cmd >>  8 ) & 0xFF);
+  int src2(( cmd       ) & 0xFF);
+  os
+    << operation_name[oper]
+    << " 0x" << hex << setw(2) << setfill('0') << dest
+    << " 0x" << hex << setw(2) << setfill('0') << src1
+    << " 0x" << hex << setw(2) << setfill('0') << src2
+  ;
+  return os.str().c_str();
 }
 
 const char* Mtx::status_cstr(int status)
@@ -98,7 +110,7 @@ const char* Mtx::status_cstr(int status)
   return cmd_state_name[status];
 }
 
-//------------------------------------------------------------------------------
+////////////////////////////////////////////////////////////////////////////////
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -112,5 +124,5 @@ const char* Mtx::status_cstr(int status)
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-//------------------------------------------------------------------------------
+////////////////////////////////////////////////////////////////////////////////
 // The end!
