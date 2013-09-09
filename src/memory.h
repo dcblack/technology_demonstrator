@@ -1,6 +1,11 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
+// DESCRIPTION
+//   Models memory as two arrays, imem & xmem, along with mirrors to aid tracking.
+//   current model uses only imem (internal memory). xmem is intended for use with
+//   an external AXI based memory via an AXI master bus interface (future).
+
 #include "dev_hls.h"
 #include <string>
 #ifdef CXX11
@@ -30,12 +35,12 @@ struct Memory
   void   xdump(void);
   void   idump(void);
   void   mirror(void);
-  bool   check(void);
+  bool   check(Addr_t len=8);
 private:
   Memory(const Memory& rhs);
   Memory& operator=(const Memory& rhs);
-  void dump8(Data_t* mem, Addr_t addr, Addr_t len=8);
-  int diffs8(Data_t* lhs, Data_t* rhs, Addr_t addr, Addr_t len=8);
+  std::string dump_line(Data_t* mem, Addr_t addr, Addr_t len=8,int highlight=0);
+  int diffs_line(Data_t* lhs, Data_t* rhs, Addr_t addr, Addr_t len=8);
 };
 
 #endif /*MEMORY_H*/

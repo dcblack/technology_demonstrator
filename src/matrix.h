@@ -40,7 +40,7 @@ struct Matrix
   Data_t& operator[](int i) { return m[i]; }
   Addr_t shape(void) const { return Mshape(m_rows, m_cols); }
   Addr_t begin(void) const { return 0; }
-  Addr_t end(void)   const { return m_rows * m_cols; }
+  Addr_t end(void)   const { return size(); }
   int id(void)       const { return m_id; }
   std::string name(void) const;
   void set_name(std::string name) { m_name = name; }

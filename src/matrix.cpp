@@ -148,22 +148,22 @@ string Matrix::name(void) const  {
 
 //------------------------------------------------------------------------------
 void Matrix::load(const Memory& mem, Addr_t from) {
-  Addr_t shape = mem.xget(from++);
+  Addr_t shape = mem.iget(from++);
   assert(shape != 0 && Msize(shape) < MAX_MATRIX_SIZE);
   delete[] m;
   m_rows = Mrows(shape);
   m_cols = Mcols(shape);
   m = new Data_t[m_rows*m_cols];
   for (Addr_t i=begin(); i!=end(); ++i) {
-    m[i] = mem.xget(from++);
+    m[i] = mem.iget(from++);
   }
 }
 
 //------------------------------------------------------------------------------
 void Matrix::store(Memory& mem, Addr_t to) {
-  mem.xset(to++, Mshape(m_rows,m_cols));
+  mem.iset(to++, Mshape(m_rows,m_cols));
   for (Addr_t i=begin(); i!=end(); ++i) {
-    mem.xset(to++,m[i]);
+    mem.iset(to++,m[i]);
   }
 }
 

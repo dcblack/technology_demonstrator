@@ -16,8 +16,9 @@ struct Command
 
   // Attributes
   Data_t   command;
-  Data_t   m_r[REGS];
-  bool     m_c[REGS];
+  Data_t   m_reg[REGS];
+  Data_t   m_reg_mirror[REGS];
+  bool     m_changed[REGS];
   CmdState_t status;
   CmdState_t expected;
   // Methods
@@ -44,7 +45,10 @@ struct Command
     , unsigned char& src1
     , unsigned char& src2
     ) const;
-  Data_t& r(size_t i) { return m_r[i]; }
+  Data_t& r(size_t i) { return m_reg[i]; }
+  void mirror(void);
+  void update(void);
+  void diffregs(void);
   void clear_flags(void);
   void reset_reg(size_t i, Data_t  value);
   void set_reg(size_t i, Data_t  value);

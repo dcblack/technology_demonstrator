@@ -16,8 +16,7 @@ typedef sc_dt::sc_uint<32>  Addr_t;
 typedef sc_dt::sc_int<32>   Data_t;
 typedef sc_dt::sc_int<32>   Cmd_t;
 class Axibus;
-typedef Axibus              Axi_t;
-#define VOLATILE
+typedef Axibus              AxiM_t;
 #else
 
 //warning "INFO: Using fast SystemC"
@@ -26,8 +25,7 @@ typedef uint32_t            Addr_t;
 typedef int32_t             Data_t;
 typedef uint32_t            Cmd_t;
 class Axibus;
-typedef Axibus              Axi_t;
-#define VOLATILE
+typedef Axibus              AxiM_t;
 #endif
 #else
 
@@ -38,16 +36,14 @@ typedef Axibus              Axi_t;
 typedef ap_uint<32>         Addr_t;
 typedef ap_int<32>          Data_t;
 typedef ap_int<32>          Cmd_t;
-typedef Addr_t              Axi_t;
-#define VOLATILE
+typedef Addr_t              AxiM_t;
 
 #else
 #warning "INFO: Using HLS synthesis with C++ int"
 typedef unsigned int        Addr_t;
 typedef int                 Data_t;
 typedef int                 Cmd_t;
-typedef Data_t              Axi_t;
-#define VOLATILE
+typedef Data_t              AxiM_t;
 #endif
 
 #else /* standard C++ */
@@ -56,12 +52,11 @@ typedef Data_t              Axi_t;
 typedef unsigned int        Addr_t;
 typedef int                 Data_t;
 typedef int                 Cmd_t;
-typedef Data_t              Axi_t;
-#define VOLATILE
+typedef Data_t              AxiM_t;
 #endif
 #endif
 
-#define XMATRICES   64
+#define XMATRICES   1
 #define XMEM_SIZE   (MAX_MATRIX_SPACE*XMATRICES)
 #define IMATRICES   16
 #define IMEM_SIZE   (IMATRICES*MAX_MATRIX_SIZE)
@@ -71,27 +66,8 @@ typedef Data_t              Axi_t;
 #define ALIGN_CMND  0x3
 
 Data_t dev_hls
-( volatile Data_t* reg_R0
-, volatile Data_t* reg_R1
-, volatile Data_t* reg_R2
-, volatile Data_t* reg_R3
-, volatile Data_t* reg_R4
-, volatile Data_t* reg_R5
-, volatile Data_t* reg_R6
-, volatile Data_t* reg_R7
-, volatile Data_t* reg_R8
-, volatile Data_t* reg_R9
-, volatile Data_t* reg_R10
-, volatile Data_t* reg_R11
-, volatile Data_t* reg_R12
-, volatile Data_t* reg_R13
-, volatile Data_t* reg_R14
-, volatile Data_t* reg_R15
-, volatile Data_t* reg_AXI_BASE
-, volatile Data_t* reg_COMMAND
-, volatile Data_t* reg_STATUS
-, Data_t  imem[IMEM_SIZE]
-, VOLATILE Axi_t*  axibus
+( Data_t   reg[REGISTERS]
+, Data_t   mem[IMEM_SIZE]
 );
 
 // Matrix points to a shape followed by the array itself
@@ -149,32 +125,32 @@ inline Addr_t Mspace(Addr_t shape) { return Msize(shape)+1; }
 inline Addr_t Mspace(Addr_t rows, Addr_t cols) { return rows*cols + 1; }
 inline Addr_t Mindex(Addr_t cols, Addr_t x, Addr_t y) { return x*cols + y + 1; }
 inline bool   Msquare(Addr_t shape) { return Mrows(shape) == Mcols(shape); }
-inline bool   Mvalid(Addr_t ptr) { return ptr%MAX_MATRIX_SIZE==0 && ptr<=IMEM_LAST; }
+inline bool   Mvalid(Addr_t ptr) { return ptr<=IMEM_LAST; }
 
 enum Operation_t // Operations {:TODO:_not_all_implemented:}
-{ NOP    // no operation
-, LOAD   // M(R(dest)) = xmem(base+R(src1))
-, STORE  // xmem(base+R(src1)) = M(R(dest))
-, MCOPY  // M(dest) = M(src1);
-, MADD   // M(dest) = M(src1) + M(src2); // matrix add
-, MSUB   // M(dest) = M(src1) - M(src2); // matrix subtract
-, RSUB   // M(dest) = M(src2) - M(src1); // matrix reverse subtract
-, MMUL   // M(dest) = M(src1) x M(src2); // matrix multiply
-, KMUL   // M(dest) = R(src1) * M(src2)[i]; // constant multiply
-, MSUM   // R(dest) = sum(M(src1)[i]);   // sum of elements
-, MDET0  // R(dest) = determinant(M0);
-, EQUAL  // R(dest) = M(dest) == M(src1); // compare
-, MZERO  // R(dest) = sum(M(src)[i]==0); // count zeroes
-, TRANS  // M(dest) = transpose(M(src1));
-, FILL   // M(dest) = R(src1); // fill matrix
-, IDENT  // M(dest) = indentity(R2);
-, RCOPY  // R(dest) = R(src1); // register copy
-, RSETX  // R(dest)[31:00] = (src1<<8)|src2; // register set with sign-extend
-, RSETH  // R(dest)[31:16] = (src1<<8)|src2; // register set hi
-, RSETL  // R(dest)[15:00] = (src1<<8)|src2; // register set lo
-, RESET  // clear all registers
-, EXEC   // execute sequence starting from M(R(15))
-, HALT   // stop processing
+{ NOP    //  no operation
+, LOAD   //{:M(R(dest)) = xmem(base+R(src1)):}
+, STORE  //{:xmem(base+R(src1)) = M(R(dest)):}
+, MCOPY  //  M(dest) = M(src1);
+, MADD   //  M(dest) = M(src1) + M(src2); // matrix add
+, MSUB   //  M(dest) = M(src1) - M(src2); // matrix subtract
+, RSUB   //  M(dest) = M(src2) - M(src1); // matrix reverse subtract
+, MMUL   //{:M(dest) = M(src1) x M(src2); // matrix multiply:}
+, KMUL   //  M(dest) = R(src1) * M(src2)[i]; // constant multiply
+, MSUM   //{:R(dest) = sum(M(src1)[i]);   // sum of elements:}
+, MDET0  //{:R(dest) = determinant(M0);:}
+, EQUAL  //{:R(dest) = M(dest) == M(src1); // compare:}
+, MZERO  //  R(dest) = sum(M(src)[i]==0); // count zeroes
+, TRANS  //{:M(dest) = transpose(M(src1));:}
+, FILL   //  M(dest) = R(src1); // fill matrix
+, IDENT  //{:M(dest) = indentity(R2);:}
+, RCOPY  //  R(dest) = R(src1); // register copy
+, RSETX  //  R(dest)[31:00] = (src1<<8)|src2; // register set with sign-extend
+, RSETH  //  R(dest)[31:16] = (src1<<8)|src2; // register set hi
+, RSETL  //  R(dest)[15:00] = (src1<<8)|src2; // register set lo
+, RESET  //  clear all registers
+, EXEC   //  execute sequence starting from M(R(15))
+, HALT   //  stop processing
 };
 
 enum CmdState_t

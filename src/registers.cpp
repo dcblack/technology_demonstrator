@@ -11,11 +11,11 @@ using namespace std;
 
 //------------------------------------------------------------------------------
 Registers::Registers(void) //< Constructor
-: reg_AXI_BASE ( 0 )
-, reg_COMMAND  ( 0 )
-, reg_STATUS   ( 0 )
 {
   reg = new Data_t[REGS];
+  reg[BASE    ] = 0 ;
+  reg[COMMAND ] = 0 ;
+  reg[STATUS  ] = 0 ;
 }
 
 //------------------------------------------------------------------------------
@@ -26,10 +26,10 @@ Registers::~Registers(void) //< Destructor
 
 //------------------------------------------------------------------------------
 void Registers::fill(Data_t value) {
-  for (unsigned i=0; i!=REGS; ++i) reg[i] = value;
-  reg_AXI_BASE = value;
-  reg_COMMAND  = value;
-  reg_STATUS   = value;
+  for (unsigned i=0; i!=GPREGS; ++i) reg[i] = value;
+  reg[BASE   ] = value;
+  reg[COMMAND]  = value;
+  reg[STATUS ]  = value;
 }
 
 //------------------------------------------------------------------------------
@@ -37,17 +37,17 @@ void Registers::randomize(void) {
   // Unclear what to do since constraints are complex
   Command c;
   c.randomize();
-  reg_COMMAND = c.command;
+  reg[COMMAND] = c.command;
 }
 
 //-----------------------------------------------------------------------------/-
 string Registers::dump(void) {
   ostringstream sout;
-  sout << "reg_AXI_BASE=0x" << reg_AXI_BASE << "\n";
-  sout << "reg_COMMAND =0x" << reg_COMMAND << "\n";
-  sout << "reg_STATUS  =0x" << reg_STATUS  << "\n";
-  for (unsigned i=0; i!=REGS; ++i) {
-    sout << "reg_"  << reg_name[i] << "] = ";
+  sout << "reg[BASE   ] =0x" << reg[BASE]    << "\n";
+  sout << "reg[COMMAND] =0x" << reg[COMMAND] << "\n";
+  sout << "reg[STATUS ] =0x" << reg[STATUS]  << "\n";
+  for (unsigned i=0; i!=GPREGS; ++i) {
+    sout << "reg["  << reg_name[i] << "] = ";
     sout << setw(8) << "0x" << hex << uppercase << setfill('0') << reg[i];
     sout << "\n";
   }

@@ -6,6 +6,9 @@
 #include "matrix.h"
 #include <iostream>
 #include <iomanip>
+#include <sstream>
+#include <cstdlib>
+#include <map>
 #ifdef CXX11
 #include <random>
 #endif
@@ -104,29 +107,84 @@ void Memory::ifill(Data_t value) {
   }
 }
 
+namespace {
+  string getenv(const string& name) //< Test existance of environment variable
+  {
+    char * value = std::getenv(name.c_str());
+    if (value != 0) {
+      return string(value); // non-empty
+    }//endif
+    return "";
+  }
+
+  enum {none, normal , bold, red, green, blue, cyan, magenta, yellow, black };
+  string color(int highlight)
+  {
+    static bool supports_color = false;
+    static const string ESX = "\033[";
+    static map<string,string> ansi;
+    if (ansi.empty()) {
+      if (getenv("TERM") == "xterm") supports_color == true;
+      ansi[ "none"    ] = "00;";
+      ansi[ "bold"    ] = "01;";
+      ansi[ "feint"   ] = "02;";
+      ansi[ "italic"  ] = "03;";
+      ansi[ "under"   ] = "04;";
+      ansi[ "wink"    ] = "05;";
+      ansi[ "blink"   ] = "06;";
+      ansi[ "reverse" ] = "07;";
+      ansi[ "hide"    ] = "08;";
+      ansi[ "cross"   ] = "08;";
+      ansi[ "nobold"  ] = "21;";
+      ansi[ "nofeint" ] = "22;";
+      ansi[ "noital"  ] = "23;";
+      ansi[ "nounder" ] = "24;";
+      ansi[ "noblink" ] = "25;";
+      ansi[ "reveal"  ] = "28;";
+      ansi[ "fg_blk"  ] = "30;";
+      ansi[ "fg_red"  ] = "31;";
+      ansi[ "fg_grn"  ] = "32;";
+      ansi[ "fg_ylw"  ] = "33;";
+      ansi[ "fg_blu"  ] = "34;";
+      ansi[ "fg_mag"  ] = "35;";
+      ansi[ "fg_cyn"  ] = "36;";
+      ansi[ "fg_wht"  ] = "37;";
+      ansi[ "bg_blk"  ] = "40;";
+      ansi[ "bg_red"  ] = "41;";
+      ansi[ "bg_grn"  ] = "42;";
+      ansi[ "bg_ylw"  ] = "43;";
+      ansi[ "bg_blu"  ] = "44;";
+      ansi[ "bg_mag"  ] = "45;";
+      ansi[ "bg_cyn"  ] = "46;";
+      ansi[ "bg_wht"  ] = "47;";
+    };
+    if (!supports_color) return "";
+    switch (highlight) {
+      case    none: return "";
+      case  normal: return ESX + ansi["none"] + ansi["fg_blk"] + "m";
+      case    bold: return ESX + ansi["bold"]   + "m";
+      case   green: return ESX + ansi["fg_grn"] + "m";
+      case     red: return ESX + ansi["fg_red"] + "m";
+      case    blue: return ESX + ansi["fg_blu"] + "m";
+      case    cyan: return ESX + ansi["fg_cyn"] + "m";
+      case magenta: return ESX + ansi["fg_mag"] + "m";
+      case  yellow: return ESX + ansi["fg_ylw"] + "m";
+      case   black: return ESX + ansi["fg_blk"] + "m";
+    }
+  }
+}//endnamespace
+
 //------------------------------------------------------------------------------
-void Memory::dump8(Data_t* mem, Addr_t addr, Addr_t len) {
-  cout << right << setw(5) << dec << addr << ": ";
+string Memory::dump_line(Data_t* mem, Addr_t addr, Addr_t len, int highlight) {
+  ostringstream sout;
+  if (highlight) sout << color(highlight);
+  sout << right << setw(5) << dec << addr << ": ";
   for (Addr_t i=addr; i!=addr+len; ++i) {
-    cout << uppercase << hex << setw(8) << setfill('0') << mem[i] << " ";
+    sout << uppercase << hex << setw(8) << setfill('0') << mem[i] << " ";
   }
-  cout << dec << "\n";
-}
-
-//------------------------------------------------------------------------------
-void Memory::xdump(void) {
-  for (Addr_t addr=0; addr<XMEM_SIZE; addr+=8) {
-    Addr_t remaining = XMEM_SIZE-addr;
-    dump8(xmem,addr,(remaining>=8)?8:remaining);
-  }
-}
-
-//------------------------------------------------------------------------------
-void Memory::idump(void) {
-  for (int addr=0; addr<IMEM_SIZE; addr+=8) {
-    Addr_t remaining = IMEM_SIZE-addr;
-    dump8(imem,addr,(remaining>=8)?8:remaining);
-  }
+  if (highlight) sout << color(normal);
+  sout << dec << "\n";
+  return sout.str();
 }
 
 //------------------------------------------------------------------------------
@@ -140,7 +198,7 @@ void Memory::mirror(void) {
 }
 
 // Look for differences
-int Memory::diffs8(Data_t* lhs, Data_t* rhs, Addr_t addr, Addr_t len) {
+int Memory::diffs_line(Data_t* lhs, Data_t* rhs, Addr_t addr, Addr_t len) {
   int diffs = 0;
   for (Addr_t i=addr; i!=addr+len; ++i) {
     if (lhs[i] != rhs[i]) ++diffs;
@@ -149,31 +207,33 @@ int Memory::diffs8(Data_t* lhs, Data_t* rhs, Addr_t addr, Addr_t len) {
 }
 
 //------------------------------------------------------------------------------
-bool Memory::check(void) {
+bool Memory::check(Addr_t len) {
   cout << "Checking memory for differences..." << flush;
   bool first = true;
   int diffs = 0;
-  for (size_t addr=0; addr!=XMEM_SIZE; addr+=8) {
+  for (size_t addr=0; addr<XMEM_SIZE; addr+=8) {
     Addr_t remaining = XMEM_SIZE-addr;
-    int mydiffs = diffs8(xmem,xmem_mirror,addr,(remaining>=8)?8:remaining);
+    int mydiffs = diffs_line(xmem,xmem_mirror,addr,(remaining>=8)?8:remaining);
     if (mydiffs==0) continue;
     if (first) {
       cout << "\nxmem differences:\n";
       first = false;
     }
-    dump8(xmem,addr);
+    cout << dump_line(xmem_mirror,addr,len,blue);
+    cout << dump_line(xmem,addr,len,normal);
     diffs += mydiffs;
   }
   first = true;
-  for (size_t addr=0; addr!=IMEM_SIZE; addr+=8) {
+  for (size_t addr=0; addr<IMEM_SIZE; addr+=8) {
     Addr_t remaining = XMEM_SIZE-addr;
-    int mydiffs = diffs8(imem,imem_mirror,addr,(remaining>=8)?8:remaining);
+    int mydiffs = diffs_line(imem,imem_mirror,addr,(remaining>=8)?8:remaining);
     if (mydiffs==0) continue;
     if (first) {
       cout << "\nimem differences:\n";
       first = false;
     }
-    dump8(imem,addr);
+    cout << dump_line(imem_mirror,addr,len,blue);
+    cout << dump_line(imem,addr,len);
     diffs += mydiffs;
   }
   if (diffs) cout << "\n";

@@ -4,7 +4,7 @@
 
 #include "command.h"
 #include "dev_util.h"
-#include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -31,8 +31,8 @@ Command::Command //< Constructor
 , m_op(oper)
 {
   for (size_t i=0; i!=REGS; ++i) {
-    m_r[i] = 0xF00DFACE;
-    m_c[i] = false;
+    m_reg[i] = 0xF00DFACE;
+    m_changed[i] = false;
   }
   if (oper != NOP) status = START;
   set_expected(expect);
@@ -46,8 +46,8 @@ Command::Command(const Command& rhs) //< Copy constructor
 , m_op(rhs.m_op)
 {
   for (size_t i=0; i!=REGS; ++i) {
-    m_r[i] = rhs.m_r[i];
-    m_c[i] = rhs.m_c[i];
+    m_reg[i] = rhs.m_reg[i];
+    m_changed[i] = rhs.m_changed[i];
   }
 }
 
@@ -58,8 +58,8 @@ Command& Command::operator=(const Command& rhs) { //< Assignment
   expected = rhs.expected;
   m_op = rhs.m_op;
   for (size_t i=0; i!=REGS; ++i) {
-    m_r[i] = rhs.m_r[i];
-    m_c[i] = rhs.m_c[i];
+    m_reg[i] = rhs.m_reg[i];
+    m_changed[i] = rhs.m_changed[i];
   }
   return *this;
 }
@@ -71,7 +71,7 @@ bool Command::operator==(const Command& rhs) { //< Compare
     return false;
   }
   for (size_t i=0; i!=REGS; ++i) {
-    if (m_r[i] != rhs.m_r[i]) {
+    if (m_reg[i] != rhs.m_reg[i]) {
       return false;
     }
   }
@@ -117,31 +117,56 @@ void Command::get_cmd
 }
 
 //----------------------------------------------------------------------------
+void Command::mirror(void)
+{
+  std::memcpy(m_reg_mirror,m_reg,REGS*sizeof(m_reg[0]));
+}
+
+//----------------------------------------------------------------------------
+void Command::update(void)
+{
+  std::memcpy(m_reg,m_reg_mirror,REGS*sizeof(m_reg[0]));
+}
+
+//----------------------------------------------------------------------------
+void Command::diffregs(void)
+{
+  for (size_t i=0; i!=REGS; ++i) {
+    if (m_reg[i]==m_reg_mirror[i]) continue;
+    cout
+      << " R" << dec << i
+      << "=0x" << hex << m_reg[i] 
+      << "vs mirror 0x" << hex << m_reg_mirror[i] 
+      << ";";
+  }
+}
+
+//----------------------------------------------------------------------------
 void Command::clear_flags(void) {
   for (size_t i=0; i!=REGS; ++i) {
-    m_c[i]=false;
+    m_changed[i]=false;
   }
 }
 
 //----------------------------------------------------------------------------
 void Command::reset_reg(size_t i, Data_t  value) {
-  m_r[i]=value;
+  m_reg[i]=value;
 }
 
 //----------------------------------------------------------------------------
 void Command::set_reg(size_t i, Data_t  value) {
-  if (m_r[i] != value) {
-    m_r[i]=value;
-    m_c[i]=true;    
+  if (m_reg[i] != value) {
+    m_reg[i]=value;
+    m_changed[i]=true;    
   }
 }
 
 //----------------------------------------------------------------------------
 void Command::get_reg(size_t i, Data_t& value, bool always) {
   assert(i<REGS);
-  if (always||m_c[i]) {
-    value=m_r[i];
-    m_c[i]=false;
+  if (always||m_changed[i]) {
+    value=m_reg[i];
+    m_changed[i]=false;
   } 
 }
 
@@ -177,8 +202,8 @@ string Command::result(void) {
 std::string Command::regstr(bool all) const {
   std::ostringstream os;
   for (size_t i=0; i!=REGS; ++i) {
-    if (m_c[i] || all) {
-      os << " R" << dec << i << "=0x" << hex << m_r[i] << ";";
+    if (m_changed[i] || all) {
+      os << " R" << dec << i << "=0x" << hex << m_reg[i] << ";";
     }
   }
   return os.str();

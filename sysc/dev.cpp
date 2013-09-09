@@ -74,27 +74,8 @@ void Dev_module::execute_thread(void)
     }//endif
     bool watch = (m_register[STATUS] == START);
     Data_t retcode = dev_hls
-    ( &m_register[ R0]
-    , &m_register[ R1]
-    , &m_register[ R2]
-    , &m_register[ R3]
-    , &m_register[ R4]
-    , &m_register[ R5]
-    , &m_register[ R6]
-    , &m_register[ R7]
-    , &m_register[ R8]
-    , &m_register[ R9]
-    , &m_register[R10]
-    , &m_register[R11]
-    , &m_register[R12]
-    , &m_register[R13]
-    , &m_register[R14]
-    , &m_register[R15]
-    , &m_register[BASE]
-    , &m_register[COMMAND]
-    , &m_register[STATUS]
+    ( m_register
     , m_imem
-    , m_axibus
     );
     int cmd_state = m_register[STATUS];
     if (watch || cmd_state >= HALTED) {

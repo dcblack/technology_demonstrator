@@ -60,18 +60,17 @@ int main(int argc, char* argv[])
   matrix_list.push_back(new Matrix(3, 3, Matrix::RANDALL)); //14
   matrix_list.push_back(new Matrix(2, 2, Matrix::RANDALL)); //15
 
-  Addr_t xmem_ptr = 2; // stay away from nullptr
-
-  // Copy matrices into external memory [track base address in mm]
+  // Copy matrices into device memory [track base address in mm]
+  Addr_t mem_ptr = 0; // stay away from nullptr
   vector<Addr_t> matrix_address;
   for (int i=0; i!=matrix_list.size(); ++i) {
     cout << matrix_list[i]->dump();
-    matrix_address.push_back(xmem_ptr);
-    matrix_list[i]->store(mem, xmem_ptr);
-    xmem_ptr += matrix_list[i]->space();
+    matrix_address.push_back(mem_ptr);
+    matrix_list[i]->store(mem, mem_ptr);
+    mem_ptr += matrix_list[i]->space();
   }
 
-  cout << "Matrix xmem address mappings:" << "\n";
+  cout << "Matrix memory address mappings:" << "\n";
   for (int i=0; i!=matrix_address.size(); ++i) {
     cout
       << "  m" << dec << left << setw(2) << i << " -> "
@@ -86,47 +85,23 @@ int main(int argc, char* argv[])
   Command cmd;
 
   cmd.set_cmd(NOP);
-  // Setup internal matrix pointers
-  cmd.set_reg(M0+1, 0*MAX_MATRIX_SIZE); //< internal address
-  cmd.set_reg(M1+1, 1*MAX_MATRIX_SIZE); //< internal address
-  cmd.set_reg(M2+1, 2*MAX_MATRIX_SIZE); //< internal address
-  cmd.set_reg(M3+1, 3*MAX_MATRIX_SIZE); //< internal address
-  cmd.set_reg(M4+1, 4*MAX_MATRIX_SIZE); //< internal address
-  cmd.set_reg(M5+1, 5*MAX_MATRIX_SIZE); //< internal address
-  cmd.set_reg(M6+1, 6*MAX_MATRIX_SIZE); //< internal address
   cmd_list.push_back(cmd);
-  cmd.clear_flags();
 
   cmd.set_cmd(NOP);
-  cmd_list.push_back(cmd);
-
-  cmd.set_cmd(LOAD, M0, R12);
-  cmd.set_reg(R12, matrix_address[0]);  //< external address
-  cmd_list.push_back(cmd);
-  cmd.clear_flags();
-
-  cmd.set_cmd(LOAD, M1, R12);
-  cmd.set_reg(R12, matrix_address[1]);  //< external address
-  cmd_list.push_back(cmd);
-  cmd.clear_flags();
-
-  cmd.set_cmd(LOAD, M2, R12);
-  cmd.set_reg(R12, matrix_address[2]);  //< external address
-  cmd_list.push_back(cmd);
-  cmd.clear_flags();
-
-  cmd.set_cmd(LOAD, M3, R12);
-  cmd.set_reg(R12, matrix_address[3]);  //< external address
+  // Setup internal matrix registers
+  cmd.set_reg( M0  , matrix_list[0]->shape() );
+  cmd.set_reg( M0+1, matrix_address[0]+1     );
+  cmd.set_reg( M1,   matrix_list[1]->shape() );
+  cmd.set_reg( M1+1, matrix_address[1]+1     );
+  cmd.set_reg( M2,   matrix_list[2]->shape() );
+  cmd.set_reg( M2+1, matrix_address[2]+1     );
+  cmd.set_reg( M3,   matrix_list[3]->shape() );
+  cmd.set_reg( M3+1, matrix_address[3]+1     );
   cmd_list.push_back(cmd);
   cmd.clear_flags();
 
   cmd.set_cmd(MADD, M0, M1, M2);
   cmd_list.push_back(cmd);
-
-  cmd.set_cmd(STORE, M0, R13);
-  cmd.set_reg(R13, matrix_address[3]);  //< external address
-  cmd_list.push_back(cmd);
-  cmd.clear_flags();
 
   cmd.set_cmd(MSUB, M0, M0, M3);
   cmd_list.push_back(cmd);
@@ -161,11 +136,11 @@ int main(int argc, char* argv[])
   cmd.set_cmd(HALT);
   cmd_list.push_back(cmd);
 
-  dev.reg_AXI_BASE = 0;
+  dev.reg[BASE] = 0;
   for (int ci=0; ci!=cmd_list.size(); ++ci) {
     cout << "\nExecuting command: " << cmd_list[ci] << endl;
-    dev.reg_COMMAND = cmd_list[ci].command;
-    dev.reg_STATUS = cmd_list[ci].status;
+    dev.reg[COMMAND] = cmd_list[ci].command;
+    dev.reg[STATUS] = cmd_list[ci].status;
     for (int i=0; i!=16; ++i) {
       cmd_list[ci].get_reg(i, dev.reg[i]); // update changed registers
       cmd_list[ci].reset_reg(i, dev.reg[i]); // update changed registers
@@ -173,32 +148,13 @@ int main(int argc, char* argv[])
     mem.mirror();
 
     retcode = dev_hls
-      ( &(dev.reg[0])
-      , &(dev.reg[1])
-      , &(dev.reg[2])
-      , &(dev.reg[3])
-      , &(dev.reg[4])
-      , &(dev.reg[5])
-      , &(dev.reg[6])
-      , &(dev.reg[7])
-      , &(dev.reg[8])
-      , &(dev.reg[9])
-      , &(dev.reg[10])
-      , &(dev.reg[11])
-      , &(dev.reg[12])
-      , &(dev.reg[13])
-      , &(dev.reg[14])
-      , &(dev.reg[15])
-      , &dev.reg_AXI_BASE
-      , &dev.reg_COMMAND
-      , &dev.reg_STATUS
+      ( dev.reg
       , mem.imem
-      , mem.xmem
       );
 
     for (int i=0; i!=16; ++i) cmd_list[ci].set_reg(i, dev.reg[i]); // update changed registers
     cout << "Results: " << cmd_list[ci].regstr() << endl;
-    cmd_list[ci].status = CmdState_t(dev.reg_STATUS);
+    cmd_list[ci].status = CmdState_t(dev.reg[STATUS]);
     cout << "Return status: " << cmd_list[ci].result() << endl;
     mem.check();
   }

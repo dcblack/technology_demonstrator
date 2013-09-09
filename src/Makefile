@@ -27,7 +27,7 @@ SRCS:=$(strip   \
 )
 
 ifdef CXX11
-override CXX11:=-std=c++11 $(if $(subst Linux,,$(shell uname -s)),-stdlib=libc++)
+override CXX11:=-DCXX11 -std=c++11 $(if $(subst Linux,,$(shell uname -s)),-stdlib=libc++)
 endif
 # Tell automation to ignore SystemC content
 NOT_SYSTEMC:=1
