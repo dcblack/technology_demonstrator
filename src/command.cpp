@@ -5,6 +5,7 @@
 #include "command.h"
 #include "dev_util.h"
 #include <cstring>
+#include <cstdlib>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
