@@ -21,8 +21,6 @@ if ( 14<r || r&1) {                      \
 } else ;
 
 
-// NOTE: _ARRAY's are indexes to internal memory locations
-//
 Data_t dev_hls
 ( Data_t  reg[REGISTERS]
 , Data_t  mem[IMEM_SIZE]
@@ -32,11 +30,11 @@ Data_t dev_hls
 // Port mappings protcols
 #pragma HLS interface ap_memory  port=reg
 #pragma HLS interface ap_ctrl_hs port=return register
-#pragma HLS interface ap_memory              port=mem
+#pragma HLS interface ap_memory  port=mem
 
-#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle devregs" variable=reg_R0
-#pragma HLS resource core=AXI4LiteS    metadata="-bus_bundle devregs" variable=return
-#pragma HLS resource core=RAM_T2P_BRAM variable=mem
+#pragma HLS resource core=RAM_1P    metadata="-bus_bundle devreg" variable=reg
+#pragma HLS resource core=AXI4LiteS metadata="-bus_bundle devreg" variable=return
+#pragma HLS resource core=RAM_1P    metadata="-bus_bundle devreg" variable=mem
 
   Data_t status = reg[STATUS];
 
