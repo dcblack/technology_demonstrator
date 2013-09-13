@@ -92,7 +92,7 @@ void Mtx::display_command(int cmd)
 const char* Mtx::command_cstr(int cmd)
 {
   ostringstream os;
-  Operation_t oper(( cmd >> 24 ) & 0xFF);
+  Operation_t oper(Operation_t(( cmd >> 24 ) & 0xFF));
   int dest(( cmd >> 16 ) & 0xFF);
   int src1(( cmd >>  8 ) & 0xFF);
   int src2(( cmd       ) & 0xFF);

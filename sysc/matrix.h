@@ -8,7 +8,8 @@
 //   style that might prefer C-style coding.
 
 #include <stdint.h>
-#include <assert.h>
+#include <cassert>
+#include <cstring>
 #include <iostream>
 
 #ifdef UNIT_TEST

@@ -36,7 +36,7 @@ int Software::sw_main(void)
   std::vector<int> cmd(1000,0); //< list of commands
   for (auto& v : cmd) v = Mtx::command(HALT); //< fill with HALT
   std::vector<int> exp(1000,0); //< list of expected status
-  for (auto& v : exp) v = Mtx::exp(DONE); //< fill with HALT
+  for (auto& v : exp) v = DONE; //< fill with DONE
   mtx_t mtx; //< local image of device registers
   int retval = 0;
   for (auto& v : mtx.reg) v = 0xBADF00d5; //< fill local copy of registers
@@ -47,7 +47,7 @@ int Software::sw_main(void)
     return exitcode(retcode);
   }
   printf("INFO: Initial values:\n");
-  Mtx::dump(&mtx);
+  Mtx::dump_registers(&mtx);
   for (auto& v : mtx.reg) v = 0x2DECADE5; //< fill local copy of registers
   retval = mtx_ioctl(fd,Mtx::WRITE,&mtx);
   if (retval != 0) {
@@ -62,11 +62,11 @@ int Software::sw_main(void)
   exp[i-1] = IDLE;
 
 // Simplify test writing
-#define DoCmnd1(op,dest,src1,src2)  cmd[i++] = Mtx::command(op)
-#define DoCmnd2(op,dest,src1,src2)  cmd[i++] = Mtx::command(op, dest)
-#define DoCmnd3(op,dest,src1,src2)  cmd[i++] = Mtx::command(op, dest, src1)
+#define DoCmnd1(op)                 cmd[i++] = Mtx::command(op)
+#define DoCmnd2(op,dest)            cmd[i++] = Mtx::command(op, dest)
+#define DoCmnd3(op,dest,src1)       cmd[i++] = Mtx::command(op, dest, src1)
 #define DoCmnd4(op,dest,src1,src2)  cmd[i++] = Mtx::command(op, dest, src1, src2)
-#define LoadI16(op,dest,value)      cmd[i++] = Mtx::command(op, dest, ((value>>8)&#0xFF), (value&0xFF))
+#define LoadI16(op,dest,value)      cmd[i++] = Mtx::command(op, dest, ((value>>8)&0xFF), (value&0xFF))
 #define LoadI32(dest,value)         LoadI16(RSETH,dest,(value>>16)); LoadI16(RSETL,dest,value);
 #define SetRegX(dest,value)         LoadI16(RSETX,dest,value)
 #define MatrixI(dest,rows,cols,ptr) LoadI32(dest,Mshape(rows,cols)); LoadI32(dest+1,ptr)
@@ -75,18 +75,18 @@ int Software::sw_main(void)
   Matrix  m0(3,4);
   MatrixI(M0,3,4,0x0000);
   SetRegX(R8,0xBEAD);
-  DoCmnd2(FILL,M0,R8);
+  DoCmnd3(FILL,M0,R8);
 
   // m1 = fill(0x1)
   Matrix  m1(3,4);
   MatrixI(M1,3,4,0x0010);
   SetRegX(R8,1);
-  DoCmnd2(FILL,M2,R8);
+  DoCmnd3(FILL,M2,R8);
 
   // m2 = M0 + M1
   Matrix  m2(3,4);
   MatrixI(M2,3,4,0x0020);
-  DoCmnd24(MADD,M3,M0,M1);
+  DoCmnd4(MADD,M3,M0,M1);
 
   // Store M0
   LoadI32(R9,mem_addr);
@@ -123,7 +123,7 @@ int Software::sw_main(void)
       if (retcode == 0) retcode = retval;
       return exitcode(retcode);
     }
-    Mtx::dump(&mtx);
+    Mtx::dump_registers(&mtx);
     printf("\n");
   }
 

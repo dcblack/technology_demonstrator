@@ -95,19 +95,27 @@ Top_module::Top_module(sc_module_name instance_name)
   //----------------------------------------------------------------------------
   // Report configuration
   //----------------------------------------------------------------------------
-  REPORT_INFO("\n===================================================================================\n"
+  REPORT_INFO("\n"
+           << "===================================================================================\n"
            << "CONFIGURATION(" << name() << ")\n"
            << ">   Verbosity is " << sc_report_handler::get_verbosity_level() << "\n"
            << "===================================================================================\n"
            );
 
-  dev              .reset(new Dev_module            ("dev" )              );
+  dev              .reset(new Dev_module             ("dev"            )  );
   if (use_tcpip) {
     tcpip_initiator.reset( new tcpip_initiator_module("tcpip_initiator")  );
     bus            .reset( new Bus_module            ("bus"            )  );
+#ifdef HAVE_TCPIP_TARGET
+    tcpip_target   .reset( new tcpip_target_module   ("tcpip_target"   )  );
+#endif
     // Connectivity
     tcpip_initiator->initiator_socket ( bus->target_socket                );
     bus            ->initiator_socket ( dev->target_socket                );
+#ifdef HAVE_TCPIP_TARGET
+    dev            ->initiator_socket ( tcpip_target->target_socket       );
+    dev            ->interrupt_port   ( tcpip_target->interrupt_export    );
+#endif
   } else {
     local_initiator.reset( new Local_initiator_module("local_initiator")  );
     mem            .reset( new Mem_module            ("mem", 1024*1024 )  );
@@ -118,7 +126,7 @@ Top_module::Top_module(sc_module_name instance_name)
     bus            ->initiator_socket ( dev->target_socket                );
     bus            ->initiator_socket ( mem->target_socket                );
     dev            ->interrupt_port   ( local_initiator->interrupt_export );
-  }
+  }//endif
 
   // Register processes
   SC_HAS_PROCESS(Top_module);
