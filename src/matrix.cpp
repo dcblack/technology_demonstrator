@@ -26,7 +26,6 @@ Matrix::Matrix(size_t r, size_t c, Pattern_t patt, string name) //< Constructor
 , m(0)
 , m_name(name)
 , m_id(next++)
-, m_patt(patt)
 {
   assert(m_rows!=0 & m_cols!=0);
   assert(m_rows*m_cols <= MAX_MATRIX_SIZE);
@@ -41,7 +40,6 @@ Matrix::Matrix(const Matrix& rhs) // Copy constructor
 , m(new Data_t[m_rows*m_cols])
 , m_name(rhs.m_name)
 , m_id(next++)
-, m_patt(rhs.m_patt)
 {
   for (Addr_t i=begin(); i!=end(); ++i) m[i] = rhs.m[i];
 }

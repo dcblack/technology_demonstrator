@@ -47,10 +47,10 @@ struct Matrix
   bool operator== (const Matrix& rhs); //< Compare
   bool is_square (void) const { return m_rows == m_cols; }
   size_t zeroes(void) const;
-  void fill      (Data_t value=0);
-  void fill_patt (Pattern_t patt=PLUS1);
   void identity  (Data_t value=1);
   void randomize (void);
+  void fill      (Data_t value=0);
+  void fill_patt (Pattern_t patt=PLUS1);
   void load(const Memory& m, Addr_t from);
   void store(Memory& m, Addr_t to);
   std::string dump    (void);
@@ -66,7 +66,6 @@ struct Matrix
   // void copy(Submatrix dst, const Matrix& rhs, Submatrix src);
 
 private:
-  Pattern_t m_patt;
   int m_id;
 };//endclass Matrix
 
