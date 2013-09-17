@@ -24,7 +24,7 @@ struct Memory
   Data_t* imem_mirror; //< shadow
 
   // Methods
-  Memory(void);  //< Constructor
+  Memory(int isize=IMEM_SIZE, int xsize=XMEM_SIZE);  //< Constructor
   ~Memory(void); //< Destructor
   Data_t xget (Addr_t addr) const;
   void   xset (Addr_t addr, Data_t data);

@@ -16,11 +16,13 @@
 using namespace std;
 
 //------------------------------------------------------------------------------
-Memory::Memory(void) //< Constructor
-  : xmem(new Data_t[XMEM_SIZE])
-  , xmem_mirror(new Data_t[XMEM_SIZE])
-  , imem(new Data_t[IMEM_SIZE])
-  , imem_mirror(new Data_t[IMEM_SIZE])
+Memory::Memory(int isize, int xsize) //< Constructor
+  : xmem_size(xsize)
+  , xmem(new Data_t[xmem_size])
+  , xmem_mirror(new Data_t[xmem_size])
+  : imem_size(isize)
+  , imem(new Data_t[imem_size])
+  , imem_mirror(new Data_t[imem_size])
 {
   xfill();
   ifill();
@@ -52,7 +54,7 @@ Memory& Memory::operator=(const Memory& rhs) {
 //------------------------------------------------------------------------------
 Data_t Memory::xget(Addr_t addr) const {
   Data_t result = 0xF00DFACE; //< error value
-  if (addr >= XMEM_SIZE) {
+  if (addr >= xmem_size) {
     cerr << "ERROR: Out of bounds access to xmem!" << endl;
   } else {
     result = xmem[addr];
@@ -63,7 +65,7 @@ Data_t Memory::xget(Addr_t addr) const {
 
 //------------------------------------------------------------------------------
 void Memory::xset(Addr_t addr, Data_t value) {
-  if (addr >= XMEM_SIZE) {
+  if (addr >= xmem_size) {
     cerr << "ERROR: Out of bounds access to xmem!" << endl;
   } else {
     xmem[addr] = value;
@@ -74,7 +76,7 @@ void Memory::xset(Addr_t addr, Data_t value) {
 //------------------------------------------------------------------------------
 Data_t Memory::iget(Addr_t addr) const {
   Data_t result = 0xF00DFACE; //< error value
-  if (addr >= IMEM_SIZE) {
+  if (addr >= imem_size) {
     cerr << "ERROR: Out of bounds access to imem!" << endl;
   } else {
     result = imem[addr];
@@ -85,7 +87,7 @@ Data_t Memory::iget(Addr_t addr) const {
 
 //------------------------------------------------------------------------------
 void Memory::iset(Addr_t addr, Data_t value) {
-  if (addr >= IMEM_SIZE) {
+  if (addr >= imem_size) {
     cerr << "ERROR: Out of bounds access to imem!" << endl;
   } else {
     imem[addr] = value;
@@ -95,14 +97,14 @@ void Memory::iset(Addr_t addr, Data_t value) {
 
 //------------------------------------------------------------------------------
 void Memory::xfill(Data_t value) {
-  for (size_t i=0; i!=XMEM_SIZE; ++i) {
+  for (size_t i=0; i!=xmem_size; ++i) {
     xmem[i] = value;
   }
 }
 
 //------------------------------------------------------------------------------
 void Memory::ifill(Data_t value) {
-  for (size_t i=0; i!=IMEM_SIZE; ++i) {
+  for (size_t i=0; i!=imem_size; ++i) {
     imem[i] = value;
   }
 }
@@ -189,10 +191,10 @@ string Memory::dump_line(Data_t* mem, Addr_t addr, Addr_t len, int highlight) {
 
 //------------------------------------------------------------------------------
 void Memory::mirror(void) {
-  for (size_t i=0; i!=XMEM_SIZE; ++i) {
+  for (size_t i=0; i!=xmem_size; ++i) {
     xmem_mirror[i] = xmem[i];
   }
-  for (size_t i=0; i!=IMEM_SIZE; ++i) {
+  for (size_t i=0; i!=imem_size; ++i) {
     imem_mirror[i] = imem[i];
   }
 }
@@ -211,8 +213,8 @@ bool Memory::check(Addr_t len) {
   cout << "Checking memory for differences..." << flush;
   bool first = true;
   int diffs = 0;
-  for (size_t addr=0; addr<XMEM_SIZE; addr+=8) {
-    Addr_t remaining = XMEM_SIZE-addr;
+  for (size_t addr=0; addr<xmem_size; addr+=8) {
+    Addr_t remaining = xmem_size-addr;
     int mydiffs = diffs_line(xmem,xmem_mirror,addr,(remaining>=8)?8:remaining);
     if (mydiffs==0) continue;
     if (first) {
@@ -224,8 +226,8 @@ bool Memory::check(Addr_t len) {
     diffs += mydiffs;
   }
   first = true;
-  for (size_t addr=0; addr<IMEM_SIZE; addr+=8) {
-    Addr_t remaining = XMEM_SIZE-addr;
+  for (size_t addr=0; addr<imem_size; addr+=8) {
+    Addr_t remaining = xmem_size-addr;
     int mydiffs = diffs_line(imem,imem_mirror,addr,(remaining>=8)?8:remaining);
     if (mydiffs==0) continue;
     if (first) {
