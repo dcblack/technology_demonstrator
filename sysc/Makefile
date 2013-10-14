@@ -15,6 +15,7 @@ SRCS:=$(strip         \
   tcpclient.cpp       \
   tcpip_initiator.cpp \
   mtx_driver.cpp      \
+  memory.cpp          \
   matrix.cpp          \
   software.cpp        \
   local_initiator.cpp \
