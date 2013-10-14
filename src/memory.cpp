@@ -20,7 +20,7 @@ Memory::Memory(int isize, int xsize) //< Constructor
   : xmem_size(xsize)
   , xmem(new Data_t[xmem_size])
   , xmem_mirror(new Data_t[xmem_size])
-  : imem_size(isize)
+  , imem_size(isize)
   , imem(new Data_t[imem_size])
   , imem_mirror(new Data_t[imem_size])
 {
@@ -122,11 +122,12 @@ namespace {
   enum {none, normal , bold, red, green, blue, cyan, magenta, yellow, black };
   string color(int highlight)
   {
+    string result = "";
     static bool supports_color = false;
     static const string ESX = "\033[";
     static map<string,string> ansi;
     if (ansi.empty()) {
-      if (getenv("TERM") == "xterm") supports_color == true;
+      if (getenv("TERM") == "xterm") supports_color = true;
       ansi[ "none"    ] = "00;";
       ansi[ "bold"    ] = "01;";
       ansi[ "feint"   ] = "02;";
@@ -160,19 +161,21 @@ namespace {
       ansi[ "bg_cyn"  ] = "46;";
       ansi[ "bg_wht"  ] = "47;";
     };
-    if (!supports_color) return "";
-    switch (highlight) {
-      case    none: return "";
-      case  normal: return ESX + ansi["none"] + ansi["fg_blk"] + "m";
-      case    bold: return ESX + ansi["bold"]   + "m";
-      case   green: return ESX + ansi["fg_grn"] + "m";
-      case     red: return ESX + ansi["fg_red"] + "m";
-      case    blue: return ESX + ansi["fg_blu"] + "m";
-      case    cyan: return ESX + ansi["fg_cyn"] + "m";
-      case magenta: return ESX + ansi["fg_mag"] + "m";
-      case  yellow: return ESX + ansi["fg_ylw"] + "m";
-      case   black: return ESX + ansi["fg_blk"] + "m";
-    }
+    if (supports_color) {
+      switch (highlight) {
+        case    none: break;
+        case  normal: result += ESX + ansi["none"] + ansi["fg_blk"] + "m"; break;
+        case    bold: result += ESX + ansi["bold"]   + "m";              ; break;
+        case   green: result += ESX + ansi["fg_grn"] + "m";              ; break;
+        case     red: result += ESX + ansi["fg_red"] + "m";              ; break;
+        case    blue: result += ESX + ansi["fg_blu"] + "m";              ; break;
+        case    cyan: result += ESX + ansi["fg_cyn"] + "m";              ; break;
+        case magenta: result += ESX + ansi["fg_mag"] + "m";              ; break;
+        case  yellow: result += ESX + ansi["fg_ylw"] + "m";              ; break;
+        case   black: result += ESX + ansi["fg_blk"] + "m";              ; break;
+      }
+    }//endif
+    return result;
   }
 }//endnamespace
 

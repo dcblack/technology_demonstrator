@@ -18,6 +18,8 @@ struct Memory
   static std::default_random_engine gen;
 #endif
   // Attributes
+  size_t  imem_size;
+  size_t  xmem_size;
   Data_t* xmem;
   Data_t* xmem_mirror; //< shadow
   Data_t* imem;
