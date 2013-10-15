@@ -36,7 +36,9 @@ Data_t dev_hls
 #pragma HLS resource core=AXI4LiteS metadata="-bus_bundle devreg" variable=return
 #pragma HLS resource core=RAM_1P    metadata="-bus_bundle devreg" variable=mem
 
-  Data_t status = reg[STATUS];
+  Data_t status;
+
+  status = reg[STATUS];
 
   unsigned char cmd_state = status & STATE_BITS;
   unsigned char run = (status & EXEC_BIT) != 0;
