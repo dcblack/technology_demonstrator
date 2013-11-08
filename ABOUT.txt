@@ -1,11 +1,24 @@
-mtxdev/README.txt -- dated readme
-mtxdev/LICENSE -- Apache 2.0
-mtxdev/hls
-mtxdev/include
-mtxdev/rtl
-mtxdev/sdk_sw_repo
-mtxdev/shared
-mtxdev/src
-mtxdev/sysc
-mtxdev/vivado_ip_repo
-mtxdev/zedboard
+ABOUT
+=====
+
+This is a quick description of the directories found here
+
+- README.txt -- dated readme
+- LICENSE -- Apache 2.0
+- hls/ -- Vivado HLS work here
+- include/ -- various header files
+- rtl/ -- Vivado work here including IP integration, RTL synthesis, place & route
+- sdk_sw_repo/
+- shared/ -- sources shared
+- src/ -- source for design (dev_hls.h & dev_hls.cpp) plus stand-alone software tests
+- sysc/ -- SystemC models (two) incorporating software
+- vivado_ip_repo/ -- exported from hls/
+- zedboard/ -- software that runs on zedboard in mixed SystemC simulation
+- bin/ -- some scripts used by makefiles
+- etc/ -- makefile automation and other miscellaneous stuff
+
+Miscellaneous notes
+===================
+- Some of the simulations use C++11 extensions (i.e. gcc 4.7 or clang 3.2)
+
+END
