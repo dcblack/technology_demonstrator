@@ -144,7 +144,12 @@ void Local_initiator_module::initiator_thread(void)  {
   } else {
     wait(sw.terminated_event());
   }//endif
-  REPORT_INFO("Software terminated");
+  if (retcode == 0) {
+    REPORT_INFO("Software terminated with successful return code of zero.");
+  } else {
+    REPORT_ERROR("Software terminated with non-zero return code " << retcode);
+    util::report::adjust_unexpected_errors(retcode -1);
+  }//endif
   ih.kill();
   wait(1,SC_SEC);
   REPORT_INFO("Exiting local_initiator");

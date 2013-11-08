@@ -479,6 +479,7 @@ USING_TLM:=
 USING_FX:=
 USING_DYNAMIC:=
 USING_BOOST:=
+USING_BLITZ:=
 USING_WXWIDGETS:=
 #USING_HLDW:=
 #USING_CLEARCASE:=
@@ -544,6 +545,13 @@ ifneq "$(wildcard ${SRCS} ${SHARED_SRCS})" ""
  ifneq "$(strip $(call File_contains,tlm|sc_spawn|SC_FORK|simple_\w+_socket,${SRCS} ${SHARED_SRCS}))" ""
    USING_DYNAMIC:=1
    $(info INFO: Using dynamic processes library)
+ endif
+ endif
+ #------------------------------------------------------------------------------
+ ifndef NOT_BLITZ
+ ifneq "$(strip $(call File_contains,blitz/,${SRCS} ${SHARED_SRCS}))" ""
+   USING_BLITZ:=1
+   $(info INFO: Using BLITZ library)
  endif
  endif
  #------------------------------------------------------------------------------
@@ -776,6 +784,11 @@ ifeq (${USING_BOOST},1)
   LIBS    += $(addprefix -l,$(foreach lib,${BOOST_LIBS},$(patsubst libb%.a,b%,$(notdir $(wildcard ${BOOST_LDIR}/lib*${lib}*.a)))))
   $(call Report_debug,LIBS)
 endif
+ifeq (${USING_BLITZ},1)
+  INCDIRS += ${BLITZ_HOME}/include
+  LIBDIRS += ${BLITZ_HOME/lib}
+  LIBS    += -lblitz
+endif
 ifeq (${USING_SYSTEMC},1)
   ifdef SYSTEMC
     C_DEFS += -DUSING_SYSTEMC=1
@@ -821,8 +834,8 @@ ifeq (${USING_DYNAMIC},1)
   C_DEFS += -DSC_INCLUDE_DYNAMIC_PROCESSES
 endif
 ifeq (${USING_CXX11},1)
-  CXX11 += -std=c++11 $(if ${USING_CLANG},-stdlib=libc++,)
-  LIBS  += -std=c++11 $(if ${USING_CLANG},-stdlib=libc++,)
+  CXX11 += -std=c++11
+  LIBS  += $(if ${USING_CLANG},-stdlib=libc++,)
 endif
 CC_CMD  += -m${CPUWIDTH}
 CXX_CMD += -m${CPUWIDTH}
@@ -856,6 +869,7 @@ ifdef OTHER_DEFS
 C_DEFS    += ${OTHER_DEFS}
 endif
 
+$(call Report_debug,INCDIRS LIBDIRS LIBS)
 # Fixup
 INCDIRS := $(call Prefix_files,-I,${INCDIRS})
 LIBDIRS := $(call Prefix_files,-L,${LIBDIRS})
@@ -869,6 +883,7 @@ C_DEFS  := $(call Unique,${C_DEFS})
 LIBS    := $(call Unique,${LIBS})
 OBJS    := $(call Unique,${OBJS})
 
+$(call Report_debug,INCDIRS LIBDIRS LIBS)
 FLAGS:=${CXXFLAGS} ${CFLAGS} ${OTHER_CFLAGS} ${PLUSFLAGS}
 
 ifndef EXE
@@ -1008,6 +1023,7 @@ else
   SCRIPT=./${UNIT}.scr
 endif
 LDLIB:=$(call Env,LD_LIBRARY_PATH,${SYSTEMC}/lib-${TARGET_ARCH})
+RUNTIME_ERRORS:="$(BOLD)$(CRED)ALERT: Simulation had runtime errors$(NONE)"
 run: ${EXE}
 	@${RULER};
 	@echo "RUNNING SIMULATION";
@@ -1017,25 +1033,25 @@ ifndef NORUN
  ifneq "$(wildcard ${SCRIPT})" ""
 	@echo "$(wildcard ./${UNIT}.scr) ${RUNTIME_ARGS}"
 	@-time ./$(wildcard ./${UNIT}.scr) ${RUNTIME_ARGS}\
-        || echo "INFO: Simulation had runtime errors"
+        || echo $(RUNTIME_ERRORS)
  else
  ifdef VISTA_HOME
   ifneq "$(wildcard ./${UNIT}_rcfg.xml)" ""
         # Execution with a run-time configuration
 	@echo "vista -exec ${EXE} --rcfg ./${UNIT}_rcfg.xml ${RUNTIME_ARGS}"
 	@-time vista -exec ./${EXE} --rcfg ./${UNIT}_rcfg.xml ${RUN_TIME_ARGS}\
-        || echo "INFO: Simulation had runtime errors"
+        || echo $(RUNTIME_ERRORS)
   else
   ifneq "$(wildcard ./${UNIT}.dat)" ""
         # Execute streaming a data file into STDIN
 	@echo "vista -exec ${EXE} ${RUNTIME_ARGS} < $(wildcard ./${UNIT}.dat)"
 	@-time vista -exec ./${EXE} ${RUN_TIME_ARGS} < $(wildcard ./${UNIT}.dat)\
-	|| echo "INFO: Simulation had runtime errors"
+	|| echo $(RUNTIME_ERRORS)
   else
         # Simple execution
 	@echo "vista -exec ${EXE} ${RUNTIME_ARGS}"
 	@-time vista -exec ./${EXE} ${RUN_TIME_ARGS}\
-        || echo "INFO: Simulation had runtime errors"
+        || echo $(RUNTIME_ERRORS)
   endif
   endif
  else
@@ -1043,18 +1059,18 @@ ifndef NORUN
         # Execution with a run-time configuration
 	@echo "${EXE} --rcfg ./${UNIT}_rcfg.xml ${RUNTIME_ARGS}"
 	@-time ./${EXE} --rcfg ./${UNIT}_rcfg.xml ${RUNTIME_ARGS}\
-        || echo "INFO: Simulation had runtime errors"
+        || echo $(RUNTIME_ERRORS)
   else
   ifneq "$(wildcard ./${UNIT}.dat)" ""
         # Execute streaming a data file into STDIN
 	@echo "${EXE} ${RUNTIME_ARGS} < $(wildcard ./${UNIT}.dat)"
 	@-time ./${EXE} ${RUNTIME_ARGS} < $(wildcard ./${UNIT}.dat)\
-	|| echo "INFO: Simulation had runtime errors"
+	|| echo $(RUNTIME_ERRORS)
   else
         # Simple execution
 	@echo "${EXE} ${RUNTIME_ARGS}"
 	@-time ./${EXE} ${RUNTIME_ARGS}\
-        || echo "INFO: Simulation had runtime errors"
+        || echo $(RUNTIME_ERRORS)
   endif
   endif
   endif

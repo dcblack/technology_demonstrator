@@ -72,10 +72,10 @@ int Software::sw_main(void)
 #define MatrixI(dest,rows,cols,ptr) LoadI32(dest,Mshape(rows,cols)); LoadI32(dest+1,ptr)
 
   // M0 = fill(0x0000BEAD)
-  Matrix  m0(3,4);
-  MatrixI(M0,3,4,0x0000);
-  SetRegX(R8,0xBEAD);
-  DoCmnd3(FILL,M0,R8);
+  Matrix  m0(3,4);          //< construct matrix object to hold matrix
+  MatrixI(M0,3,4,0x0000);   //< set registers to point to appropriate address of internal memory
+  SetRegX(R8,0xBEAD);       //< value to use during FILL operation
+  DoCmnd3(FILL,M0,R8);      //< fill the matrix with value
 
   // m1 = fill(0x1)
   Matrix  m1(3,4);
@@ -86,15 +86,17 @@ int Software::sw_main(void)
   // m2 = M0 + M1
   Matrix  m2(3,4);
   MatrixI(M2,3,4,0x0020);
-  DoCmnd4(MADD,M3,M0,M1);
+  DoCmnd4(MADD,M2,M0,M1);
 
-  // Store M0
+  // Store M0 (not supported by device -- expect error)
   LoadI32(R9,mem_addr);
-  DoCmnd3(STORE, R9,M2);
+  DoCmnd3(STORE,R9,M2);
+  exp[i-1] = UNSUPPORTED_ERROR;
 
   DoCmnd1(NOP);
   DoCmnd1(HALT);
-  
+  exp[i-1] = HALTED;
+
   int last=i;
   printf("INFO: Preparing to test %d commands\n",last);
 
@@ -113,7 +115,9 @@ int Software::sw_main(void)
     if (status == exp[i]) {
       printf("INFO: Status: %s\n",Mtx::status_cstr(status)); fflush(stdout);
     } else {
-      printf("ERROR: Status: %s\n",Mtx::status_cstr(status)); fflush(stdout);
+      printf("ERROR: Status: %s\n",Mtx::status_cstr(status));
+      printf("File: %s Line:%d\n",__FILE__,__LINE__-1);
+      fflush(stdout);
       ++error_count;
     }//endif
     // Read registers
@@ -131,7 +135,7 @@ int Software::sw_main(void)
     printf("INFO: Test PASSED.\n");
   } else {
     printf("INFO: Test FAILED with %d errors\n",error_count);
-    if (retcode == 0) retcode = 1;
+    if (retcode == 0) retcode = error_count;
   }//endif
 
   // exitcode closes device

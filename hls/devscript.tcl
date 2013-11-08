@@ -48,6 +48,7 @@ add_files -tb $src/registers.cpp
 # zedboard
 set part {xc7z020clg484-1}
 set period 10
+set uncertainty 4
 # names from following array are used foreach solutions
 set constraints(solution1) {}
 # ************CUSTOMIZE SOLUTIONS ABOVE HERE************
@@ -62,6 +63,7 @@ foreach solution [array names constraints] {
   }
   set_part $part
   create_clock -period $period -name default
+  set_clock_uncertainty $uncertainty
 
   # Directives
   if {$constraints($solution) != ""} {

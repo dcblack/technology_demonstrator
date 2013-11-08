@@ -222,7 +222,7 @@ CWHT := [37m
 CBLK := [38m
 # RULER makes it easier to spot areas of output from a long make invocation
 define RULER
-echo "$(BOLD)$(CRED)################################################################################$(NONE)"
+echo "$(BOLD)$(CBLU)################################################################################$(NONE)"
 endef
 # $(call REPORT_TITLE,Your title)
 define REPORT_TITLE

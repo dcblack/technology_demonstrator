@@ -4,6 +4,7 @@
 
 #include "matrix.h"
 #include <cstdlib>
+#include <iostream>
 #include <iomanip>
 #include <sstream>
 #ifdef CXX11
@@ -34,6 +35,19 @@ Matrix::Matrix(size_t r, size_t c, Pattern_t patt, string name) //< Constructor
 }
 
 //------------------------------------------------------------------------------
+Matrix::Matrix(size_t r, size_t c, string name) //< Constructor
+: m_rows(r)
+, m_cols(c)
+, m(0)
+, m_name(name)
+, m_id(next++)
+{
+  assert(m_rows!=0 & m_cols!=0);
+  assert(m_rows*m_cols <= MAX_MATRIX_SIZE);
+  m = new Data_t[m_rows*m_cols];
+}
+
+//------------------------------------------------------------------------------
 Matrix::Matrix(const Matrix& rhs) // Copy constructor
 : m_rows(rhs.m_rows)
 , m_cols(rhs.m_cols)
@@ -46,6 +60,7 @@ Matrix::Matrix(const Matrix& rhs) // Copy constructor
 
 //------------------------------------------------------------------------------
 Matrix& Matrix::operator=(const Matrix& rhs) { //< Assignment
+  if (this == &rhs) return *this; //< self-assignment
   m_id = next++;
   m_name = rhs.m_name;
   m_rows = rhs.m_rows;
@@ -58,11 +73,11 @@ Matrix& Matrix::operator=(const Matrix& rhs) { //< Assignment
 
 //------------------------------------------------------------------------------
 bool Matrix::operator== (const Matrix& rhs) { //< Compare
-  bool result = true;
-  for (Addr_t i=begin(); i!=end(); result && ++i) {
-    result &= (m[i] == rhs.m[i]);
+  if (m_rows != rhs.m_rows || m_cols != rhs.m_cols) return false;
+  for (Addr_t i=begin(); i!=end(); ++i) {
+    if (m[i] != rhs.m[i]) return false;
   }
-  return result;
+  return true;
 }
 
 //------------------------------------------------------------------------------
@@ -81,8 +96,23 @@ void Matrix::fill(Data_t value) {
 // Fill matrix with various patterns
 void Matrix::fill_patt(Pattern_t patt) {
   if (patt == NONE) return;
-  Data_t value = 0;
-  if (RANDOM <patt && patt<NONE) {
+  if (FILL0 <= patt && patt < RANDOM) {
+    switch (patt) {
+      case    FILL0: fill(1);          break;
+      case    FILL1: fill(0xC0EDBABE); break;
+      case    FILL2: fill(42);         break;
+      case    FILL3: fill(0xFACE);     break;
+      default      :                   break;
+    }
+  } else if (RANDOM <= patt && patt < PLUSMINUS) {
+    switch (patt) {
+      case   RAND10: randomize(  10); break;
+      case  RAND100: randomize( 100); break;
+      case RAND1000: randomize(1000); break;
+      default      : randomize();   break;
+    }
+  } else if (PLUSMINUS <= patt && patt < NONE) {
+    Data_t value = 0;
     // Incrementing/decrementing patterns
     for (Addr_t r=0; r!=m_rows; ++r) {
       for (Addr_t c=0; c!=m_cols; ++c) {
@@ -95,16 +125,6 @@ void Matrix::fill_patt(Pattern_t patt) {
         }
       }
     }
-  } else if (FILL0 <= patt && patt < RANDOM) {
-    switch (patt) {
-      case    FILL0: fill(1);          break;
-      case    FILL1: fill(0xC0EDBABE); break;
-      case    FILL2: fill(42);         break;
-      case    FILL3: fill(0xFACE);     break;
-      default      :                   break;
-    }
-  } else if (patt == RANDOM) {
-    randomize();
   } else /*RANDALL*/ {
 #ifdef CXX11
     fill_patt(distr(gen));
@@ -126,13 +146,16 @@ void Matrix::identity(Data_t value) {
 }
 
 //------------------------------------------------------------------------------
-void Matrix::randomize(void) {
+void Matrix::randomize(int mod) {
+  Data_t value;
   for (Addr_t i=begin(); i!=end(); ++i) {
 #ifdef CXX11
-    m[i] = gen();
+    value = gen();
 #else
-    m[i] = random();
+    value = random();
 #endif
+    if (mod != 0) value %= mod;
+    m[i] = value;
   }
 }
 
@@ -158,7 +181,7 @@ void Matrix::load(const Memory& mem, Addr_t from) {
 }
 
 //------------------------------------------------------------------------------
-void Matrix::store(Memory& mem, Addr_t to) {
+void Matrix::store(Memory& mem, Addr_t to) const {
   mem.iset(to++, Mshape(m_rows,m_cols));
   for (Addr_t i=begin(); i!=end(); ++i) {
     mem.iset(to++,m[i]);
@@ -166,17 +189,29 @@ void Matrix::store(Memory& mem, Addr_t to) {
 }
 
 //------------------------------------------------------------------------------
-string Matrix::dump(void) {
+string Matrix::to_string(const string& nm) const {
   ostringstream sout("");
   static const int aw = 3;
   static const int dw = 4;
   // Separator
-  sout << string(aw,'=') << "==";
+  string hdr;
+  hdr += string(aw,'=') + "==";
   for (Addr_t col=0; col!=m_cols; ++col) {
-    if (col != 0) sout << "==";
-    sout << string(dw,'=');
+    if (col != 0) hdr += "==";
+    hdr+= string(dw,'=');
   }
-  sout << "\n";
+  if (nm.size() > 0) {
+    if (nm.size() > hdr.size()-5) {
+      hdr = "== ";
+      hdr += nm;
+      hdr += " ==";
+    } else {
+      hdr[2] = ' ';
+      hdr[2+nm.size()+1] = ' ';
+      hdr.replace(3,nm.size(),nm);
+    }
+  }
+  sout << hdr << "\n";
 
   // Heading
   sout << setw(aw) << setfill(' ') << name() << "/ ";
@@ -208,4 +243,117 @@ string Matrix::dump(void) {
   return sout.str();
 }
 
+//------------------------------------------------------------------------------
+void Matrix::print(const string& nm) const {
+  cout << to_string(nm) << flush;
+}
+
+//------------------------------------------------------------------------------
+Matrix& Matrix::operator+=(Data_t rhs)
+{
+  for (Addr_t i=begin(); i!=end(); ++i) m[i] += rhs;
+  return *this;
+}
+
+//------------------------------------------------------------------------------
+Matrix& Matrix::operator-=(Data_t rhs)
+{
+  for (Addr_t i=begin(); i!=end(); ++i) m[i] -= rhs;
+  return *this;
+}
+
+//------------------------------------------------------------------------------
+Matrix& Matrix::operator*=(Data_t rhs)
+{
+  for (Addr_t i=begin(); i!=end(); ++i) m[i] *= rhs;
+  return *this;
+}
+
+//------------------------------------------------------------------------------
+Matrix& Matrix::operator+=(const Matrix& rhs)
+{
+  for (Addr_t i=begin(); i!=end(); ++i) m[i] += rhs.m[i];
+  return *this;
+}
+
+//------------------------------------------------------------------------------
+Matrix& Matrix::operator-=(const Matrix& rhs)
+{
+  for (Addr_t i=begin(); i!=end(); ++i) m[i] -= rhs.m[i];
+  return *this;
+}
+
+//------------------------------------------------------------------------------
+Matrix Matrix::operator+(Data_t rhs) const
+{
+  Matrix result(*this);
+  return result += rhs;
+}
+
+//------------------------------------------------------------------------------
+Matrix Matrix::operator-(Data_t rhs) const
+{
+  Matrix result(*this);
+  return result -= rhs;
+}
+
+//------------------------------------------------------------------------------
+Matrix Matrix::operator*(Data_t rhs) const
+{
+  Matrix result(*this);
+  return result *= rhs;
+}
+
+//------------------------------------------------------------------------------
+Matrix Matrix::operator+(const Matrix& rhs) const
+{
+  Matrix result(*this);
+  return result += rhs;
+}
+
+//------------------------------------------------------------------------------
+Matrix Matrix::operator-(const Matrix& rhs) const
+{
+  Matrix result(*this);
+  return result -= rhs;
+}
+
+//------------------------------------------------------------------------------
+Matrix Matrix::operator*(const Matrix& rhs) const //< matrix cross-product
+{
+  assert(m_cols == rhs.m_rows);
+  Matrix result(m_rows, rhs.m_cols);
+  for (Addr_t row=0; row!=m_rows; ++row) {
+    for (Addr_t col=0; col!=rhs.m_cols; ++col) {
+      Data_t sum = 0;
+      for (Addr_t i=0; i!=m_cols; ++i) {
+        sum += rc(row,i)*rhs.rc(i,col);
+      }
+      result.rc(row,col) = sum;
+    }
+  }
+  return result;
+}
+
+//------------------------------------------------------------------------------
+Matrix Matrix::transpose(void) const
+{
+  Matrix result(m_cols, m_rows);
+  for (Addr_t row=0; row!=m_rows; ++row) {
+    for (Addr_t col=0; col!=m_cols; ++col) {
+      result.rc(col,row) = rc(row,col);
+    }
+  }
+  return result;
+}
+
+//------------------------------------------------------------------------------
+Data_t Matrix::sum(void) const
+{
+  Data_t result = 0;
+  for (Addr_t i=begin(); i!=end(); ++i) result += m[i];
+  return result;
+}
+
+//------------------------------------------------------------------------------
 // The end

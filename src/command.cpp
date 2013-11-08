@@ -188,12 +188,31 @@ void Command::randomize(void) {
 #endif
 }
 
+static string cmd_state_name(Data_t status)
+{
+  string msg;
+  if (status == 0) msg += "IDLE ";
+  if (status & START            ) msg += "START ";
+  if (status & BUSY             ) msg += "BUSY ";
+  if (status & DONE             ) msg += "DONE ";
+  if (status & HALTED           ) msg += "HALTED ";
+  if (status & UNSUPPORTED_ERROR) msg += "UNSUPPORTED_ERROR ";
+  if (status & ADDRESS_ERROR    ) msg += "ADDRESS_ERROR ";
+  if (status & GENERIC_ERROR    ) msg += "GENERIC_ERROR ";
+  if (status & SHAPE_ERROR      ) msg += "SHAPE_ERROR ";
+  if (status & REGISTER_ERROR   ) msg += "REGISTER_ERROR ";
+  if (status & SHAPE_MISMATCH   ) msg += "SHAPE_MISMATCH ";
+  if (status & UNKNOWN_STATUS   ) msg += "UNKNOWN_STATUS ";
+  return msg;
+}
+
 //----------------------------------------------------------------------------
 string Command::result(void) {
-  string msg = (status <= GENERIC_ERROR)? cmd_state_name[status] : "UNKNOWN_ERROR";
+  string msg;
+  msg = cmd_state_name(status);
   if (status != expected) {
     msg += " != expected ";
-    msg += cmd_state_name[expected];
+    msg += cmd_state_name(expected);
     msg += " (ERROR)";
     ++errors;
   }

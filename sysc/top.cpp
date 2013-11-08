@@ -110,22 +110,22 @@ Top_module::Top_module(sc_module_name instance_name)
     tcpip_target   .reset( new tcpip_target_module   ("tcpip_target"   )  );
 #endif
     // Connectivity
-    tcpip_initiator->initiator_socket ( bus->target_socket                );
-    bus            ->initiator_socket ( dev->target_socket                );
+    tcpip_initiator->initiator_socket .bind( bus->target_socket                );
+    bus            ->initiator_socket .bind( dev->target_socket                );
 #ifdef HAVE_TCPIP_TARGET
-    dev            ->initiator_socket ( tcpip_target->target_socket       );
-    dev            ->interrupt_port   ( tcpip_target->interrupt_export    );
+    dev            ->initiator_socket .bind( tcpip_target->target_socket       );
+    dev            ->interrupt_port   .bind( tcpip_target->interrupt_export    );
 #endif
   } else {
     local_initiator.reset( new Local_initiator_module("local_initiator")  );
     mem            .reset( new Mem_module            ("mem", 1024*1024 )  );
     bus            .reset( new Bus_module            ("bus"            )  );
     // Connectivity
-    local_initiator->initiator_socket ( bus->target_socket                );
-    dev            ->initiator_socket ( bus->target_socket                );
-    bus            ->initiator_socket ( dev->target_socket                );
-    bus            ->initiator_socket ( mem->target_socket                );
-    dev            ->interrupt_port   ( local_initiator->interrupt_export );
+    local_initiator->initiator_socket .bind( bus->target_socket                );
+    dev            ->initiator_socket .bind( bus->target_socket                );
+    bus            ->initiator_socket .bind( dev->target_socket                );
+    bus            ->initiator_socket .bind( mem->target_socket                );
+    dev            ->interrupt_port   .bind( local_initiator->interrupt_export );
   }//endif
 
   // Register processes

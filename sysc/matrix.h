@@ -10,13 +10,16 @@
 #include <stdint.h>
 #include <cassert>
 #include <cstring>
+#include <string>
 #include <iostream>
+#include "memory.h"
 
 #ifdef UNIT_TEST
 #define VERBOSITY_ENABLED
 #endif
 
-#define check(expr) do { if (!(expr)) printf("ERROR: " #expr " failed on line %d of file %s\n",__LINE__,__FILE__); } while(0)
+// Assertion that cannot be turned off
+#define Massert(expr) do { if (!(expr)) printf("ERROR: " #expr " failed on line %d of file %s\n",__LINE__,__FILE__); } while(0)
 
 // DEFINITIONS
 //   shape    = rows << 16 + cols
@@ -66,81 +69,29 @@ struct Matrix
   , BITS=32
   , MAXDIM=(1<<(BITS/2))-1
   };
-  Matrix(size_t _rows, size_t _cols) //< Constructor (from new rows x cols)
-  : mtx(nullptr)
-#ifdef VERBOSITY_ENABLED
-  , m_id(next_id++)
-#endif
-  {
-    assert(sizeof(Mdata_t)>=BITS/8);
-    check(is_valid(_rows,_cols));
-    mtx = (Mdata_t*) malloc(sizeof(Mdata_t)*space(_rows,_cols));
-    mtx[SHAPE] = shape(_rows,_cols);
-    mtx[CAPACITY] = size();
-#ifdef VERBOSITY_ENABLED
-    if (s_verbosity) { std::cout << "Constructed #" << id() << "(" << _rows << "x" << _cols << ")" << std::endl; }
-    ++matrix_count;
-#endif
-  }
-  Matrix(size_t max); // Construct random matrix
-  Matrix(Mdata_t* ptr, size_t bytes) //< Constructor (from remotely constructed)
-  : mtx(nullptr)
-#ifdef VERBOSITY_ENABLED
-  , m_id(next_id++)
-#endif
-  {
-    check(size(ptr[SHAPE]) > 0 && size(ptr[SHAPE])<ptr[CAPACITY] && ptr[CAPACITY]+BASE < bytes);
-    mtx = ptr;
-#ifdef VERBOSITY_ENABLED
-    if (s_verbosity) { std::cout << "Constructed remotely #" << id() << "(" << rows() << "x" << cols() << ") from ptr" << std::endl; }
-    ++matrix_count;
-#endif
-  }
-  Matrix(Mdata_t* ptr, size_t _rows, size_t _cols) //< Constructor (from existing memory, but not initialized)
-  : mtx(nullptr)
-#ifdef VERBOSITY_ENABLED
-  , m_id(next_id++)
-#endif
-  {
-    mtx = ptr;
-    mtx[SHAPE] = shape(_rows,_cols);
-    mtx[CAPACITY] = size();
-#ifdef VERBOSITY_ENABLED
-    if (s_verbosity) { std::cout << "Constructed #" << id() << "(" << _rows << "x" << _cols << ") from uninitialized" << std::endl; }
-    ++matrix_count;
-#endif
-  }
-  Matrix(const Matrix& rhs) //< Copy constructor
-  : mtx(nullptr)
-#ifdef VERBOSITY_ENABLED
-  , m_id(next_id++)
-#endif
-  {
-#ifdef VERBOSITY_ENABLED
-    if (s_verbosity) { std::cout << "Copy constructing #" << id() << "(" << rhs.rows() << "x" << rhs.cols() << ")" << " from #" << rhs.id() << std::endl; }
-    ++matrix_count;
-#endif
-    mtx = (Mdata_t*) malloc(sizeof(Mdata_t)*rhs.alloc());
-    memcpy(mtx,rhs.mtx,sizeof(Mdata_t)*(rhs.alloc()));
-  }
+  enum Pattern_t
+  { RANDALL, FILL0, FILL1, FILL2, FILL3, RANDOM
+  , PLUSMINUS, MINUS2, PLUS1, MINUS1, PLUS3
+  , NONE
+  };
+  Matrix(size_t _rows, size_t _cols); //< Constructor (from new rows x cols)
+  Matrix(size_t max); // Random matrix constructor
+  Matrix(Mdata_t* ptr, size_t bytes); //< Constructor (from remotely constructed)
+  Matrix(Mdata_t* ptr, size_t _rows, size_t _cols); //< Constructor (from existing memory, but not initialized)
+  Matrix(const Matrix& rhs); //< Copy constructor
   virtual ~Matrix(void); //< Destructor
-  Matrix& operator=(const Matrix& rhs) { //< Assignment
-#ifdef VERBOSITY_ENABLED
-    if (s_verbosity) { std::cout << "Assigning #" << id() << std::endl; }
-#endif
-    if (this == &rhs) return *this; //< self-assignment
-    check(space() >= rhs.space());
-    memcpy(&mtx[SHAPE],&rhs.mtx[SHAPE],sizeof(Mdata_t)*(rhs.space()));
-    return *this;
-  }
+  Matrix& operator=(const Matrix& rhs); //< Assignment
   // Compare
   bool operator==(const Matrix& rhs) const { return shape() == rhs.shape() && memcmp(mtx,rhs.mtx,sizeof(Mdata_t)*size()) == 0; }
   bool operator!=(const Matrix& rhs) const { return !(*this == rhs); }
   // Indexing/sizing operations
-  Mdata_t&       at       (size_t x, size_t y)         { check((x+1)*(y+1)<=size()); return mtx[index(x,y)]; }
-  const Mdata_t& at       (size_t x, size_t y) const   { check((x+1)*(y+1)<=size()); return mtx[index(x,y)]; }
-  Mdata_t&       at       (size_t i)                   { check(i<size()); return mtx[index(i)]; }
-  const Mdata_t& at       (size_t i) const             { check(i<size()); return mtx[index(i)]; }
+  bool           contains (ssize_t x, ssize_t y);
+  bool           contains (ssize_t x, ssize_t y, const Matrix& rhs);
+  bool           contains (ssize_t x, ssize_t y, Shape_t shape);
+  Mdata_t&       at       (size_t x, size_t y)         { Massert((x+1)*(y+1)<=size()); return mtx[index(x,y)]; }
+  const Mdata_t& at       (size_t x, size_t y) const   { Massert((x+1)*(y+1)<=size()); return mtx[index(x,y)]; }
+  Mdata_t&       at       (size_t i)                   { Massert(i<size()); return mtx[index(i)]; }
+  const Mdata_t& at       (size_t i) const             { Massert(i<size()); return mtx[index(i)]; }
   Mdata_t&       last     (void)                       { return at(size()-1); }
   const Mdata_t& last     (void) const                 { return at(size()-1); }
   Mdata_t&       first    (void)                       { return at(begin()); }
@@ -197,7 +148,11 @@ struct Matrix
   // Special
   enum class Kind { identity, lower, upper, shape };
   void fill(Kind kind = Kind::shape); // Use for directed testing
-  static Matrix identity(size_t dim) { Matrix sq(dim,dim); sq.fill(Kind::identity); return sq; }
+  void fill_patt (Pattern_t patt=PLUS1);
+  void load(const Memory& m, Addr_t from);
+  void store(Memory& m, Addr_t to);
+  std::string dump    (std::string name="");
+  static Matrix identity_matrix(size_t dim) { Matrix sq(dim,dim); sq.fill(Kind::identity); return sq; }
   void randomize(size_t zeroes=0, size_t negative=0);
   static void zap(Mdata_t* mtx, Mdata_t rhs);
 private:

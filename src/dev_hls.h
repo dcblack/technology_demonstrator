@@ -154,22 +154,22 @@ enum Operation_t // Operations {:TODO:_not_all_implemented:}
 };
 
 enum CmdState_t
-{ IDLE               = 0 // waiting
-, START              = 1 // begin executing
-, BUSY               = 2 // active
-, DONE               = 3 // completed command
-, HALTED             = 4 // result of STOP command
-, UNSUPPORTED_ERROR  = 5
-, ADDRESS_ERROR      = 6
-, GENERIC_ERROR      = 7
-, SHAPE_ERROR        = 0x10
-, REGISTER_ERROR     = 0x20
-, SHAPE_MISMATCH     = 0x30
-, UNKNOWN_STATUS     = 0x31
+{ IDLE               = 0       // waiting
+, START              = 1 <<  0 // begin executing
+, BUSY               = 1 <<  1 // active
+, DONE               = 1 <<  2 // completed command
+, HALTED             = 1 <<  3 // result of STOP command
+, UNSUPPORTED_ERROR  = 1 <<  4
+, ADDRESS_ERROR      = 1 <<  5
+, GENERIC_ERROR      = 1 <<  6
+, SHAPE_ERROR        = 1 <<  7
+, REGISTER_ERROR     = 1 <<  8
+, SHAPE_MISMATCH     = 1 <<  9
+, UNKNOWN_STATUS     = 1 << 10
 };
-#define STATE_BITS 0xFF
-#define EXEC_BIT   0x100
-#define INTR_BIT   0x800
+#define STATE_BITS 0xFFF
+#define EXEC_BIT   0x1000
+#define INTR_BIT   0x4000
 #define AUTOMATIC(status) (((status) & (EXEC_BIT|STATE_BITS)) == (EXEC_BIT|DONE))
 
 // Helpful aliases

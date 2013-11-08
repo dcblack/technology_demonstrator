@@ -90,7 +90,7 @@ void Bus_module::invalidate_direct_mem_ptr( int id, sc_dt::uint64 start_range,
     target_socket[i]->invalidate_direct_mem_ptr(bw_start_range, bw_end_range);
 }
 
-// Memory is divided into 1 GB chunks
+// Memory is divided into 1 GB chunks (i.e. there are only 4 targets)
 unsigned int Bus_module::decode_address( sc_dt::uint64 address, sc_dt::uint64& masked_address )
 {
   masked_address = address & (1_GB-1);

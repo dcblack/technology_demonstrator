@@ -15,12 +15,12 @@ struct Command
 #endif
 
   // Attributes
-  Data_t   command;
-  Data_t   m_reg[REGS];
-  Data_t   m_reg_mirror[REGS];
-  bool     m_changed[REGS];
-  CmdState_t status;
-  CmdState_t expected;
+  Data_t     command;
+  Data_t     m_reg[REGS];
+  Data_t     m_reg_mirror[REGS];
+  bool       m_changed[REGS];
+  Data_t     status;
+  Data_t     expected;
   // Methods
   Command //< Constructor
     ( Operation_t   op   = NOP
