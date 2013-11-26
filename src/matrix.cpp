@@ -3,6 +3,15 @@
 //------------------------------------------------------------------------------
 
 #include "matrix.h"
+#ifdef USING_HARDWARE
+#include "dev.h"
+#include "xdev_hls_hw.h"
+#else
+class Dev
+{
+  void* dev;
+};
+#endif
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
@@ -14,7 +23,10 @@
 using namespace std;
 
 //------------------------------------------------------------------------------
-int    Matrix::next = 0;
+// Static information
+size_t Matrix::next_id = 0;
+Dev*   Matrix::dev     = 0;
+
 #ifdef CXX11
 std::default_random_engine Matrix::gen;
 Matrix::Pattern_distribution       Matrix::distr(Matrix::FILL0,Matrix::RANDOM);
@@ -25,12 +37,25 @@ Matrix::Matrix(size_t r, size_t c, Pattern_t patt, string name) //< Constructor
 : m_rows(r)
 , m_cols(c)
 , m(0)
+, m_reg(UNUSED)
+, m_addr(0)
+, m_hard(false)
 , m_name(name)
-, m_id(next++)
+, m_id(next_id++)
 {
   assert(m_rows!=0 & m_cols!=0);
   assert(m_rows*m_cols <= MAX_MATRIX_SIZE);
+#ifdef USING_HARDWARE
+  if (dev != 0)
+  {
+    alloc_mem();
+    m_hard = true;
+  }
+  else
+#endif
+  {
   m = new Data_t[m_rows*m_cols];
+  }
   fill_patt(patt);
 }
 
@@ -39,34 +64,86 @@ Matrix::Matrix(size_t r, size_t c, string name) //< Constructor
 : m_rows(r)
 , m_cols(c)
 , m(0)
+, m_reg(UNUSED)
+, m_addr(0)
+, m_hard(false)
 , m_name(name)
-, m_id(next++)
+, m_id(next_id++)
 {
   assert(m_rows!=0 & m_cols!=0);
   assert(m_rows*m_cols <= MAX_MATRIX_SIZE);
+#ifdef USING_HARDWARE
+  if (dev != 0)
+  {
+    alloc_mem();
+    m_hard = true;
+  }
+  else
+#endif
+  {
   m = new Data_t[m_rows*m_cols];
+  }
 }
 
 //------------------------------------------------------------------------------
-Matrix::Matrix(const Matrix& rhs) // Copy constructor
+Matrix::Matrix(const Matrix& rhs) //< Copy constructor
 : m_rows(rhs.m_rows)
 , m_cols(rhs.m_cols)
-, m(new Data_t[m_rows*m_cols])
+, m(0)
+, m_reg(UNUSED)
+, m_addr(0)
+, m_hard(false)
 , m_name(rhs.m_name)
-, m_id(next++)
+, m_id(next_id++)
 {
+#ifdef USING_HARDWARE
+  if (dev != 0)
+  {
+    alloc_mem();
+    m_hard = true;
+  }
+  else
+#endif
+  {
+  m = new Data_t[m_rows*m_cols];
+  }
   for (Addr_t i=begin(); i!=end(); ++i) m[i] = rhs.m[i];
+}
+
+//------------------------------------------------------------------------------
+Matrix::~Matrix(void) //< Destructor
+{
+  if (m && !m_hard) {
+    delete[] m;
+    m=0;
+  }
+  if (using_reg()) free_reg();
+  if (using_mem()) free_mem();
 }
 
 //------------------------------------------------------------------------------
 Matrix& Matrix::operator=(const Matrix& rhs) { //< Assignment
   if (this == &rhs) return *this; //< self-assignment
-  m_id = next++;
+  m_id = next_id++;
   m_name = rhs.m_name;
   m_rows = rhs.m_rows;
   m_cols = rhs.m_cols;
-  delete[] m;
-  m = new Data_t[m_rows*m_cols];
+  m_reg  = UNUSED;
+  m_addr = 0;
+  m_hard = false;
+#ifdef USING_HARDWARE
+  if (dev != 0)
+  {
+    free_mem();
+    alloc_mem();
+    m_hard = true;
+  }
+  else
+#endif
+  {
+    delete[] m;
+    m = new Data_t[m_rows*m_cols];
+  }
   for (Addr_t i=begin(); i!=end(); ++i) m[i] = rhs.m[i];
   return *this;
 }
@@ -127,6 +204,7 @@ void Matrix::fill_patt(Pattern_t patt) {
     }
   } else /*RANDALL*/ {
 #ifdef CXX11
+    // Use C++11 random distribution engine
     fill_patt(distr(gen));
 #else
     fill_patt(Pattern_t(random()%(NONE+1)));
@@ -150,6 +228,7 @@ void Matrix::randomize(int mod) {
   Data_t value;
   for (Addr_t i=begin(); i!=end(); ++i) {
 #ifdef CXX11
+    // Use C++11 random distribution engine
     value = gen();
 #else
     value = random();
@@ -161,19 +240,21 @@ void Matrix::randomize(int mod) {
 
 //------------------------------------------------------------------------------
 string Matrix::name(void) const  {
+  if (m_name.length() != 0) return m_name;
   ostringstream sout("");
-  if (m_name.length() == 0) sout << "m" << m_id;
-  else                      sout << m_name;
+  sout << "m" << m_id;
   return sout.str();
 }
 
 //------------------------------------------------------------------------------
 void Matrix::load(const Memory& mem, Addr_t from) {
+  // Load from device into normal memory
   Addr_t shape = mem.iget(from++);
   assert(shape != 0 && Msize(shape) < MAX_MATRIX_SIZE);
-  delete[] m;
   m_rows = Mrows(shape);
   m_cols = Mcols(shape);
+  m_hard = false;
+  delete[] m;
   m = new Data_t[m_rows*m_cols];
   for (Addr_t i=begin(); i!=end(); ++i) {
     m[i] = mem.iget(from++);
@@ -353,6 +434,69 @@ Data_t Matrix::sum(void) const
   Data_t result = 0;
   for (Addr_t i=begin(); i!=end(); ++i) result += m[i];
   return result;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Hardware API aids
+
+//------------------------------------------------------------------------------
+int  Matrix::get_reg(size_t reg)
+{
+#ifdef USING_HARDWARE
+  return dev->get_reg(reg);
+#else
+  assert(0);
+  return 0;
+#endif
+}
+
+//------------------------------------------------------------------------------
+void Matrix::set_reg(size_t reg, int val)
+{
+#ifdef USING_HARDWARE
+  dev->set_reg(reg,val);
+#else
+  assert(0);
+#endif
+}
+
+//------------------------------------------------------------------------------
+bool Matrix::alloc_reg(void)
+{
+#ifdef USING_HARDWARE
+  return dev->alloc_reg(*this);
+#else
+  assert(0);
+  return false;
+#endif
+}
+
+//------------------------------------------------------------------------------
+void Matrix::free_reg(void)
+{
+#ifdef USING_HARDWARE
+  dev->free_reg(*this);
+#else
+#endif
+}
+
+//------------------------------------------------------------------------------
+bool Matrix::alloc_mem(void)
+{
+#ifdef USING_HARDWARE
+  return dev->alloc_mem()
+#else
+  return false;
+#endif
+}
+
+//------------------------------------------------------------------------------
+void Matrix::free_mem(void)
+{
+#ifdef USING_HARDWARE
+  dev->free_mem(*this);
+#else
+#endif
 }
 
 //------------------------------------------------------------------------------
