@@ -32,14 +32,13 @@ struct Dev_module
   void     interrupt     ( void );
 private:
   sc_dt::uint64     m_register_count; //< number of registers in this device
-  Data_t*           m_register; // register array
+  volatile Data_t*  m_register; // register array
   int               m_byte_width; //< byte width of socket
   sc_core::sc_time  m_latency;
   Axibus*           m_axibus;
-  Data_t            m_imem[IMEM_SIZE];
+  volatile Data_t   m_imem[IMEM_SIZE];
   sc_core::sc_event m_register_write_event;
 };
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // $License: Apache 2.0 $ <<<
