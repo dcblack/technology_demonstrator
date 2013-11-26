@@ -1,6 +1,10 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
+// DESCRIPTION
+//   This class mirrors the hardware design's registers. It is used both to set and send
+//   desired commands, and compare the results against expectations.
+
 #include "dev_hls.h"
 #ifdef CXX11
 #include <random>
