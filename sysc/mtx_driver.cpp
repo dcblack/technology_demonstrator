@@ -107,7 +107,7 @@ const char* Mtx::command_cstr(int cmd)
 
 const char* Mtx::status_cstr(int status)
 {
-  return cmd_state_name[status];
+  return cmd_state_name(status).c_str();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
