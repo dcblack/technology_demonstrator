@@ -66,8 +66,8 @@ typedef Data_t              AxiM_t;
 #define ALIGN_CMND  0x3
 
 Data_t dev_hls
-( Data_t   reg[REGISTERS]
-, Data_t   mem[IMEM_SIZE]
+( volatile Data_t   reg[REGISTERS]
+, volatile Data_t   mem[IMEM_SIZE]
 );
 
 // Matrix points to a shape followed by the array itself
@@ -115,6 +115,8 @@ enum Reg_t     // Word offsets for registers (32 bits each)
 , BASE=16      // AXI base address
 , COMMAND      // Opcode, Dest, Src1, Src2
 , STATUS       // Status register
+, LAST_REG
+, UNUSED=-1
 };
 
 inline Addr_t Mrows (Addr_t shape) { return (shape>>H_SHFT) & L_MASK; }
@@ -127,23 +129,23 @@ inline Addr_t Mindex(Addr_t cols, Addr_t x, Addr_t y) { return x*cols + y + 1; }
 inline bool   Msquare(Addr_t shape) { return Mrows(shape) == Mcols(shape); }
 inline bool   Mvalid(Addr_t ptr) { return ptr<=IMEM_LAST; }
 
-enum Operation_t // Operations {:TODO:_not_all_implemented:}
+enum Operation_t // Operations
 { NOP    //  no operation
-, LOAD   //{:M(R(dest)) = xmem(base+R(src1)):}
-, STORE  //{:xmem(base+R(src1)) = M(R(dest)):}
+, LOAD   //{:M(R(dest)) = xmem(base+R(src1)):} // NOT_YET_IMPLEMENTED
+, STORE  //{:xmem(base+R(src1)) = M(R(dest)):} // NOT_YET_IMPLEMENTED
 , MCOPY  //  M(dest) = M(src1);
 , MADD   //  M(dest) = M(src1) + M(src2); // matrix add
 , MSUB   //  M(dest) = M(src1) - M(src2); // matrix subtract
 , RSUB   //  M(dest) = M(src2) - M(src1); // matrix reverse subtract
-, MMUL   //{:M(dest) = M(src1) x M(src2); // matrix multiply:}
+, MMUL   //  M(dest) = M(src1) x M(src2); // matrix multiply
 , KMUL   //  M(dest) = R(src1) * M(src2)[i]; // constant multiply
-, MSUM   //{:R(dest) = sum(M(src1)[i]);   // sum of elements:}
-, MDET0  //{:R(dest) = determinant(M0);:}
-, EQUAL  //{:R(dest) = M(dest) == M(src1); // compare:}
+, MSUM   //  R(dest) = sum(M(src1)[i]);   // sum of elements
+, MDET0  //{:R(dest) = determinant(M0);:} // NOT_YET_IMPLEMENTED
+, EQUAL  //  R(dest) = M(dest) == M(src1); // compare
 , MZERO  //  R(dest) = sum(M(src)[i]==0); // count zeroes
-, TRANS  //{:M(dest) = transpose(M(src1));:}
+, TRANS  //  M(dest) = transpose(M(src1));
 , FILL   //  M(dest) = R(src1); // fill matrix
-, IDENT  //{:M(dest) = indentity(R2);:}
+, IDENT  //  M(dest) = identity(R(src1));
 , RCOPY  //  R(dest) = R(src1); // register copy
 , RSETX  //  R(dest)[31:00] = (src1<<8)|src2; // register set with sign-extend
 , RSETH  //  R(dest)[31:16] = (src1<<8)|src2; // register set hi
@@ -165,7 +167,8 @@ enum CmdState_t
 , SHAPE_ERROR        = 1 <<  7
 , REGISTER_ERROR     = 1 <<  8
 , SHAPE_MISMATCH     = 1 <<  9
-, UNKNOWN_STATUS     = 1 << 10
+, DESTINATION_ERROR  = 1 << 10
+, UNKNOWN_STATUS     = 1 << 11
 };
 #define STATE_BITS 0xFFF
 #define EXEC_BIT   0x1000
