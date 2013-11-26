@@ -3,8 +3,9 @@
 
 // DESCRIPTION
 //   Models memory as two arrays, imem & xmem, along with mirrors to aid tracking.
-//   current model uses only imem (internal memory). xmem is intended for use with
-//   an external AXI based memory via an AXI master bus interface (future).
+//   Current model uses only imem (internal memory). xmem is intended for use with
+//   an external AXI based memory via an AXI master bus interface (future design
+//   enhancement).
 
 #include "dev_hls.h"
 #include <string>
