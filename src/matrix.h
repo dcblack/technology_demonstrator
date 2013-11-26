@@ -1,13 +1,20 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
+// DESCRIPTION
+//   This class provides a convenience layer for matrix
+//   operations.
+
 #include "dev_hls.h"
 #include "memory.h"
 #include <string>
 #include <cassert>
+#include <map>
 #ifdef CXX11
 #include <random>
 #endif
+
+class Dev;
 
 struct Matrix
 {
@@ -17,24 +24,12 @@ struct Matrix
   , NONE
   };
 
-  static int    next;
-#ifdef CXX11
-  typedef std::uniform_int_distribution<Matrix::Pattern_t> Pattern_distribution;
-  static std::default_random_engine gen;
-  static Pattern_distribution       distr;
-#endif
-
-  // Attributes
-  Addr_t  m_rows, m_cols;
-  Data_t* m;
-  std::string  m_name;
-
   // Methods
   Matrix(size_t r, size_t c, Pattern_t patt=NONE, std::string name=""); //< Constructor
   Matrix(size_t r, size_t c, std::string name); //< Constructor
-  Matrix(const Matrix& rhs); // Copy constructor
+  Matrix(const Matrix& rhs); //< Copy constructor
   Matrix& operator=(const Matrix& rhs); //< Assignment
-  ~Matrix(void) { delete[] m; }
+  ~Matrix(void); //< Destructor
   Addr_t rows(void)  const   { return m_rows; }
   Addr_t cols(void)  const   { return m_cols; }
   Addr_t size(void)  const   { return m_rows*m_cols; }
@@ -51,7 +46,7 @@ struct Matrix
   Addr_t shape(void) const { return Mshape(m_rows, m_cols); }
   Addr_t begin(void) const { return 0; }
   Addr_t end(void)   const { return size(); }
-  int id(void)       const { return m_id; }
+  size_t id(void)    const { return m_id; }
   std::string name(void) const;
   void set_name(std::string name) { m_name = name; }
   bool operator== (const Matrix& rhs); //< Compare
@@ -82,9 +77,43 @@ struct Matrix
   // typedef std::pair<Addr_t,Addr_t> Rc;
   // typedef std::pair<Rc,Rc> Submatrix; // first < second
   // void copy(Submatrix dst, const Matrix& rhs, Submatrix src);
+  bool is_valid(void) const { return ( (!using_mem() && !using_reg())
+                                     ||( using_mem() &&  using_reg())
+                                     );
+  }
+  friend class Dev;
+
+#ifdef CXX11
+  typedef std::uniform_int_distribution<Matrix::Pattern_t> Pattern_distribution;
+  static std::default_random_engine gen;
+  static Pattern_distribution       distr;
+#endif
 
 private:
-  int m_id;
+  // Attributes
+  Addr_t          m_rows;
+  Addr_t          m_cols;
+#ifdef USING_HARDWARE
+  volatile
+#endif
+  Data_t*         m;
+  Reg_t           m_reg;
+  size_t          m_addr;
+  bool            m_hard;
+  std::string     m_name;
+  size_t          m_id;
+  static size_t   next_id;
+  static Dev*     dev;
+  // Helpers
+  static int get_reg(size_t reg);
+  static void set_reg(size_t reg, int val);
+  bool alloc_reg(void);
+  void free_reg(void);
+  bool alloc_mem(void);
+  void free_mem(void);
+  bool using_reg(void) const { return m_reg != -1; }
+  bool using_mem(void) const { return (m_addr != 0); }
+
 };//endclass Matrix
 
 
