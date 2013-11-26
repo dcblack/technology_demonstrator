@@ -5,6 +5,7 @@
 #include <vector>
 
 ////////////////////////////////////////////////////////////////////////////////
+// This represents the main software running on the ESL core.
 int Software::sw_main(void)
 {
   const size_t KB = 1024;
