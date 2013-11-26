@@ -1,0 +1,16 @@
+TOOLS
+=====
+
+This is a quick description of the tools and versions needed to work on this project.
+
+* C++ compiler capable of compiling C++2011 or better
+  - g++ 4.7
+  - clang 3.4
+  - or MSVC++ 2013
+* Performance analysis tools (processor profiling)
+  - Google Performance Tools gperftools-2.1
+* Xilinx Vivado HLS 2013.2 or better
+* Xilinx Vivado 2013.2 or better
+* SystemC PoC library version 2.3 or better
+
+END vim:syntax=markdown

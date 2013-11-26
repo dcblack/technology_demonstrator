@@ -1,0 +1,3 @@
+This directory contains an application that using matrix
+operations that can be profiled to illustrate performance
+issues.
