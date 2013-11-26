@@ -132,9 +132,9 @@ void Dev_module::b_transport(tlm::tlm_generic_payload& trans, sc_time& delay)
 
   // Obliged to implement read and write commands
   if ( command == tlm::TLM_READ_COMMAND ) {
-    memcpy(data_ptr, &m_register[address/m_byte_width], data_length);
+    memcpy((void*) data_ptr, (void*) &m_register[address/m_byte_width], data_length);
   } else if ( command == tlm::TLM_WRITE_COMMAND ) {
-    memcpy(&m_register[address/m_byte_width], data_ptr, data_length);
+    memcpy((void*) &m_register[address/m_byte_width], (void*) data_ptr, data_length);
     // Notify execution
     m_register_write_event.notify();
   }//endif
@@ -183,10 +183,10 @@ unsigned int Dev_module::transport_dbg(tlm::tlm_generic_payload& trans)
 
   // Obliged to implement read and write commands
   if ( command == tlm::TLM_READ_COMMAND ) {
-    memcpy(data_ptr, &m_register[address/m_byte_width], data_length);
+    memcpy((void*) data_ptr, (void*) &m_register[address/m_byte_width], data_length);
     transferred = data_length;
   } else if ( command == tlm::TLM_WRITE_COMMAND ) {
-    memcpy(&m_register[address/m_byte_width], data_ptr, data_length);
+    memcpy((void*) &m_register[address/m_byte_width], (void*) data_ptr, data_length);
     transferred = data_length;
   }//endif
 
