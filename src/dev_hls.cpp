@@ -8,22 +8,22 @@
 #define SET_REG(r, data) reg[r] = data;
 #define GET_REG(r, data) data = reg[r];
 
-#define VALIDATE_REGISTER(r)             \
-if ( 15<r ) {                            \
+#define VALIDATE_REGISTER(r) \
+if ( 15<r ) {                \
   retcode |= REGISTER_ERROR; \
-  break;                                 \
+  break;                     \
 } else ;
 
-#define VALIDATE_MATRIX(r)               \
-if ( 14<r || r&1) {                      \
+#define VALIDATE_MATRIX(r)   \
+if ( 14<r || r&1) {          \
   retcode |= REGISTER_ERROR; \
-  break;                                 \
+  break;                     \
 } else ;
 
 
-Data_t dev_hls
-( Data_t  reg[REGISTERS]
-, Data_t  mem[IMEM_SIZE]
+Data_t dev_hls 
+( volatile Data_t  reg[REGISTERS]
+, volatile Data_t  mem[IMEM_SIZE]
 )
 {
 
@@ -108,7 +108,7 @@ Data_t dev_hls
       case LOAD:
       {
         //{:TODO:Implement AXI4 Master interface to external memory:}
-        retcode |= UNSUPPORTED_ERROR;
+        retcode |= UNSUPPORTED_ERROR; // NOT_YET_IMPLEMENTED
         break;
       }
 
@@ -117,7 +117,7 @@ Data_t dev_hls
       case STORE:
       {
         //{:TODO:Implement AXI4 Master interface to external memory:}
-        retcode |= UNSUPPORTED_ERROR;
+        retcode |= UNSUPPORTED_ERROR; // NOT_YET_IMPLEMENTED
         break;
       }
 
@@ -246,7 +246,6 @@ Data_t dev_hls
         break;
       }
 
-      //{:TODO - additional commands:}
       //--------------------------------------------------------------------------
       // Operation: Matrix multiply
       case MMUL:  // R(dest) = M(src1) x M(src2)
@@ -305,7 +304,7 @@ Data_t dev_hls
         break;
       }
       //--------------------------------------------------------------------------
-      //{:Operation: Sum of elements:}
+      //Operation: Sum of elements
       case MSUM:  // R(dest) = sum(M(src1)[i]);
       {
         Addr_t src1_ptr;
@@ -332,14 +331,14 @@ Data_t dev_hls
         break;
       }
       //--------------------------------------------------------------------------
-      //{:peration: Determinant:}
+      //{:Operation: Determinant:}
       case MDET0: // R(dest) = determinant(M0);
       {
-        retcode |= UNSUPPORTED_ERROR;
+        retcode |= UNSUPPORTED_ERROR; // NOT_YET_IMPLEMENTED
         break;
       }
       //--------------------------------------------------------------------------
-      //{:Operation: Compare matrices:}
+      //Operation: Compare matrices
       case EQUAL: // R(dest) = M(src1) == M(src2);
       {
         Addr_t src1_ptr, src2_ptr;
@@ -378,10 +377,50 @@ Data_t dev_hls
         break;
       }
       //--------------------------------------------------------------------------
-      //{:Operation: Matrix transpose:}
+      //Operation: Matrix transpose
       case TRANS: // M(dest) = transpose(M(src1));
       {
-        retcode |= UNSUPPORTED_ERROR;
+        Addr_t dest_ptr, src1_ptr;
+        Data_t dest_shape, src1_shape;
+        unsigned int dest_rows, src1_rows, src1_cols;
+
+        VALIDATE_MATRIX(dest)
+        GET_REG(dest,dest_shape)
+        GET_REG(dest+1,dest_ptr)
+
+        VALIDATE_MATRIX(src1)
+        GET_REG(src1,src1_shape)
+        GET_REG(src1+1,src1_ptr)
+        src1_rows = Mrows(src1_shape);
+        src1_cols = Mcols(src1_shape);
+
+        if (!Mvalid(dest_ptr)
+         || !Mvalid(src1_ptr)
+         ) {
+          retcode |= ADDRESS_ERROR;
+          break;
+        }
+        if (Msize(dest_shape) != Msize(src1_shape)) {
+          retcode |= SHAPE_MISMATCH;
+          break;
+        }
+        if (dest_ptr == src1_ptr) {
+          retcode |= DESTINATION_ERROR;
+          break;
+        }
+
+        Data_t dest_data, src1_data;
+        Addr_t dest_indx, src1_indx;
+        for (unsigned int r=0; r!= src1_rows; ++r) {
+          for (unsigned int c=0; c!= src1_cols; ++c) {
+            dest_indx = Mindex(src1_cols,r,c);
+            src1_indx = Mindex(src1_cols,c,r);
+            src1_data = mem[src1_ptr+src1_indx];
+            mem[dest_ptr+dest_indx] = src1_data;
+          }
+        }
+
+        retcode |= DONE;
         break;
       }
       //--------------------------------------------------------------------------
@@ -404,10 +443,28 @@ Data_t dev_hls
         break;
       }
       //--------------------------------------------------------------------------
-      //{:Operation: Set matrix to identity:}
+      //Operation: Set matrix to identity
       case IDENT: // M(dest) = indentity(R2);
       {
-        retcode |= UNSUPPORTED_ERROR;
+        VALIDATE_MATRIX(dest)
+        VALIDATE_REGISTER(src1)
+        Data_t fill;
+        GET_REG(src1,fill)
+        Addr_t dest_ptr;
+        Data_t dest_shape;
+        GET_REG(dest,dest_shape)
+        unsigned int dest_rows, dest_cols;
+        dest_cols = Mrows(dest_shape);
+        dest_cols = Mcols(dest_shape);
+        GET_REG(dest+1,dest_ptr)
+        Addr_t dest_indx;
+        IDENT_LOOP:
+        for (unsigned int r=0; r!= dest_rows; ++r) {
+          for (unsigned int c=0; c!= dest_cols; ++c) {
+            mem[dest_ptr++] = (r==c)?fill:0;
+          }
+        }
+        retcode |= DONE;
         break;
       }
       //--------------------------------------------------------------------------
@@ -470,6 +527,7 @@ Data_t dev_hls
     }//endswitch
 
   }
+  reg[STATUS] = retcode;
   return retcode;
 }
 // The end
