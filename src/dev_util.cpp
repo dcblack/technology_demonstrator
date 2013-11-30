@@ -33,6 +33,7 @@ const char * const operation_name[] =
 , "RSUB "
 , "MMUL "
 , "KMUL "
+, "KADD "
 , "MSUM "
 , "MDET0"
 , "EQUAL"
@@ -52,18 +53,21 @@ const char * const operation_name[] =
 string cmd_state_name(Data_t status)
 {
   string msg;
-  if (status == 0) msg += "IDLE ";
-  if (status & START            ) msg += "START ";
-  if (status & BUSY             ) msg += "BUSY ";
-  if (status & DONE             ) msg += "DONE ";
-  if (status & HALTED           ) msg += "HALTED ";
-  if (status & UNSUPPORTED_ERROR) msg += "UNSUPPORTED_ERROR ";
-  if (status & ADDRESS_ERROR    ) msg += "ADDRESS_ERROR ";
-  if (status & GENERIC_ERROR    ) msg += "GENERIC_ERROR ";
-  if (status & SHAPE_ERROR      ) msg += "SHAPE_ERROR ";
-  if (status & REGISTER_ERROR   ) msg += "REGISTER_ERROR ";
-  if (status & SHAPE_MISMATCH   ) msg += "SHAPE_MISMATCH ";
-  if (status & UNKNOWN_STATUS   ) msg += "UNKNOWN_STATUS ";
+  if ( status == 0                ) msg += "IDLE ";
+  else { // check each bit
+    if ( status & START             ) msg += "START ";
+    if ( status & BUSY              ) msg += "BUSY ";
+    if ( status & DONE              ) msg += "DONE ";
+    if ( status & HALTED            ) msg += "HALTED ";
+    if ( status & UNSUPPORTED_ERROR ) msg += "UNSUPPORTED_ERROR ";
+    if ( status & ADDRESS_ERROR     ) msg += "ADDRESS_ERROR ";
+    if ( status & GENERIC_ERROR     ) msg += "GENERIC_ERROR ";
+    if ( status & SHAPE_ERROR       ) msg += "SHAPE_ERROR ";
+    if ( status & REGISTER_ERROR    ) msg += "REGISTER_ERROR ";
+    if ( status & SHAPE_MISMATCH    ) msg += "SHAPE_MISMATCH ";
+    if ( status & DESTINATION_ERROR ) msg += "SHAPE_MISMATCH ";
+    if ( status & UNKNOWN_STATUS    ) msg += "UNKNOWN_STATUS ";
+  }
   return msg;
 }
 
