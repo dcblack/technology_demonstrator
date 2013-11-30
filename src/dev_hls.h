@@ -49,10 +49,10 @@ typedef Data_t              AxiM_t;
 #else /* standard C++ */
 #warning "INFO: Using standard C++"
 #include "stdint.h"
-typedef unsigned int        Addr_t;
-typedef int                 Data_t;
-typedef int                 Cmd_t;
-typedef Data_t              AxiM_t;
+typedef unsigned Addr_t;
+typedef int      Data_t;
+typedef int      Cmd_t;
+typedef Data_t   AxiM_t;
 #endif
 #endif
 
@@ -77,21 +77,21 @@ Data_t dev_hls
 // Array organized in row major order and contains 32
 // bit values thusly { D[0,0], D[0,1] ... }
 //
-// The following reaonably displays the matrix for small (<=18x18) matrices:
+// The following reaonably displays the matrix for small (<=18x18) matrices.
+// Use printf for compatibility when porting.
 #ifndef SYNTHESIS
-#include <iostream>
-#include <iomanip>
+#include <cstdio>
 static void display_matrix(Data_t* M) {
   std::size_t cols = ((*M)>>H_SHFT) & L_MASK;
   std::size_t rows =  (*M)      & L_MASK;
   for (int r = 0; r != rows; ++r) {
-    std::cout << std::setw(3) << r << ": ";
+    printf("%3d: ");
     for (int c = 0; c != cols; ++c) {
-      std::cout << std::setw(4) << M[ (r*cols) + c + 1 ] << " ";
+      printf("%4d ");
     }
-    std::cout << "\n";
+    printf("\n");
   }
-  std::cout << std::endl;
+  printf("\n");
 }
 #endif
 
@@ -139,6 +139,7 @@ enum Operation_t // Operations
 , RSUB   //  M(dest) = M(src2) - M(src1); // matrix reverse subtract
 , MMUL   //  M(dest) = M(src1) x M(src2); // matrix multiply
 , KMUL   //  M(dest) = R(src1) * M(src2)[i]; // constant multiply
+, KADD   //  M(dest) = R(src1) + M(src2)[i]; // constant multiply
 , MSUM   //  R(dest) = sum(M(src1)[i]);   // sum of elements
 , MDET0  //{:R(dest) = determinant(M0);:} // NOT_YET_IMPLEMENTED
 , EQUAL  //  R(dest) = M(dest) == M(src1); // compare
@@ -170,6 +171,7 @@ enum CmdState_t
 , DESTINATION_ERROR  = 1 << 10
 , UNKNOWN_STATUS     = 1 << 11
 };
+#define IS_OK(status) (status <= HALTED)
 #define STATE_BITS 0xFFF
 #define EXEC_BIT   0x1000
 #define INTR_BIT   0x4000
