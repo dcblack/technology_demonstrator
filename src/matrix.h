@@ -14,6 +14,12 @@
 #include <random>
 #endif
 
+#ifdef USING_HARDWARE
+#define VOLATILE volatile
+#else
+#define VOLATILE
+#endif
+
 class Dev;
 
 struct Matrix
@@ -34,15 +40,15 @@ struct Matrix
   Addr_t cols(void)  const   { return m_cols; }
   Addr_t size(void)  const   { return m_rows*m_cols; }
   Addr_t space(void) const   { return m_rows*m_cols+1; }
-  Data_t& operator[](int i)  { return m[i]; }
-  const Data_t& operator[](int i) const { return m[i]; }
+  VOLATILE Data_t& operator[](int i)  { return m[i]; }
+  VOLATILE const Data_t& operator[](int i) const { return m[i]; }
   int xy(size_t r, size_t c) const { return r*m_cols+c; }
   int yx(size_t r, size_t c) const { return c*m_rows+r; }
-  Data_t&       rc(size_t r, size_t c)       { return m[xy(r,c)]; }
-  const Data_t& rc(size_t r, size_t c) const { return m[xy(r,c)]; }
+  VOLATILE Data_t&       rc(size_t r, size_t c)       { return m[xy(r,c)]; }
+  VOLATILE const Data_t& rc(size_t r, size_t c) const { return m[xy(r,c)]; }
   bool check(size_t r, size_t c) const { return r<m_rows && c<m_cols; }
-  Data_t&       at(size_t r, size_t c)       { assert(check(r,c)); return rc(r,c); }
-  const Data_t& at(size_t r, size_t c) const { assert(check(r,c)); return rc(r,c); }
+  VOLATILE Data_t&       at(size_t r, size_t c)       { assert(check(r,c)); return rc(r,c); }
+  VOLATILE const Data_t& at(size_t r, size_t c) const { assert(check(r,c)); return rc(r,c); }
   Addr_t shape(void) const { return Mshape(m_rows, m_cols); }
   Addr_t begin(void) const { return 0; }
   Addr_t end(void)   const { return size(); }
@@ -93,26 +99,17 @@ private:
   // Attributes
   Addr_t          m_rows;
   Addr_t          m_cols;
-#ifdef USING_HARDWARE
-  volatile
-#endif
-  Data_t*         m;
-  Reg_t           m_reg;
-  size_t          m_addr;
-  bool            m_hard;
-  std::string     m_name;
-  size_t          m_id;
-  static size_t   next_id;
-  static Dev*     dev;
-  // Helpers
-  static int get_reg(size_t reg);
-  static void set_reg(size_t reg, int val);
-  bool alloc_reg(void);
-  void free_reg(void);
-  bool alloc_mem(void);
-  void free_mem(void);
-  bool using_reg(void) const { return m_reg != -1; }
-  bool using_mem(void) const { return (m_addr != 0); }
+  VOLATILE Data_t* m;
+  Reg_t            m_reg;
+  size_t           m_addr; //< offset for memory
+  bool             m_hard;
+  std::string      m_name;
+  size_t           m_id;
+  static size_t    next_id;
+  static Dev*      dev;
+  static Reg_t     t_reg;
+  bool using_reg(void) const { return m_reg != UNUSED; }
+  bool using_mem(void) const { return (m_addr != ~0U); }
 
 };//endclass Matrix
 
