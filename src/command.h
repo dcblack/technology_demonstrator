@@ -6,6 +6,8 @@
 //   desired commands, and compare the results against expectations.
 
 #include "dev_hls.h"
+#include <string>
+#include <iostream>
 #ifdef CXX11
 #include <random>
 #endif
