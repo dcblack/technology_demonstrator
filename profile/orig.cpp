@@ -9,15 +9,15 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char* argv[])
 {
-  size_t reps = 1e7;
+  size_t repetitions = 1e7;
 
   //----------------------------------------------------------------------------
   // Process command-line
   for (size_t i=1; i<argc; ++i) {
     string arg(argv[i]);
-    if (is_number(arg)) reps = stoi10(arg);
+    if (i == 1 && is_u32(arg)) repetitions = stou32(arg);
   }
-  cout << "Repeating " << commafy(reps) << endl;
+  cout << "Repeating " << commafy(repetitions) << endl;
 
   // Create matrices
   Matrix lhs_matrix(3,4);
@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
   lhs_matrix.randomize();
 
   // Do a bunch of operations (multiplication, addition, etc...)
-  for (size_t rep=reps; rep!=0; --rep)
+  for (size_t rep=repetitions; rep!=0; --rep)
   {
     rhs_matrix.randomize();
     result3_matrix = lhs_matrix * rhs_matrix + 10;
