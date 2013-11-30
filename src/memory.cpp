@@ -128,7 +128,9 @@ namespace {
     static const string SEP = ";";
     static map<string,string> ansi;
     if (ansi.empty()) {
-      if (getenv("TERM") == "xterm") supports_color = true;
+      if ( (getenv("TERM") == "xterm") && (getenv("NOCOLOR") != "1") ) {
+        supports_color = true;
+      }
       ansi[ "none"    ] = "00";
       ansi[ "bold"    ] = "01";
       ansi[ "feint"   ] = "02";
@@ -178,13 +180,13 @@ namespace {
     }//endif
     return result;
   }
-}//endnamespace
+}//endnamespace anonymous
 
 //------------------------------------------------------------------------------
-string Memory::dump_line(Data_t* mem, Addr_t addr, Addr_t len, int highlight) {
+string Memory::dump_line(string prefix, Data_t* mem, Addr_t addr, Addr_t len, int highlight) {
   ostringstream sout;
   if (highlight) sout << color(highlight);
-  sout << right << setw(5) << dec << addr << ": ";
+  sout << prefix << ": " << right << setw(5) << dec << addr << ": ";
   for (Addr_t i=addr; i!=addr+len; ++i) {
     sout << uppercase << hex << setw(8) << setfill('0') << mem[i] << " ";
   }
@@ -225,8 +227,8 @@ bool Memory::check(Addr_t len) {
       cout << "\nxmem differences:\n";
       first = false;
     }
-    cout << dump_line(xmem_mirror,addr,len,blue);
-    cout << dump_line(xmem,addr,len,normal);
+    cout << dump_line( "BEFORE", xmem_mirror, addr, len, blue   );
+    cout << dump_line( "ACTUAL", xmem,        addr, len, normal );
     diffs += mydiffs;
   }
   first = true;
@@ -238,8 +240,8 @@ bool Memory::check(Addr_t len) {
       cout << "\nimem differences:\n";
       first = false;
     }
-    cout << dump_line(imem_mirror,addr,len,blue);
-    cout << dump_line(imem,addr,len);
+    cout << dump_line( "BEFORE", imem_mirror, addr, len, blue   );
+    cout << dump_line( "ACTUAL", imem,        addr, len, normal );
     diffs += mydiffs;
   }
   if (diffs) cout << "\n";

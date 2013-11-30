@@ -42,7 +42,7 @@ struct Memory
 private:
   Memory(const Memory& rhs);
   Memory& operator=(const Memory& rhs);
-  std::string dump_line(Data_t* mem, Addr_t addr, Addr_t len=8,int highlight=0);
+  std::string dump_line(std::string prefix, Data_t* mem, Addr_t addr, Addr_t len=8,int highlight=0);
   int diffs_line(Data_t* lhs, Data_t* rhs, Addr_t addr, Addr_t len=8);
 };
 
