@@ -164,10 +164,10 @@ Data_t dev_hls
       case KMUL: // M(dest) = R(src1) * M(src1);
       {
         Data_t dest_shape, src1_shape, src2_shape;
-        bool not_KMUL = (operation != KMUL);
+        bool not_K = (operation != KMUL) && (operation != KADD);
 
         VALIDATE_MATRIX(dest)
-        if (not_KMUL) {
+        if (not_K) {
           VALIDATE_MATRIX(src1)
         } else {
           VALIDATE_REGISTER(src1)
@@ -175,11 +175,11 @@ Data_t dev_hls
         VALIDATE_MATRIX(src2)
 
         GET_REG(dest,dest_shape)
-        if (not_KMUL) GET_REG(src1,src1_shape)
+        if (not_K) GET_REG(src1,src1_shape)
         GET_REG(src2,src2_shape)
 
         // Make sure shapes are valid
-        if (not_KMUL && dest_shape != src1_shape) {
+        if (not_K && dest_shape != src1_shape) {
           retcode |= SHAPE_MISMATCH;
           break;
         }
@@ -191,13 +191,13 @@ Data_t dev_hls
         Addr_t dest_ptr, src1_ptr, src2_ptr;
         Data_t k;
         GET_REG(dest+1,dest_ptr)
-        if (not_KMUL)          GET_REG(src1+1,src1_ptr)
+        if (not_K)          GET_REG(src1+1,src1_ptr)
         else                   GET_REG(src1,k)
         GET_REG(src2+1,src2_ptr)
 
         // Make sure pointers are within memory
         if (!Mvalid(dest_ptr)
-        ||  (not_KMUL && !Mvalid(src1_ptr))
+        ||  (not_K && !Mvalid(src1_ptr))
         ||  !Mvalid(src2_ptr)
         ) {
           retcode |= ADDRESS_ERROR;
@@ -207,11 +207,12 @@ Data_t dev_hls
         long long int data0;
         ARITHMETIC_LOOP:
         for (Addr_t i=Msize(dest_shape); i!=0; --i) {
-          if (not_KMUL) data1 = mem[src1_ptr++];
+          if (not_K) data1 = mem[src1_ptr++];
           data2 = mem[src2_ptr++];
           if      (operation == MADD)    data0 = data1 + data2;
           else if (operation == MSUB)    data0 = data1 - data2;
           else if (operation == RSUB)    data0 = data2 - data1;
+          else if (operation == KADD)    data0 = k     + data2;
           else /* (operation == KMUL) */ data0 = k     * data2;
           //{:TODO:Detect over/underflow:}
           mem[dest_ptr++] = data0;
