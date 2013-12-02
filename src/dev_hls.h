@@ -85,9 +85,9 @@ static void display_matrix(Data_t* M) {
   std::size_t cols = ((*M)>>H_SHFT) & L_MASK;
   std::size_t rows =  (*M)      & L_MASK;
   for (int r = 0; r != rows; ++r) {
-    printf("%3d: ");
+    printf("%3d: ",r);
     for (int c = 0; c != cols; ++c) {
-      printf("%4d ");
+      printf("%4d ",M[(r*cols)+c+1]);
     }
     printf("\n");
   }
