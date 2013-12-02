@@ -1,4 +1,5 @@
 #include "matrix.h"
+#include <gperftools/profiler.h>
 
 #include "int.h"
 #include <iostream>
