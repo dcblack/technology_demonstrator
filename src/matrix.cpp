@@ -508,7 +508,7 @@ Matrix Matrix::operator-(const Matrix& rhs) const
 Matrix Matrix::operator*(const Matrix& rhs) const //< matrix cross-product
 {
   assert(m_cols == rhs.m_rows);
-  Matrix result(m_rows, rhs.m_cols, m_hard);
+  Matrix result(m_rows, rhs.m_cols, m_name, m_hard);
 #ifdef USING_HARDWARE
   if (m_hard && rhs.m_hard) {
     CmdState_t retcode = dev->do_command(MMUL,result.m_reg,m_reg,rhs.m_reg);
@@ -533,7 +533,7 @@ Matrix Matrix::operator*(const Matrix& rhs) const //< matrix cross-product
 //------------------------------------------------------------------------------
 Matrix Matrix::transpose(void) const
 {
-  Matrix t_mtx(m_cols, m_rows, m_hard);
+  Matrix t_mtx(m_cols, m_rows, m_name, m_hard);
 #ifdef USING_HARDWARE
   if (m_hard) {
     CmdState_t retcode = dev->do_command(TRANS,t_mtx.m_reg,m_reg);
