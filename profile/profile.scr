@@ -1,0 +1,24 @@
+#!/bin/bash
+
+ARGV=1e8
+if [[ "$1" != "" ]]; then ARGV="$1"; fi
+
+if [[ $UNIT        == "" ]]; then UNIT=profile; fi
+if [[ $TARGET_ARCH == "" ]]; then TARGET_ARCH=linux64; fi
+if [[ $EXE         == "" ]]; then EXE=$UNIT-$TARGET_ARCH.x; fi
+
+export CPUPROFILE=/tmp/$UNIT-$TARGET_ARCH.gperf
+
+rm -f $CPUPROFILE
+
+echo "% ./$EXE $ARGV" > run.log
+/usr/bin/time ./$EXE $ARGV 2>&1 | tee -a run.log
+
+if [[ -s $CPUPROFILE ]]; then
+  pprof -text $EXE $CPUPROFILE >$UNIT-gperf.txt
+  pprof -pdf  $EXE $CPUPROFILE >$UNIT-gperf.pdf
+  pprof -svg  $EXE $CPUPROFILE >$UNIT-gperf.svg
+  pprof -gif  $EXE $CPUPROFILE >$UNIT-gperf.gif
+else
+  echo "ERROR: Missing profile information!"
+fi
