@@ -34,20 +34,20 @@ Matrix::Pattern_distribution       Matrix::distr(Matrix::FILL0,Matrix::RANDOM);
 #endif
 
 //------------------------------------------------------------------------------
-Matrix::Matrix(size_t r, size_t c, Pattern_t patt, string name) //< constructor
+Matrix::Matrix(size_t r, size_t c, Pattern_t patt, string name, bool prefer_hard) //< constructor
 : m_rows(r)
 , m_cols(c)
 , m(0)
 , m_reg(UNUSED)
 , m_addr(~0U)
-, m_hard(false)
+, m_hard(prefer_hard)
 , m_name(name)
 , m_id(next_id++)
 {
   assert(m_rows!=0 & m_cols!=0);
   assert(m_rows*m_cols <= MAX_MATRIX_SIZE);
 #ifdef USING_HARDWARE
-  if (dev != 0)
+  if (m_hard && dev != 0)
   {
     dev->alloc_mem(*this);
     if (t_reg == UNUSED) t_reg = dev->alloc_reg();
@@ -60,26 +60,27 @@ Matrix::Matrix(size_t r, size_t c, Pattern_t patt, string name) //< constructor
   else
 #endif
   {
-  m = new Data_t[m_rows*m_cols];
+    m_hard = false;
+    m = new Data_t[m_rows*m_cols];
   }
   fill_patt(patt);
 }//end constructor
 
 //------------------------------------------------------------------------------
-Matrix::Matrix(size_t r, size_t c, string name) //< constructor
+Matrix::Matrix(size_t r, size_t c, string name, bool prefer_hard) //< constructor
 : m_rows(r)
 , m_cols(c)
 , m(0)
 , m_reg(UNUSED)
 , m_addr(~0U)
-, m_hard(false)
+, m_hard(prefer_hard)
 , m_name(name)
 , m_id(next_id++)
 {
   assert(m_rows!=0 & m_cols!=0);
   assert(m_rows*m_cols <= MAX_MATRIX_SIZE);
 #ifdef USING_HARDWARE
-  if (dev != 0)
+  if (m_hard && dev != 0)
   {
     dev->alloc_mem(*this);
     if (t_reg == UNUSED) t_reg = dev->alloc_reg();
@@ -92,7 +93,8 @@ Matrix::Matrix(size_t r, size_t c, string name) //< constructor
   else
 #endif
   {
-  m = new Data_t[m_rows*m_cols];
+    m_hard = false;
+    m = new Data_t[m_rows*m_cols];
   }
 }//end constructor
 
@@ -108,7 +110,7 @@ Matrix::Matrix(const Matrix& rhs) //< copy constructor
 , m_id(next_id++)
 {
 #ifdef USING_HARDWARE
-  if (dev != 0)
+  if (m_hard)
   {
     dev->alloc_mem(*this);
     if (t_reg == UNUSED) t_reg = dev->alloc_reg();
@@ -151,7 +153,7 @@ Matrix& Matrix::operator=(const Matrix& rhs) { //< Assignment
   m_addr = ~0U;
   m_hard = false;
 #ifdef USING_HARDWARE
-  if (dev != 0)
+  if (m_hard && rhs.m_hard)
   {
     if (bigger) {
       dev->free_mem(*this);
@@ -176,7 +178,7 @@ Matrix& Matrix::operator=(const Matrix& rhs) { //< Assignment
 //------------------------------------------------------------------------------
 bool Matrix::operator== (const Matrix& rhs) { //< Compare
 #ifdef USING_HARDWARE
-  if (dev != 0) {
+  if (m_hard && rhs.m_hard) {
     CmdState_t retcode = dev->do_command(EQUAL,t_reg,m_reg,rhs.m_reg);
     bool result = (dev->get_reg(t_reg) != 0);
     return result;
@@ -196,7 +198,7 @@ bool Matrix::operator== (const Matrix& rhs) { //< Compare
 size_t Matrix::zeroes(void) const {
   size_t result = 0;
 #ifdef USING_HARDWARE
-  if (dev != 0) {
+  if (m_hard) {
     CmdState_t retcode = dev->do_command(MZERO,t_reg,m_reg);
     bool result = (dev->get_reg(t_reg) != 0);
     return result;
@@ -212,7 +214,7 @@ size_t Matrix::zeroes(void) const {
 //------------------------------------------------------------------------------
 void Matrix::fill(Data_t value) {
 #ifdef USING_HARDWARE
-  if (dev != 0) {
+  if (m_hard) {
     dev->set_reg(t_reg,value);
     CmdState_t retcode = dev->do_command(FILL,m_reg,t_reg);
     assert(IS_OK(retcode));
@@ -270,7 +272,7 @@ void Matrix::fill_patt(Pattern_t patt) {
 //------------------------------------------------------------------------------
 void Matrix::identity(Data_t value) {
 #ifdef USING_HARDWARE
-  if (dev != 0) {
+  if (m_hard) {
     dev->set_reg(t_reg,value);
     CmdState_t retcode = dev->do_command(IDENT,m_reg,t_reg);
     assert(IS_OK(retcode));
@@ -398,7 +400,7 @@ void Matrix::print(const string& nm) const {
 Matrix& Matrix::operator+=(Data_t rhs)
 {
 #ifdef USING_HARDWARE
-  if (dev != 0) {
+  if (m_hard && rhs.m_hard) {
     dev->set_reg(t_reg,rhs);
     CmdState_t retcode = dev->do_command(KADD,m_reg,m_reg,t_reg);
     assert(IS_OK(retcode));
@@ -415,7 +417,7 @@ Matrix& Matrix::operator+=(Data_t rhs)
 Matrix& Matrix::operator-=(Data_t rhs)
 {
 #ifdef USING_HARDWARE
-  if (dev != 0) {
+  if (m_hard && rhs.m_hard) {
     dev->set_reg(t_reg,-rhs);
     CmdState_t retcode = dev->do_command(KADD,m_reg,m_reg,t_reg);
     assert(IS_OK(retcode));
@@ -432,7 +434,7 @@ Matrix& Matrix::operator-=(Data_t rhs)
 Matrix& Matrix::operator*=(Data_t rhs)
 {
 #ifdef USING_HARDWARE
-  if (dev != 0) {
+  if (m_hard && rhs.m_hard) {
     dev->set_reg(t_reg,rhs);
     CmdState_t retcode = dev->do_command(KMUL,m_reg,m_reg,t_reg);
     assert(IS_OK(retcode));
@@ -449,7 +451,7 @@ Matrix& Matrix::operator*=(Data_t rhs)
 Matrix& Matrix::operator+=(const Matrix& rhs)
 {
 #ifdef USING_HARDWARE
-  if (dev != 0) {
+  if (m_hard && rhs.m_hard) {
     CmdState_t retcode = dev->do_command(MADD,m_reg,m_reg,rhs.m_reg);
     assert(IS_OK(retcode));
   }
@@ -506,9 +508,9 @@ Matrix Matrix::operator-(const Matrix& rhs) const
 Matrix Matrix::operator*(const Matrix& rhs) const //< matrix cross-product
 {
   assert(m_cols == rhs.m_rows);
-  Matrix result(m_rows, rhs.m_cols);
+  Matrix result(m_rows, rhs.m_cols, m_hard);
 #ifdef USING_HARDWARE
-  if (dev != 0) {
+  if (m_hard && rhs.m_hard) {
     CmdState_t retcode = dev->do_command(MMUL,result.m_reg,m_reg,rhs.m_reg);
     assert(IS_OK(retcode));
   }
@@ -531,9 +533,9 @@ Matrix Matrix::operator*(const Matrix& rhs) const //< matrix cross-product
 //------------------------------------------------------------------------------
 Matrix Matrix::transpose(void) const
 {
-  Matrix t_mtx(m_cols, m_rows);
+  Matrix t_mtx(m_cols, m_rows, m_hard);
 #ifdef USING_HARDWARE
-  if (dev != 0) {
+  if (m_hard) {
     CmdState_t retcode = dev->do_command(TRANS,t_mtx.m_reg,m_reg);
     assert(IS_OK(retcode));
   }
@@ -554,7 +556,7 @@ Data_t Matrix::sum(void) const
 {
   Data_t result = 0;
 #ifdef USING_HARDWARE
-  if (dev != 0) {
+  if (m_hard) {
     CmdState_t retcode = dev->do_command(MSUM,t_reg,m_reg);
     result = dev->get_reg(t_reg);
   }

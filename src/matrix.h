@@ -31,8 +31,8 @@ struct Matrix
   };
 
   // Methods
-  Matrix(size_t r, size_t c, Pattern_t patt=NONE, std::string name=""); //< Constructor
-  Matrix(size_t r, size_t c, std::string name); //< Constructor
+  Matrix(size_t r, size_t c, Pattern_t patt=NONE, std::string name="", bool prefer_Hard = true); //< Constructor
+  Matrix(size_t r, size_t c, std::string name, bool prefer_hard = true); //< Constructor
   Matrix(const Matrix& rhs); //< Copy constructor
   Matrix& operator=(const Matrix& rhs); //< Assignment
   ~Matrix(void); //< Destructor
