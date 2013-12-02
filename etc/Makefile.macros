@@ -178,7 +178,7 @@ endif
 ifndef TARGET_ARCH
   $(error This makefile only supported on Linux, Cygwin, Darwin or SunOS. I do not recognize platform ${OS_FOUND})
 else
-  $(info INFO: PLATFORM=$(PLATFORM) MACHINE=$(MACHINE) TARGET_ARCH=$(TARGET_ARCH))
+  $(info INFO: PLATFORM=$(PLATFORM) MACHINE=$(MACHINE) TARGET_ARCH=$(TARGET_ARCH) HOST_ARCH=$(HOST_ARCH))
 endif
 #>>>
 ################################################################################
