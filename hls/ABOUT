@@ -1,0 +1,4 @@
+This directory is where High-Level synthesis is carried out (i.e. Vivado HLS).
+
+The project name is "mtxdev". A simple script, devscript.tcl, is available to
+do everything in batch. See HOWTO.md for more information.
