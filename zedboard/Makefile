@@ -1,4 +1,4 @@
-#!/bin/make
+#!/usr/bin/make -f
 # -*- make -*- vim:syntax=make:tw=72
 ################################################################################
 # $License: Apache 2.0 $
@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 # This makefile is designed for C code that is cross-compiled (optionally).
-
+#
 # MAKE TARGETS:
 #   clean - removes objects, executables and other compilation features
 #   distclean - removes logs & backups in addition to clean
@@ -51,18 +51,33 @@ default: clean exe
 
 include ../etc/Makefile.common
 
+#----------------------------------------------------------------------
+# Other optional macros you may wish to set. It is preferrable that
+# these are the only additional flags you set.
+#
+#BOOST_LIBS:=
+#OTHER_CFLAGS:=
+#OTHER_LDFLAGS:=
+#OTHER_DEFS:=
+#OTHER_INCDIRS:=
+#OTHER_LIBDIRS:=
+#OTHER_LIBS:=
 ###############################################################################
 override OBJS := $(patsubst %.c,  %.o,${SRCS})
 LNX = ${UNIT}.${HOST_ARCH}
+ifdef CXX11
+override CXX11:=-DCXX11 -std=c++11 $(if $(subst Linux,,$(shell uname -s)),-stdlib=libc++)
+endif
 
 DEFS    += -D_${TARGET_ARCH} ${OTHER_DEFS}
-INCDIRS :=
-CFLAGS  :=
-LFLAGS  :=
+INCDIRS := ${OTHER_INCDIRS}
+CFLAGS  := ${OTHER_CFLAGS}
+LFLAGS  := ${OTHER_LDFLAGS} ${OTHER_LIBDIRS} ${OTHER_LIBS}
 ifeq "${TARGET_ARCH}" "ZEDBOARD"
   $(info INFO: $(BOLDRED)Targeting ZEDBOARD$(NONE))
   PRE     := arm-xilinx-linux-gnueabi
-  CPP     := ${PRE}-gcc
+  CC      := ${PRE}-gcc
+  CXX     := ${PRE}-g++
   INCDIRS := ${XILINX_EDK}/gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/include
   LIBDIRS := ${XILINX_EDK}/gnu/arm/lin/arm-xilinx-linux-gnueabi/libc/usr/lib
   LIBS    := pthread c
@@ -80,7 +95,8 @@ ifeq "${TARGET_ARCH}" "ZEDBOARD"
 else
   $(info INFO: $(BOLDRED)Targeting LINUX HOST$(NONE))
   PRE  :=
-  CPP  := gcc
+  CC   := gcc
+  CXX  := g++
   LIBS := pthread c
   DEFS += -D_POSIX_SOURCE -D__USE_POSIX199506
   EXE  := ${LNX}
@@ -100,13 +116,17 @@ endif
 # link
 $(EXE): $(OBJS)
 	@-rm -f $@; $(call REPORT_TITLE,Linking $@)
-	${CPP} -o $@ $(OBJS) $(LFLAGS)
+	${CXX} -o $@ $(OBJS) $(LFLAGS)
 	@$(RULER)
 
 # compile
+%.o: %.cpp
+	@-rm -f $*.o; $(call REPORT_TITLE,Compiling $?)
+	${CXX} $(CFLAGS) -g ${PTHREAD} ${CXX11} -c -o $*.o $*.c
+
 %.o: %.c
 	@-rm -f $*.o; $(call REPORT_TITLE,Compiling $?)
-	${CPP} $(CFLAGS) -g ${PTHREAD} -std=c99 -c -o $*.o $*.c
+	${CC} $(CFLAGS) -g ${PTHREAD} -std=c99 -c -o $*.o $*.c
 
 clean:
 	@$(call REPORT_TITLE,Cleaning)
