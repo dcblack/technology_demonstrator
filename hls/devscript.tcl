@@ -77,9 +77,21 @@ add_files -tb $src/registers.cpp
 
 # ************CUSTOMIZE SOLUTIONS BELOW HERE************
 # zedboard
-set part {xc7z020clg484-1}
-set period 16
-set uncertainty 5
+if {[has -part]} {
+  set part $OPT(-part)
+} else {
+  set part {xc7z020clg484-1}
+}
+if {[has -period]} {
+  set period $OPT(-period)
+} else {
+  set period 16
+}
+if {[has -uncertainty]} {
+  set uncertainty $OPT(-uncertainty)
+} else {
+  set uncertainty 5
+}
 # names from following array are used foreach solutions
 set constraints(solution1) {}
 # ************CUSTOMIZE SOLUTIONS ABOVE HERE************
