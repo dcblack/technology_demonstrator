@@ -1,3 +1,6 @@
 This directory contains an application that using matrix
 operations that can be profiled to illustrate performance
 issues.
+
+You need to have Google perftools installed, which may in
+turn require libunwind to be installed.
