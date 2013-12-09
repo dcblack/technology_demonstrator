@@ -113,6 +113,10 @@ foreach solution [array names constraints] {
     eval $constraints($solution)
   }
 
+  if {[file exists loop_constraints.tcl]} {
+    source loop_constraints.tcl
+  }
+
   if {![has NOSIM]} {
     header SIMULATE
     csim_design -clean
