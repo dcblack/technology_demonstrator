@@ -13,6 +13,7 @@ typedef unsigned char*      Byte_ptr;
 #ifdef BIT_ACCURATE
 #warning "INFO: Using bit accurate SystemC"
 typedef sc_dt::sc_uint<32>  Addr_t;
+typedef sc_dt::sc_uint<16>  Loop_t;
 typedef sc_dt::sc_int<32>   Data_t;
 typedef sc_dt::sc_int<32>   Cmd_t;
 class Axibus;
@@ -22,6 +23,7 @@ typedef Axibus              AxiM_t;
 //warning "INFO: Using fast SystemC"
 #include "stdint.h"
 typedef uint32_t            Addr_t;
+typedef uint16_t            Loop_t;
 typedef int32_t             Data_t;
 typedef uint32_t            Cmd_t;
 class Axibus;
@@ -34,6 +36,7 @@ typedef Axibus              AxiM_t;
 #warning "INFO: Using HLS synthesis with ap_int"
 #include "ap_int.h"
 typedef ap_uint<32>         Addr_t;
+typedef ap_uint<16>         Loop_t;
 typedef ap_int<32>          Data_t;
 typedef ap_int<32>          Cmd_t;
 typedef Addr_t              AxiM_t;
@@ -41,6 +44,7 @@ typedef Addr_t              AxiM_t;
 #else
 #warning "INFO: Using HLS synthesis with C++ int"
 typedef unsigned int        Addr_t;
+typedef unsigned short int  Loop_t;
 typedef int                 Data_t;
 typedef int                 Cmd_t;
 typedef Data_t              AxiM_t;
@@ -49,10 +53,11 @@ typedef Data_t              AxiM_t;
 #else /* standard C++ */
 #warning "INFO: Using standard C++"
 #include "stdint.h"
-typedef unsigned Addr_t;
-typedef int      Data_t;
-typedef int      Cmd_t;
-typedef Data_t   AxiM_t;
+typedef unsigned int        Addr_t;
+typedef unsigned short      Loop_t;
+typedef int                 Data_t;
+typedef int                 Cmd_t;
+typedef Data_t              AxiM_t;
 #endif
 #endif
 

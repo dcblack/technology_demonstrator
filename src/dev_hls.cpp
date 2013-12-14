@@ -32,9 +32,9 @@ Data_t dev_hls
 #pragma HLS interface ap_ctrl_hs port=return register
 #pragma HLS interface ap_memory  port=mem
 
-#pragma HLS resource core=RAM_1P    metadata="-bus_bundle devreg" variable=reg
-#pragma HLS resource core=AXI4LiteS metadata="-bus_bundle devreg" variable=return
-#pragma HLS resource core=RAM_1P    metadata="-bus_bundle devreg" variable=mem
+#pragma HLS resource core=RAM_1P      metadata="-bus_bundle devreg" variable=reg
+#pragma HLS resource core=AXI4LiteS   metadata="-bus_bundle devreg" variable=return
+#pragma HLS resource core=RAM_1P_BRAM metadata="-bus_bundle devreg" variable=mem
 
   Data_t status;
   Data_t retcode;
@@ -73,6 +73,7 @@ Data_t dev_hls
       // Operation: Clear all to zero
       case RESET:
       {
+        RESET_REGISTERS:
         for (int i=0; i!=REGISTERS; ++i) reg[i] = 0;
         retcode |= IDLE;
         break;
@@ -147,7 +148,7 @@ Data_t dev_hls
         }
 
         COPY_LOOP:
-        for (unsigned int i=0; i!= Msize(dst_shape); ++i) {
+        for (Loop_t i=0; i!= Msize(dst_shape); ++i) {
           Data_t data;
           data = mem[src_ptr++];
           mem[dst_ptr++] = data;
@@ -206,7 +207,7 @@ Data_t dev_hls
         Data_t data1, data2;
         long long int data0;
         ARITHMETIC_LOOP:
-        for (Addr_t i=Msize(dest_shape); i!=0; --i) {
+        for (Loop_t i=Msize(dest_shape); i!=0; --i) {
           if (not_K) data1 = mem[src1_ptr++];
           data2 = mem[src2_ptr++];
           if      (operation == MADD)    data0 = data1 + data2;
@@ -239,7 +240,7 @@ Data_t dev_hls
         }
         Data_t count = 0;
         COUNT_LOOP:
-        for (Addr_t i=Msize(src1_shape); i!=0; --i) {
+        for (Loop_t i=Msize(src1_shape); i!=0; --i) {
           if (mem[src1_ptr++] == 0) ++count;
         }
         SET_REG(dest,count)
@@ -289,10 +290,13 @@ Data_t dev_hls
         }
 
         Data_t dest_data, src1_data, src2_data;
-        for (unsigned int r=0; r!= src1_rows; ++r) {
-          for (unsigned int c=0; c!= src2_cols; ++c) {
+        MMUL_SRC1_ROWS:
+        for (Loop_t r=0; r!= src1_rows; ++r) {
+          MMUL_SRC2_COLS:
+          for (Loop_t c=0; c!= src2_cols; ++c) {
             dest_data = 0;
-            for (unsigned int i=0; i!= src1_rows; ++i) {
+            MMUL_SRC1_COLS:
+            for (Loop_t i=0; i!= src1_cols; ++i) {
               src1_data = mem[src1_ptr+Mindex(src1_cols,r,i)];
               src2_data = mem[src2_ptr+Mindex(src2_cols,i,c)];
               dest_data += src1_data * src2_data;
@@ -324,7 +328,8 @@ Data_t dev_hls
 
         Data_t sum;
         sum = 0;
-        for (Addr_t i=Msize(src1_shape); i!=0; --i) {
+        MSUM_LOOP:
+        for (Loop_t i=Msize(src1_shape); i!=0; --i) {
           sum += mem[src1_ptr++];
         }
 
@@ -365,7 +370,8 @@ Data_t dev_hls
         Data_t equal;
         equal = 1;
         if (src1_shape == src2_shape) {
-          for (Addr_t i=Msize(src1_shape); i!=0; --i) {
+          EQUAL_LOOP:
+          for (Loop_t i=Msize(src1_shape); i!=0; --i) {
             if (mem[src1_ptr++] == mem[src2_ptr++]) continue;
             equal = 0;
             break;
@@ -412,8 +418,10 @@ Data_t dev_hls
 
         Data_t dest_data, src1_data;
         Addr_t dest_indx, src1_indx;
-        for (unsigned int r=0; r!= src1_rows; ++r) {
-          for (unsigned int c=0; c!= src1_cols; ++c) {
+        TRANS_ROWS:
+        for (Loop_t r=0; r!= src1_rows; ++r) {
+          TRANS_COLS:
+          for (Loop_t c=0; c!= src1_cols; ++c) {
             dest_indx = Mindex(src1_cols,r,c);
             src1_indx = Mindex(src1_cols,c,r);
             src1_data = mem[src1_ptr+src1_indx];
@@ -437,7 +445,7 @@ Data_t dev_hls
         GET_REG(dest,dest_shape)
         GET_REG(dest+1,dest_ptr)
         FILL_LOOP:
-        for (Addr_t i=Msize(dest_shape); i!=0; --i) {
+        for (Loop_t i=Msize(dest_shape); i!=0; --i) {
           mem[dest_ptr++] = fill;
         }
         retcode |= DONE;
@@ -459,9 +467,10 @@ Data_t dev_hls
         dest_cols = Mcols(dest_shape);
         GET_REG(dest+1,dest_ptr)
         Addr_t dest_indx;
-        IDENT_LOOP:
-        for (unsigned int r=0; r!= dest_rows; ++r) {
-          for (unsigned int c=0; c!= dest_cols; ++c) {
+        IDENT_ROWS:
+        for (Loop_t r=0; r!= dest_rows; ++r) {
+          IDENT_COLS:
+          for (Loop_t c=0; c!= dest_cols; ++c) {
             mem[dest_ptr++] = (r==c)?fill:0;
           }
         }
