@@ -4,21 +4,25 @@
 #include "dev_hls.h"
 #include <string.h>
 
+// NOTE: We use macros to ensure in-line implementation.
+
 // Isolate implementation from code
-#define SET_REG(r, data) reg[r] = data;
-#define GET_REG(r, data) data = reg[r];
+// - This allowed experimentation with interface
+//   during development.
+#define SET_REG(r, data) reg[r] = data
+#define GET_REG(r, data) data = reg[r]
 
 #define VALIDATE_REGISTER(r) \
-if ( 15<r ) {                \
+if ( MAX_R<r ) {             \
   retcode |= REGISTER_ERROR; \
   break;                     \
-} else ;
+} else 
 
 #define VALIDATE_MATRIX(r)   \
-if ( 14<r || r&1) {          \
+if ( MAX_M<r || r&1) {       \
   retcode |= REGISTER_ERROR; \
   break;                     \
-} else ;
+} else 
 
 
 Data_t dev_hls 
@@ -70,16 +74,6 @@ Data_t dev_hls
     switch(operation) {
 
       //--------------------------------------------------------------------------
-      // Operation: Clear all to zero
-      case RESET:
-      {
-        RESET_REGISTERS:
-        for (int i=0; i!=REGISTERS; ++i) reg[i] = 0;
-        retcode |= IDLE;
-        break;
-      }
-
-      //--------------------------------------------------------------------------
       // Operation: Do nothing
       case NOP:
       {
@@ -89,6 +83,7 @@ Data_t dev_hls
 
       //--------------------------------------------------------------------------
       // Operation: Execute sequence starting at M(R15)
+#if ENABLE_EXEC
       case EXEC:
       {
         retcode |= EXEC_BIT | DONE;
@@ -103,39 +98,45 @@ Data_t dev_hls
         retcode |= HALTED;
         break;
       }
+#endif
 
       //--------------------------------------------------------------------------
       // Operation: Copy matrix from external *R(src1) to internal M(R(dest))
+#if ENABLE_LOAD
       case LOAD:
       {
         //{:TODO:Implement AXI4 Master interface to external memory:}
         retcode |= UNSUPPORTED_ERROR; // NOT_YET_IMPLEMENTED
         break;
       }
+#endif
 
       //--------------------------------------------------------------------------
       // Operation: Copy matrix to external *R(src1) from internal M(R(dest))
+#if ENABLE_STORE
       case STORE:
       {
         //{:TODO:Implement AXI4 Master interface to external memory:}
         retcode |= UNSUPPORTED_ERROR; // NOT_YET_IMPLEMENTED
         break;
       }
+#endif
 
       //--------------------------------------------------------------------------
       // Operation: M(R(dest)) = M(R(src1));
+#if ENABLE_MCOPY
       case MCOPY:
       {
         Addr_t dst_ptr, src_ptr;
         Data_t dst_shape, src_shape;
 
-        VALIDATE_MATRIX(dest)
-        GET_REG(dest,dst_shape)
-        GET_REG(dest+1,dst_ptr)
+        VALIDATE_MATRIX(dest);
+        GET_REG(dest,dst_shape);
+        GET_REG(dest+1,dst_ptr);
 
-        VALIDATE_MATRIX(src1)
-        GET_REG(src1,src_shape)
-        GET_REG(src1+1,src_ptr)
+        VALIDATE_MATRIX(src1);
+        GET_REG(src1,src_shape);
+        GET_REG(src1+1,src_ptr);
 
         // Make sure pointers are within memory
         if (!Mvalid(src_ptr) || !Mvalid(dst_ptr)) {
@@ -156,28 +157,31 @@ Data_t dev_hls
         retcode |= DONE;
         break;
       }
+#endif
 
       //--------------------------------------------------------------------------
       // Operation: Simple element by element arithmetic
+#if ELTOPS
       case MADD: // M(dest) = M(src1) + M(src2)
       case MSUB: // M(dest) = M(src1) - M(src2);
-      case RSUB: // M(dest) = M(src2) - M(src1);
-      case KMUL: // M(dest) = R(src1) * M(src1);
+      case RSUB: // M(dest) = M(src2) - M(src1); // reverse subtract
+      case KMUL: // M(dest) = R(src1) * M(src1); // scalar multiply
+      case KADD: // M(dest) = R(src1) + M(src1); // scalar add
       {
         Data_t dest_shape, src1_shape, src2_shape;
         bool not_K = (operation != KMUL) && (operation != KADD);
 
-        VALIDATE_MATRIX(dest)
+        VALIDATE_MATRIX(dest);
         if (not_K) {
-          VALIDATE_MATRIX(src1)
+          VALIDATE_MATRIX(src1);
         } else {
-          VALIDATE_REGISTER(src1)
+          VALIDATE_REGISTER(src1);
         }
-        VALIDATE_MATRIX(src2)
+        VALIDATE_MATRIX(src2);
 
-        GET_REG(dest,dest_shape)
-        if (not_K) GET_REG(src1,src1_shape)
-        GET_REG(src2,src2_shape)
+        GET_REG(dest,dest_shape);
+        if (not_K) GET_REG(src1,src1_shape);
+        GET_REG(src2,src2_shape);
 
         // Make sure shapes are valid
         if (not_K && dest_shape != src1_shape) {
@@ -191,10 +195,10 @@ Data_t dev_hls
 
         Addr_t dest_ptr, src1_ptr, src2_ptr;
         Data_t k;
-        GET_REG(dest+1,dest_ptr)
-        if (not_K)          GET_REG(src1+1,src1_ptr)
-        else                   GET_REG(src1,k)
-        GET_REG(src2+1,src2_ptr)
+        GET_REG(dest+1,dest_ptr);
+        if (not_K)          GET_REG(src1+1,src1_ptr);
+        else                   GET_REG(src1,k);
+        GET_REG(src2+1,src2_ptr);
 
         // Make sure pointers are within memory
         if (!Mvalid(dest_ptr)
@@ -221,18 +225,20 @@ Data_t dev_hls
         retcode |= DONE;
         break;
       }
+#endif
 
       //--------------------------------------------------------------------------
       // Operation: Count zeroes
+#if ENABLE_MZERO
       case MZERO: // R(dest) = zeroes(M(src1))
       {
-        VALIDATE_REGISTER(dest)
+        VALIDATE_REGISTER(dest);
 
-        VALIDATE_MATRIX(src1)
+        VALIDATE_MATRIX(src1);
         Addr_t src1_ptr;
         Data_t src1_shape;
-        GET_REG(src1,src1_shape)
-        GET_REG(src1+1,src1_ptr)
+        GET_REG(src1,src1_shape);
+        GET_REG(src1+1,src1_ptr);
         // Make sure pointer is within memory
         if (!Mvalid(src1_ptr)) {
           retcode |= ADDRESS_ERROR;
@@ -243,34 +249,36 @@ Data_t dev_hls
         for (Loop_t i=Msize(src1_shape); i!=0; --i) {
           if (mem[src1_ptr++] == 0) ++count;
         }
-        SET_REG(dest,count)
+        SET_REG(dest,count);
         retcode |= DONE;
         break;
       }
+#endif
 
       //--------------------------------------------------------------------------
       // Operation: Matrix multiply
+#if ENABLE_MMUL
       case MMUL:  // R(dest) = M(src1) x M(src2)
       {
         Addr_t dest_ptr, src1_ptr, src2_ptr;
         Data_t dest_shape, src1_shape, src2_shape;
         unsigned int dest_rows, dest_cols, src1_rows, src1_cols, src2_rows, src2_cols;
 
-        VALIDATE_MATRIX(dest)
-        GET_REG(dest,dest_shape)
-        GET_REG(dest+1,dest_ptr)
+        VALIDATE_MATRIX(dest);
+        GET_REG(dest,dest_shape);
+        GET_REG(dest+1,dest_ptr);
         dest_rows = Mrows(dest_shape);
         dest_cols = Mcols(dest_shape);
 
-        VALIDATE_MATRIX(src1)
-        GET_REG(src1,src1_shape)
-        GET_REG(src1+1,src1_ptr)
+        VALIDATE_MATRIX(src1);
+        GET_REG(src1,src1_shape);
+        GET_REG(src1+1,src1_ptr);
         src1_rows = Mrows(src1_shape);
         src1_cols = Mcols(src1_shape);
 
-        VALIDATE_MATRIX(src2)
-        GET_REG(src2,src2_shape)
-        GET_REG(src2+1,src2_ptr)
+        VALIDATE_MATRIX(src2);
+        GET_REG(src2,src2_shape);
+        GET_REG(src2+1,src2_ptr);
         src2_rows = Mrows(src2_shape);
         src2_cols = Mcols(src2_shape);
 
@@ -308,8 +316,10 @@ Data_t dev_hls
         retcode |= DONE;
         break;
       }
+#endif
       //--------------------------------------------------------------------------
       //Operation: Sum of elements
+#if ENABLE_MSUM
       case MSUM:  // R(dest) = sum(M(src1)[i]);
       {
         Addr_t src1_ptr;
@@ -317,9 +327,9 @@ Data_t dev_hls
 
         VALIDATE_REGISTER(dest);
 
-        VALIDATE_MATRIX(src1)
-        GET_REG(src1,src1_shape)
-        GET_REG(src1+1,src1_ptr)
+        VALIDATE_MATRIX(src1);
+        GET_REG(src1,src1_shape);
+        GET_REG(src1+1,src1_ptr);
 
         if (!Mvalid(src1_ptr)) {
           retcode |= ADDRESS_ERROR;
@@ -336,15 +346,19 @@ Data_t dev_hls
         retcode |= DONE;
         break;
       }
+#endif
       //--------------------------------------------------------------------------
       //{:Operation: Determinant:}
+#if ENABLE_MDET0
       case MDET0: // R(dest) = determinant(M0);
       {
         retcode |= UNSUPPORTED_ERROR; // NOT_YET_IMPLEMENTED
         break;
       }
+#endif
       //--------------------------------------------------------------------------
       //Operation: Compare matrices
+#if ENABLE_EQUAL
       case EQUAL: // R(dest) = M(src1) == M(src2);
       {
         Addr_t src1_ptr, src2_ptr;
@@ -352,13 +366,13 @@ Data_t dev_hls
 
         VALIDATE_REGISTER(dest);
 
-        VALIDATE_MATRIX(src1)
-        GET_REG(src1,src1_shape)
-        GET_REG(src1+1,src1_ptr)
+        VALIDATE_MATRIX(src1);
+        GET_REG(src1,src1_shape);
+        GET_REG(src1+1,src1_ptr);
 
-        VALIDATE_MATRIX(src2)
-        GET_REG(src2,src2_shape)
-        GET_REG(src2+1,src2_ptr)
+        VALIDATE_MATRIX(src2);
+        GET_REG(src2,src2_shape);
+        GET_REG(src2+1,src2_ptr);
 
         if (!Mvalid(src1_ptr)
          || !Mvalid(src2_ptr)
@@ -379,25 +393,27 @@ Data_t dev_hls
         } else {
           equal = 0;
         }
-        SET_REG(dest,equal)
+        SET_REG(dest,equal);
         retcode |= DONE;
         break;
       }
+#endif
       //--------------------------------------------------------------------------
       //Operation: Matrix transpose
+#if ENABLE_TRANS
       case TRANS: // M(dest) = transpose(M(src1));
       {
         Addr_t dest_ptr, src1_ptr;
         Data_t dest_shape, src1_shape;
         unsigned int dest_rows, src1_rows, src1_cols;
 
-        VALIDATE_MATRIX(dest)
-        GET_REG(dest,dest_shape)
-        GET_REG(dest+1,dest_ptr)
+        VALIDATE_MATRIX(dest);
+        GET_REG(dest,dest_shape);
+        GET_REG(dest+1,dest_ptr);
 
-        VALIDATE_MATRIX(src1)
-        GET_REG(src1,src1_shape)
-        GET_REG(src1+1,src1_ptr)
+        VALIDATE_MATRIX(src1);
+        GET_REG(src1,src1_shape);
+        GET_REG(src1+1,src1_ptr);
         src1_rows = Mrows(src1_shape);
         src1_cols = Mcols(src1_shape);
 
@@ -432,40 +448,44 @@ Data_t dev_hls
         retcode |= DONE;
         break;
       }
+#endif
       //--------------------------------------------------------------------------
       // Operation: Fill matrix with constant
-      case FILL:  // M(dest) = R(src1); // fill matrix
+#if ENABLE_MFILL
+      case MFILL: // M(dest) = R(src1); // fill matrix
       {
-        VALIDATE_MATRIX(dest)
-        VALIDATE_REGISTER(src1)
+        VALIDATE_MATRIX(dest);
+        VALIDATE_REGISTER(src1);
         Data_t fill;
-        GET_REG(src1,fill)
+        GET_REG(src1,fill);
         Addr_t dest_ptr;
         Data_t dest_shape;
-        GET_REG(dest,dest_shape)
-        GET_REG(dest+1,dest_ptr)
-        FILL_LOOP:
+        GET_REG(dest,dest_shape);
+        GET_REG(dest+1,dest_ptr);
+        MFILL_LOOP:
         for (Loop_t i=Msize(dest_shape); i!=0; --i) {
           mem[dest_ptr++] = fill;
         }
         retcode |= DONE;
         break;
       }
+#endif
       //--------------------------------------------------------------------------
       //Operation: Set matrix to identity
+#if ENABLE_IDENT
       case IDENT: // M(dest) = indentity(R2);
       {
-        VALIDATE_MATRIX(dest)
-        VALIDATE_REGISTER(src1)
+        VALIDATE_MATRIX(dest);
+        VALIDATE_REGISTER(src1);
         Data_t fill;
-        GET_REG(src1,fill)
+        GET_REG(src1,fill);
         Addr_t dest_ptr;
         Data_t dest_shape;
-        GET_REG(dest,dest_shape)
+        GET_REG(dest,dest_shape);
         unsigned int dest_rows, dest_cols;
         dest_cols = Mrows(dest_shape);
         dest_cols = Mcols(dest_shape);
-        GET_REG(dest+1,dest_ptr)
+        GET_REG(dest+1,dest_ptr);
         Addr_t dest_indx;
         IDENT_ROWS:
         for (Loop_t r=0; r!= dest_rows; ++r) {
@@ -477,57 +497,76 @@ Data_t dev_hls
         retcode |= DONE;
         break;
       }
+#endif
       //--------------------------------------------------------------------------
       // Operation: Copy register
+#if ENABLE_RCOPY
       case RCOPY: // R(dest) = R(src1); // register copy
       {
         Addr_t val;
-        VALIDATE_REGISTER(src1)
-        GET_REG(src1,val)
-        VALIDATE_REGISTER(dest)
-        SET_REG(dest,val)
+        VALIDATE_REGISTER(src1);
+        GET_REG(src1,val);
+        VALIDATE_REGISTER(dest);
+        SET_REG(dest,val);
         retcode |= DONE;
         break;
       }
+#endif
       //--------------------------------------------------------------------------
       // Operation: Set register low and sign extend
+#if ENABLE_RSETX
       case RSETX: // R(dest)[31:0] = (src1<<8)|src2; // register set hi
       {
         Addr_t val;
-        VALIDATE_REGISTER(dest)
-        GET_REG(dest,val)
+        VALIDATE_REGISTER(dest);
+        GET_REG(dest,val);
         val = ((src1 << 8)|src2);
         val |= (val&0x8000) ? 0xFFFF0000 : 0; // sign extend
-        SET_REG(dest,val)
+        SET_REG(dest,val);
         retcode |= DONE;
         break;
       }
+#endif
       //--------------------------------------------------------------------------
       // Operation: Set register high half immediate
+#if ENABLE_RSETH
       case RSETH: // R(dest)[31:16] = (src1<<8)|src2; // register set hi
       {
         Addr_t val;
-        VALIDATE_REGISTER(dest)
-        GET_REG(dest,val)
+        VALIDATE_REGISTER(dest);
+        GET_REG(dest,val);
         val &= 0xFFFF;
         val |= ((src1 << 8)|src2)<<16;
-        SET_REG(dest,val)
+        SET_REG(dest,val);
         retcode |= DONE;
         break;
       }
+#endif
       //--------------------------------------------------------------------------
       // Operation: Set register low half immediate
+#if ENABLE_RSETL
       case RSETL: // R(dest)[15:00] = (src1<<8)|src2; // register set lo
       {
         Addr_t val;
-        VALIDATE_REGISTER(dest)
-        GET_REG(dest,val)
+        VALIDATE_REGISTER(dest);
+        GET_REG(dest,val);
         val &= ~0xFFFF;
         val |= ((src1 << 8)|src2);
-        SET_REG(dest,val)
+        SET_REG(dest,val);
         retcode |= DONE;
         break;
       }
+#endif
+      //--------------------------------------------------------------------------
+      // Operation: Clear all to zero
+      case RESET:
+      {
+        RESET_REGISTERS:
+        for (int i=0; i!=REGISTERS; ++i) reg[i] = 0;
+        retcode |= IDLE;
+        break;
+      }
+
       //--------------------------------------------------------------------------
       default: // operation not implemented/supported
         {

@@ -39,7 +39,7 @@ const char * const operation_name[] =
 , "EQUAL"
 , "MZERO"
 , "TRANS"
-, "FILL "
+, "MFILL"
 , "IDENT"
 , "RMOVE"
 , "RSETX"

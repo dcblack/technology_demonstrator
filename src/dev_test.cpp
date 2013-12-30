@@ -184,7 +184,7 @@ int main(int argc, char* argv[])
   curr = cmd_list.size();
   nm = gen_name("e",curr);
   expected_matrix[curr] = new Matrix(matrix_list[0]->rows(), matrix_list[0]->cols(),nm);
-  cmd.set_cmd(FILL, M0, R13);
+  cmd.set_cmd(MFILL, M0, R13);
   cmd_list.push_back(cmd);
   expected_reg[curr] = M0;
   expected_matrix[curr]->fill(0xFFFFAAAA);
@@ -206,7 +206,7 @@ int main(int argc, char* argv[])
   curr = cmd_list.size();
   nm = gen_name("e",curr);
   expected_matrix[curr] = new Matrix(matrix_list[0]->rows(), matrix_list[0]->cols(),nm);
-  cmd.set_cmd(FILL, M0, R13);
+  cmd.set_cmd(MFILL, M0, R13);
   cmd_list.push_back(cmd);
   expected_reg[curr] = M0;
   expected_matrix[curr]->fill(0);
@@ -265,7 +265,7 @@ int main(int argc, char* argv[])
     if (expected_matrix.count(ci) == 1) { // check expected matrix
       // TODO: Get matrix referenced by expected_reg[ci] and compare against *expected_matrix[ci]
     }
-    if (expected_scalar.count(ci) == 1) { // check expected scalar
+    if (retcode != UNSUPPORTED_ERROR && expected_scalar.count(ci) == 1) { // check expected scalar
       if (cmd_list[ci].r(expected_reg[ci]) != expected_scalar[ci]) {
         cout << "ERROR: Unexpected scalar value from command " << ci << endl;
         ++errors;

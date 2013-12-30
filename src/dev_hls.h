@@ -1,13 +1,6 @@
 #ifndef DEV_HLS_H
 #define DEV_HLS_H
 
-#define MAX_MATRIX_SIZE (32/*rows*/ * 32/*cols*/)
-#define MAX_MATRIX_SPACE (MAX_MATRIX_SIZE+1)
-#define DW 4 /*bytes per datum*/
-#define AW 2 /*log2(DW)*/
-#define H_SHFT 16
-#define L_MASK 0xFFFF
-
 #ifdef USING_SYSTEMC
 typedef unsigned char*      Byte_ptr;
 #ifdef BIT_ACCURATE
@@ -60,6 +53,13 @@ typedef int                 Cmd_t;
 typedef Data_t              AxiM_t;
 #endif
 #endif
+
+#define MAX_MATRIX_SIZE (32/*rows*/ * 32/*cols*/)
+#define MAX_MATRIX_SPACE (MAX_MATRIX_SIZE+1)
+#define DW sizeof(Data_t)
+#define AW sizeof(Loop_t)
+#define H_SHFT 16
+#define L_MASK 0xFFFF
 
 #define XMATRICES   1
 #define XMEM_SIZE   (MAX_MATRIX_SPACE*XMATRICES)
@@ -123,6 +123,8 @@ enum Reg_t     // Word offsets for registers (32 bits each)
 , LAST_REG
 , UNUSED=-1
 };
+#define MAX_R 15
+#define MAX_M 14
 
 inline Addr_t Mrows (Addr_t shape) { return (shape>>H_SHFT) & L_MASK; }
 inline Addr_t Mcols (Addr_t shape) { return  shape          & L_MASK; }
@@ -150,7 +152,7 @@ enum Operation_t // Operations
 , EQUAL  //  R(dest) = M(dest) == M(src1); // compare
 , MZERO  //  R(dest) = sum(M(src)[i]==0); // count zeroes
 , TRANS  //  M(dest) = transpose(M(src1));
-, FILL   //  M(dest) = R(src1); // fill matrix
+, MFILL  //  M(dest) = R(src1); // fill matrix
 , IDENT  //  M(dest) = identity(R(src1));
 , RCOPY  //  R(dest) = R(src1); // register copy
 , RSETX  //  R(dest)[31:00] = (src1<<8)|src2; // register set with sign-extend
@@ -222,6 +224,25 @@ enum CmdState_t
 #define reg_SR R14
 #define reg_PC R15
 
+// Enable implementation of operations
+#define ENABLE_LOAD   0/*NYI*/
+#define ENABLE_STORE  0/*NYI*/
+#define ENABLE_MCOPY  1
+#define ENABLE_ELTOPS 0/*MADD,MSUB,RSUB,KMUL,KADD*/
+#define ENABLE_MMUL   1
+#define ENABLE_MSUM   0
+#define ENABLE_MDET0  0/*NYI*/
+#define ENABLE_EQUAL  0
+#define ENABLE_MZERO  0
+#define ENABLE_TRANS  0
+#define ENABLE_MFILL  0
+#define ENABLE_IDENT  0
+#define ENABLE_RCOPY  1
+#define ENABLE_RSETX  1
+#define ENABLE_RSETH  1
+#define ENABLE_RSETL  1
+#define ENABLE_EXEC   1
+#define ENABLE_HALT   1
 
 //------------------------------------------------------------------------------
 // $LICENSE: Apache 2.0 $ <<<

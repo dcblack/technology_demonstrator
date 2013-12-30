@@ -86,14 +86,90 @@ void Command::set_expected(CmdState_t expect) {
   else if (m_op == RESET) expected = IDLE;
   else if (m_op == HALT)  expected = HALTED;
   else if (m_op == LOAD) {
+#if ENABLE_LOAD
     expected = DONE;
-    //{:TODO-CHECK-FOR-ERRORS:}
+#else
+    expected = UNSUPPORTED_ERROR;
+#endif
   }
   else if (m_op == STORE) {
+#if ENABLE_STORE
     expected = DONE;
-    //{:TODO-CHECK-FOR-ERRORS:}
+#else
+    expected = UNSUPPORTED_ERROR;
+#endif
   }
-  else                    expected = DONE;
+  else if (m_op == MZERO) {
+#if ENABLE_MZERO
+    expected = DONE;
+#else
+    expected = UNSUPPORTED_ERROR;
+#endif
+  }
+  else if (m_op == MSUM) {
+#if ENABLE_MSUM
+    expected = DONE;
+#else
+    expected = UNSUPPORTED_ERROR;
+#endif
+  }
+  else if (m_op == MDET0) {
+#if ENABLE_MDET0
+    expected = DONE;
+#else
+    expected = UNSUPPORTED_ERROR;
+#endif
+  }
+  else if (m_op == TRANS) {
+#if ENABLE_TRANS
+    expected = DONE;
+#else
+    expected = UNSUPPORTED_ERROR;
+#endif
+  }
+  else if (m_op == EQUAL) {
+#if ENABLE_EQUAL
+    expected = DONE;
+#else
+    expected = UNSUPPORTED_ERROR;
+#endif
+  }
+  else if (m_op == IDENT) {
+#if ENABLE_IDENT
+    expected = DONE;
+#else
+    expected = UNSUPPORTED_ERROR;
+#endif
+  }
+  else if (m_op == MCOPY) {
+#if ENABLE_MCOPY
+    expected = DONE;
+#else
+    expected = UNSUPPORTED_ERROR;
+#endif
+  }
+  else if (m_op == MFILL) {
+#if ENABLE_MFILL
+    expected = DONE;
+#else
+    expected = UNSUPPORTED_ERROR;
+#endif
+  }
+  else if ( m_op == MADD
+         || m_op == MSUB
+         || m_op == RSUB
+         || m_op == KMUL
+         || m_op == KADD
+          ) {
+#if ENABLE_ELTOPS
+    expected = DONE;
+#else
+    expected = UNSUPPORTED_ERROR;
+#endif
+  }
+  else {
+    expected = DONE;
+  }
 }
 
 //----------------------------------------------------------------------------
