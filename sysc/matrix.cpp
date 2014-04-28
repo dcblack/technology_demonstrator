@@ -7,13 +7,13 @@ using namespace std;
 #ifdef VERBOSITY_ENABLED
 bool    Matrix::s_verbosity = true;
 size_t  Matrix::next_id     = 0;
-ssize_t Matrix::matrix_count     = 0;
+index_t Matrix::matrix_count     = 0;
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // Constructors
 //------------------------------------------------------------------------------
-Matrix::Matrix(size_t _rows, size_t _cols) //< Constructor (from new rows x cols)
+Matrix::Matrix(index_t _rows, index_t _cols) //< Constructor (from new rows x cols)
 : mtx(nullptr)
 #ifdef VERBOSITY_ENABLED
 , m_id(next_id++)
@@ -31,7 +31,36 @@ Matrix::Matrix(size_t _rows, size_t _cols) //< Constructor (from new rows x cols
 }
 
 //------------------------------------------------------------------------------
-Matrix::Matrix(size_t max) //  Random matrix constructor
+Matrix::Matrix(index_t _rows, index_t _cols, std::initializer_list<Mdata_t> vals) //< Constructor (from new rows x cols)
+: mtx(nullptr)
+#ifdef VERBOSITY_ENABLED
+, m_id(next_id++)
+#endif
+{
+  assert(sizeof(Mdata_t)>=BITS/8);
+  Massert(is_valid(_rows,_cols));
+  mtx = (Mdata_t*) malloc(sizeof(Mdata_t)*space(_rows,_cols));
+  mtx[SHAPE] = shape(_rows,_cols);
+  mtx[CAPACITY] = size();
+  int i=0;
+  for (auto v : vals) {
+    if (i == size()) break;
+    mtx[BASE+i++] = v;
+  }
+  if (i != size()) {
+    std::cout << "WARNING: Filling missing " << size()-i << " entries with zero" << std::endl;
+    for (; i!= size(); ++i) {
+      mtx[BASE+i] = 0;
+    }
+  }
+#ifdef VERBOSITY_ENABLED
+  if (s_verbosity) { std::cout << "Constructed #" << id() << "(" << _rows << "x" << _cols << ")" << std::endl; }
+  ++matrix_count;
+#endif
+}
+
+//------------------------------------------------------------------------------
+Matrix::Matrix(Mdata_t max) //  Random matrix constructor
 : mtx(nullptr)
 #ifdef VERBOSITY_ENABLED
 , m_id(next_id++)
@@ -40,9 +69,9 @@ Matrix::Matrix(size_t max) //  Random matrix constructor
   max &= MAXDIM;
   if (max == 0) max = MAXDIM;
   static default_random_engine gen;
-  static uniform_int_distribution<size_t> distr(1,max);
-  size_t _rows = distr(gen);
-  size_t _cols = distr(gen);
+  static uniform_int_distribution<Mdata_t> distr(1,max);
+  index_t _rows = distr(gen);
+  index_t _cols = distr(gen);
   mtx = (Mdata_t*) malloc(sizeof(Mdata_t)*space(_rows,_cols));
   mtx[SHAPE] = shape(_rows,_cols);
   mtx[CAPACITY] = size();
@@ -54,7 +83,7 @@ Matrix::Matrix(size_t max) //  Random matrix constructor
 }
 
 //------------------------------------------------------------------------------
-Matrix::Matrix(Mdata_t* ptr, size_t bytes) //< Constructor (from remotely constructed)
+Matrix::Matrix(Mdata_t* ptr, addr_t bytes) //< Constructor (from remotely constructed)
 : mtx(nullptr)
 #ifdef VERBOSITY_ENABLED
 , m_id(next_id++)
@@ -69,7 +98,7 @@ Matrix::Matrix(Mdata_t* ptr, size_t bytes) //< Constructor (from remotely constr
 }
 
 //------------------------------------------------------------------------------
-Matrix::Matrix(Mdata_t* ptr, size_t _rows, size_t _cols) //< Constructor (from existing memory, but not initialized)
+Matrix::Matrix(Mdata_t* ptr, index_t _rows, index_t _cols) //< Constructor (from existing memory, but not initialized)
 : mtx(nullptr)
 #ifdef VERBOSITY_ENABLED
 , m_id(next_id++)
@@ -125,17 +154,17 @@ Matrix& Matrix::operator=(const Matrix& rhs) //< Assignment
   return *this;
 }
 
-bool Matrix::contains(ssize_t x, ssize_t y)
+bool Matrix::contains(index_t x, index_t y)
 {
   return (x >= 0) && (x < cols()) && (y >= 0) && (y < rows());
 }
 
-bool Matrix::contains(ssize_t x, ssize_t y, const Matrix& rhs)
+bool Matrix::contains(index_t x, index_t y, const Matrix& rhs)
 {
   return contains(x,y) && contains(x+rhs.cols()-1,y+rhs.rows()-1);
 }
 
-bool Matrix::contains(ssize_t x, ssize_t y, Shape_t _shape)
+bool Matrix::contains(index_t x, index_t y, Shape_t _shape)
 {
   return contains(x,y) && contains(x+cols(_shape)-1,y+rows(_shape)-1);
 }
@@ -251,9 +280,9 @@ Matrix Matrix::operator*(const Matrix& rhs) const // *Mmul
   Massert(cols()==rhs.rows());
   Matrix result(rows(),rhs.cols());
   result = 0; // initialize
-  for (size_t i=0; i!=rows(); ++i) {
-    for (size_t j=0; j!=rhs.cols(); ++j) {
-      for (size_t k=0; k!=cols(); ++k) {
+  for (index_t i=0; i!=rows(); ++i) {
+    for (index_t j=0; j!=rhs.cols(); ++j) {
+      for (index_t k=0; k!=cols(); ++k) {
         result.at(i,j) += at(i,k) * rhs.at(k,j);
       }//endfor
     }//endfor
@@ -272,8 +301,8 @@ Matrix& Matrix::operator*=(const Matrix& rhs) // *=Msub
 Matrix Matrix::transpose(void)
 {
   Matrix t(cols(),rows());
-  for (size_t x=0; x!=cols(); ++x) {
-    for (size_t y=0; y!=rows(); ++y) {
+  for (index_t x=0; x!=cols(); ++x) {
+    for (index_t y=0; y!=rows(); ++y) {
       t.at(y,x) = at(y,x);
     }
   }
@@ -336,8 +365,8 @@ bool Matrix::is_triangle(bool above) const
 {
   bool result = true;
   if (!is_square()) return false;
-  for (size_t x=0; x!=cols(); ++x) {
-    for (size_t y=0; y!=rows(); ++y) {
+  for (index_t x=0; x!=cols(); ++x) {
+    for (index_t y=0; y!=rows(); ++y) {
       if ( above && x<y && at(x,y) != 0) return false;
       if (!above && x>y && at(x,y) != 0) return false;
     }
@@ -353,14 +382,14 @@ void Matrix::fill(Kind kind)
   switch (kind) {
     case Kind::identity: {
       *this = 0;
-      size_t min = rows() < cols() ? rows() : cols();
-      for (size_t i=0; i!=min; ++i) at(i,i) = 1;
+      index_t min = rows() < cols() ? rows() : cols();
+      for (index_t i=0; i!=min; ++i) at(i,i) = 1;
       break;
     }
     case Kind::lower:
     case Kind::upper: {
-      for (size_t x=0; x!=cols(); ++x) {
-        for (size_t y=0; y!=rows(); ++y) {
+      for (index_t x=0; x!=cols(); ++x) {
+        for (index_t y=0; y!=rows(); ++y) {
           if (kind == Kind::upper) {
             if (x<y) at(x,y) = 0;
             else     at(x,y) = 1;
@@ -373,8 +402,8 @@ void Matrix::fill(Kind kind)
       break;
     }
     default: /* includes Kind::shape */ {
-      for (size_t x=0; x!=cols(); ++x) {
-        for (size_t y=0; y!=rows(); ++y) {
+      for (index_t x=0; x!=cols(); ++x) {
+        for (index_t y=0; y!=rows(); ++y) {
           at(x,y) = (y<<(BITS/2))|x; // shape masks
         }//endfor
       }//endfor
@@ -388,7 +417,7 @@ void Matrix::fill(Kind kind)
 void Matrix::fill_patt(Pattern_t patt) {
   typedef std::uniform_int_distribution<Pattern_t> Pattern_distribution;
   //{:ODDITY: g++ -pedantic won't allow following to be static:}
-  Pattern_distribution  distr(int(FILL0),int(RANDOM));
+  Pattern_distribution  distr((int(FILL0)),(int(RANDOM)));
   static default_random_engine gen;
   if (patt == NONE) return;
   Data_t value = 0;
@@ -430,8 +459,8 @@ void Matrix::load(const Memory& mem, Addr_t from)
   Addr_t capacity = mem.iget(from++);
   assert(capacity != 0 && Msize(capacity) < MAX_MATRIX_SIZE);
   delete[] mtx;
-  size_t m_rows = rows(capacity);
-  size_t m_cols = cols(capacity);
+  index_t m_rows = rows(capacity);
+  index_t m_cols = cols(capacity);
   mtx = new Data_t[m_rows*m_cols + BASE];
   mtx[CAPACITY] = capacity;
   mtx[SHAPE] = mem.iget(from++);
@@ -500,16 +529,16 @@ void Matrix::randomize(size_t zeroes,size_t negative)
 {
   static std::default_random_engine gen;
   static std::uniform_int_distribution<Mdata_t> distr;
-  for (size_t x=0; x!=cols(); ++x) {
-    for (size_t y=0; y!=rows(); ++y) {
+  for (index_t x=0; x!=cols(); ++x) {
+    for (index_t y=0; y!=rows(); ++y) {
       at(x,y) = distr(gen);
     }//endfor
   }//endfor
   if (zeroes || negative) {
     zeroes %= size();
     negative %= size();
-    std::uniform_int_distribution<size_t> row_distr(0,rows()-1);
-    std::uniform_int_distribution<size_t> col_distr(0,cols()-1);
+    std::uniform_int_distribution<index_t> row_distr(0,rows()-1);
+    std::uniform_int_distribution<index_t> col_distr(0,cols()-1);
     while (zeroes--  ) at(row_distr(gen),col_distr(gen)) *=  0;
     while (negative--) at(row_distr(gen),col_distr(gen)) *= -1;
   }
@@ -520,7 +549,7 @@ void Matrix::randomize(size_t zeroes,size_t negative)
 void Matrix::zap(Mdata_t* mtx, Mdata_t rhs)
 {
   Massert(is_valid(mtx)); // minimal safety check
-  size_t sz = mtx[CAPACITY];
+  addr_t sz = mtx[CAPACITY];
   for (int i=0; i!=BASE+sz; ++i) mtx[i] = rhs;
 }
 

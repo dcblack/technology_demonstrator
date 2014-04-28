@@ -58,6 +58,8 @@
 //   mtx = mem + 2;
 
 typedef int32_t Mdata_t;
+typedef int16_t index_t;
+typedef int32_t addr_t;
 
 struct Matrix
 {
@@ -74,10 +76,11 @@ struct Matrix
   , PLUSMINUS, MINUS2, PLUS1, MINUS1, PLUS3
   , NONE
   };
-  Matrix(size_t _rows, size_t _cols); //< Constructor (from new rows x cols)
-  Matrix(size_t max); // Random matrix constructor
-  Matrix(Mdata_t* ptr, size_t bytes); //< Constructor (from remotely constructed)
-  Matrix(Mdata_t* ptr, size_t _rows, size_t _cols); //< Constructor (from existing memory, but not initialized)
+  Matrix(index_t _rows, index_t _cols); //< Constructor (from new rows x cols)
+  Matrix(index_t _rows, index_t _cols, std::initializer_list<Mdata_t> vals); //< Constructor (from new rows x cols)
+  Matrix(Mdata_t max); // Random matrix constructor
+  Matrix(Mdata_t* ptr, addr_t bytes); //< Constructor (from remotely constructed)
+  Matrix(Mdata_t* ptr, index_t _rows, index_t _cols); //< Constructor (from existing memory, but not initialized)
   Matrix(const Matrix& rhs); //< Copy constructor
   virtual ~Matrix(void); //< Destructor
   Matrix& operator=(const Matrix& rhs); //< Assignment
@@ -85,38 +88,38 @@ struct Matrix
   bool operator==(const Matrix& rhs) const { return shape() == rhs.shape() && memcmp(mtx,rhs.mtx,sizeof(Mdata_t)*size()) == 0; }
   bool operator!=(const Matrix& rhs) const { return !(*this == rhs); }
   // Indexing/sizing operations
-  bool           contains (ssize_t x, ssize_t y);
-  bool           contains (ssize_t x, ssize_t y, const Matrix& rhs);
-  bool           contains (ssize_t x, ssize_t y, Shape_t shape);
-  Mdata_t&       at       (size_t x, size_t y)         { Massert((x+1)*(y+1)<=size()); return mtx[index(x,y)]; }
-  const Mdata_t& at       (size_t x, size_t y) const   { Massert((x+1)*(y+1)<=size()); return mtx[index(x,y)]; }
-  Mdata_t&       at       (size_t i)                   { Massert(i<size()); return mtx[index(i)]; }
-  const Mdata_t& at       (size_t i) const             { Massert(i<size()); return mtx[index(i)]; }
-  Mdata_t&       last     (void)                       { return at(size()-1); }
-  const Mdata_t& last     (void) const                 { return at(size()-1); }
-  Mdata_t&       first    (void)                       { return at(begin()); }
-  const Mdata_t& first    (void) const                 { return at(begin()); }
-  static bool    is_valid (size_t _rows, size_t _cols) { return (0<_rows) && (_rows<=MAXDIM) && (0<_cols) && (_cols<=MAXDIM); }
-  static bool    is_valid (Shape_t _shape)             { return is_valid(rows(_shape),cols(_shape)); }
-  static bool    is_valid (Mdata_t* _ptr)              { return is_valid(_ptr[SHAPE]) && _ptr[CAPACITY] <= size(_ptr[SHAPE]); }
-  static size_t  rows     (Shape_t _shape)             { return ((_shape >> (BITS/2)) & MAXDIM); }
-  static size_t  cols     (Shape_t _shape)             { return ( _shape          & MAXDIM); }
-  static size_t  size     (Shape_t _shape)             { return rows(_shape) * cols(_shape); }
-  static size_t  space    (size_t _rows, size_t _cols) { return _rows*_cols+BASE-SHAPE; }
-  static size_t  space    (Shape_t _shape)             { return size(_shape)+BASE-SHAPE; }
-  static Shape_t shape    (size_t _rows, size_t _cols) { return ((_rows & MAXDIM)<<(BITS/2))|(_cols & MAXDIM); }
-  size_t         rows     (void)  const                { return rows(mtx[SHAPE]); }
-  size_t         cols     (void)  const                { return cols(mtx[SHAPE]); }
-  size_t         size     (void)  const                { return rows()*cols(); }
-  size_t         alloc    (void) const                 { return mtx[CAPACITY] + BASE; }
-  size_t         space    (void) const                 { return size() + BASE - SHAPE; }
-  Shape_t        shape    (void) const                 { return mtx[SHAPE]; }
-  size_t         index    (size_t x, size_t y) const   { return x*cols()+y+BASE; }
-  size_t         index    (size_t i) const             { return i+BASE; }
-  size_t         row      (size_t i) const             { return (i-BASE)/cols(); }
-  size_t         col      (size_t i) const             { return (i-BASE)%cols(); }
-  size_t         begin    (void) const                 { return 0; }
-  size_t         end      (void) const                 { return size(); }
+  bool           contains (index_t x, index_t y);
+  bool           contains (index_t x, index_t y, const Matrix& rhs);
+  bool           contains (index_t x, index_t y, Shape_t shape);
+  Mdata_t&       at       (index_t x, index_t y)         { Massert((x+1)*(y+1)<=size()); return mtx[index(x,y)]; }
+  const Mdata_t& at       (index_t x, index_t y) const   { Massert((x+1)*(y+1)<=size()); return mtx[index(x,y)]; }
+  Mdata_t&       at       (addr_t i)                     { Massert(i<size()); return mtx[index(i)]; }
+  const Mdata_t& at       (addr_t i) const               { Massert(i<size()); return mtx[index(i)]; }
+  Mdata_t&       last     (void)                         { return at(size()-1); }
+  const Mdata_t& last     (void) const                   { return at(size()-1); }
+  Mdata_t&       first    (void)                         { return at(begin()); }
+  const Mdata_t& first    (void) const                   { return at(begin()); }
+  static bool    is_valid (index_t _rows, index_t _cols) { return (0<_rows) && (_rows<=MAXDIM) && (0<_cols) && (_cols<=MAXDIM); }
+  static bool    is_valid (Shape_t _shape)               { return is_valid(rows(_shape),cols(_shape)); }
+  static bool    is_valid (Mdata_t* _ptr)                { return is_valid(_ptr[SHAPE]) && _ptr[CAPACITY] <= size(_ptr[SHAPE]); }
+  static index_t rows     (Shape_t _shape)               { return ((_shape >> (BITS/2)) & MAXDIM); }
+  static index_t cols     (Shape_t _shape)               { return ( _shape          & MAXDIM); }
+  static addr_t  size     (Shape_t _shape)               { return rows(_shape) * cols(_shape); }
+  static addr_t  space    (index_t _rows, index_t _cols) { return _rows*_cols+BASE-SHAPE; }
+  static addr_t  space    (Shape_t _shape)               { return size(_shape)+BASE-SHAPE; }
+  static Shape_t shape    (index_t _rows, index_t _cols) { return ((_rows & MAXDIM)<<(BITS/2))|(_cols & MAXDIM); }
+  index_t        rows     (void)  const                  { return rows(mtx[SHAPE]); }
+  index_t        cols     (void)  const                  { return cols(mtx[SHAPE]); }
+  addr_t         size     (void)  const                  { return rows()*cols(); }
+  addr_t         alloc    (void) const                   { return mtx[CAPACITY] + BASE; }
+  addr_t         space    (void) const                   { return size() + BASE - SHAPE; }
+  Shape_t        shape    (void) const                   { return mtx[SHAPE]; }
+  addr_t         index    (index_t x, index_t y) const   { return x*cols()+y+BASE; }
+  addr_t         index    (addr_t i) const               { return i+BASE; }
+  index_t        row      (addr_t i) const               { return (i-BASE)/cols(); }
+  index_t        col      (addr_t i) const               { return (i-BASE)%cols(); }
+  addr_t         begin    (void) const                   { return 0; }
+  addr_t         end      (void) const                   { return size(); }
   // Scalar operations
   Matrix& operator= (const Mdata_t& rhs);        // Fill
   Matrix& operator*=(const Mdata_t& rhs);        // *=Kmul
@@ -152,7 +155,7 @@ struct Matrix
   void load(const Memory& m, Addr_t from);
   void store(Memory& m, Addr_t to);
   std::string dump    (std::string name="");
-  static Matrix identity_matrix(size_t dim) { Matrix sq(dim,dim); sq.fill(Kind::identity); return sq; }
+  static Matrix identity_matrix(index_t dim) { Matrix sq(dim,dim); sq.fill(Kind::identity); return sq; }
   void randomize(size_t zeroes=0, size_t negative=0);
   static void zap(Mdata_t* mtx, Mdata_t rhs);
 private:
@@ -160,13 +163,13 @@ private:
 #ifdef VERBOSITY_ENABLED
   static bool    s_verbosity;
   static size_t  next_id;
-  static ssize_t matrix_count;
+  static index_t matrix_count;
   size_t         m_id;
 public:
   static void verbosity(bool flag) { s_verbosity = flag; }
   static bool verbosity(void) { return s_verbosity; }
   size_t id(void) const { return m_id; }
-  static ssize_t existing(void) { return matrix_count; }
+  static index_t existing(void) { return matrix_count; }
 #endif
 };
 
