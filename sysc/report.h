@@ -221,10 +221,10 @@ namespace util
     const char * kind(void) const OVERRIDE { return "sc_behavior"; } // because default doesn't
     void start_of_simulation(void) OVERRIDE;
     void end_of_simulation(void) OVERRIDE;
-    static void adjust_unexpected_errors(int amount) { expected_error_count += amount; }
-    static void adjust_unexpected_warnings(int amount) { expected_warning_count += amount; }
-    static void adjust_expected_errors(int amount) { expected_error_count += amount; }
-    static void adjust_expected_warnings(int amount) { expected_warning_count += amount; }
+    static void adjust_unexpected_errors(int   amount) { unexpected_error_count   += amount; }
+    static void adjust_unexpected_warnings(int amount) { unexpected_warning_count += amount; }
+    static void adjust_expected_errors(int     amount) { expected_error_count     += amount; }
+    static void adjust_expected_warnings(int   amount) { expected_warning_count   += amount; }
   private:
     static const char * s_msgid;
   protected:
@@ -291,6 +291,7 @@ namespace util
 // Following keeps window open on exit -- helps when using Visual Studio console apps
 #include <limits>
 #include <sys/utsname.h>
+#include <stdint.h>
 
 namespace util
 {

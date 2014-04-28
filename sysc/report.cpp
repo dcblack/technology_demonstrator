@@ -542,10 +542,10 @@ namespace util
     //--------------------------------------------------------------------------
     unsigned long int debug_count(0UL);
     for (int i=0;nonwarnings[i].name!=0;++i) debug_count += nonwarnings[i].count;
-    unsigned long int info_count     = sc_report_handler::get_count(SC_INFO);
-    unsigned long int warning_count  = sc_report_handler::get_count(SC_WARNING) - debug_count;
-    unsigned long int error_count    = sc_report_handler::get_count(SC_ERROR);
-    unsigned long int fatal_count    = sc_report_handler::get_count(SC_FATAL);
+    long int info_count     = sc_report_handler::get_count(SC_INFO);
+    long int warning_count  = sc_report_handler::get_count(SC_WARNING) - debug_count;
+    long int error_count    = sc_report_handler::get_count(SC_ERROR);
+    long int fatal_count    = sc_report_handler::get_count(SC_FATAL);
     error_count   += report::unexpected_error_count   - report::expected_error_count;
     warning_count += report::unexpected_warning_count - report::expected_warning_count;
     cout
@@ -592,7 +592,7 @@ namespace util
       }//endif
     }
     if (success) {
-      cout << "PASSED - No errors detected." << endl;
+      cout << "PASSED - No unexpected errors detected." << endl;
     } else {
       cout << "FAILED" << endl;
     }//endif
