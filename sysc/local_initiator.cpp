@@ -31,7 +31,7 @@ namespace {
 
 ///////////////////////////////////////////////////////////////////////////////
 // Constructor <<
-Local_initiator_module::Local_initiator_module
+Local_initiator_module:: Local_initiator_module
 ( sc_module_name instance_name
 )
 : sc_module(instance_name)
@@ -65,7 +65,7 @@ Local_initiator_module::Local_initiator_module
   //----------------------------------------------------------------------------
   // Register TLM backwards path methods -NONE-
   //----------------------------------------------------------------------------
-  initiator_socket.register_invalidate_direct_mem_ptr(this, &Local_initiator_module::invalidate_direct_mem_ptr);
+  initiator_socket.register_invalidate_direct_mem_ptr(this, &Local_initiator_module:: invalidate_direct_mem_ptr);
 
   //----------------------------------------------------------------------------
   // Register processes
@@ -82,35 +82,35 @@ Local_initiator_module::Local_initiator_module
 
 ///////////////////////////////////////////////////////////////////////////////
 // Destructor <<
-Local_initiator_module::~Local_initiator_module(void)
+Local_initiator_module:: ~Local_initiator_module(void)
 {
   REPORT_INFO("Destroyed " << name());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Callbacks
-void Local_initiator_module::before_end_of_elaboration(void)
+// Callbacks -- placeholders for now
+void Local_initiator_module:: before_end_of_elaboration(void)
 {
   REPORT_INFO(__func__ << " " << name());
 }
 
-void Local_initiator_module::end_of_elaboration(void)
+void Local_initiator_module:: end_of_elaboration(void)
 {
   REPORT_INFO(__func__ << " " << name());
 }
 
-void Local_initiator_module::start_of_simulation(void) {
+void Local_initiator_module:: start_of_simulation(void) {
   REPORT_INFO(__func__ << " " << name());
 }
 
-void Local_initiator_module::end_of_simulation(void)
+void Local_initiator_module:: end_of_simulation(void)
 {
   REPORT_INFO(__func__ << " " << name());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Processes <<
-void Local_initiator_module::initiator_thread(void)  {
+void Local_initiator_module:: initiator_thread(void)  {
   REPORT_INFO("Started " << __func__ << " " << name());
   Mtx driver(this,0/*device base address*/); //< setup driver to know where we are
   Software* const code(new Software(this));
@@ -120,7 +120,7 @@ void Local_initiator_module::initiator_thread(void)  {
   sc_process_handle sw = sc_spawn(&retcode,sc_bind(&Software::sw_main,code),"sw_main");
   sc_process_handle ih = sc_spawn(sc_bind(&Software::interrupt_handler,code),"interrupt_handler");
   interrupt_active  = false;
-  wait(SC_ZERO_TIME);
+  wait(SC_ZERO_TIME); // allow processes to start
   ih.suspend();
   if (interrupt_enabled) {
     sw.suspend();
@@ -148,15 +148,15 @@ void Local_initiator_module::initiator_thread(void)  {
     REPORT_INFO("Software terminated with successful return code of zero.");
   } else {
     REPORT_ERROR("Software terminated with non-zero return code " << retcode);
-    util::report::adjust_unexpected_errors(retcode -1);
+    util::report::adjust_unexpected_errors(-1);
   }//endif
   ih.kill();
   wait(1,SC_SEC);
   REPORT_INFO("Exiting local_initiator");
   sc_stop();
-}//end Local_initiator_module::initiator_thread()
+}//end Local_initiator_module:: initiator_thread()
 
-void Local_initiator_module::invalidate_direct_mem_ptr
+void Local_initiator_module:: invalidate_direct_mem_ptr
 ( sc_dt::uint64 start_range
 , sc_dt::uint64 end_range
 ) {
@@ -172,7 +172,7 @@ void Local_initiator_module::invalidate_direct_mem_ptr
 ////////////////////////////////////////////////////////////////////////////////
 // Helpers
 //------------------------------------------------------------------------------
-void Local_initiator_module::get_mem(size_t n)
+void Local_initiator_module:: get_mem(size_t n)
 {
   if (m_memory == nullptr || m_used.empty()) {
     unsigned char* dmi_pointer;
@@ -214,9 +214,9 @@ void Local_initiator_module::get_mem(size_t n)
     }//endif
     assert(m_memory != nullptr);
   }//endif
-}
+}//end Local_initiator_module::get_mem(...)
 
-Byte_ptr Local_initiator_module::malloc(size_t n)
+Byte_ptr Local_initiator_module:: malloc(size_t n)
 {
   // Acquire pointer to memory
   get_mem(n);
@@ -250,10 +250,10 @@ Byte_ptr Local_initiator_module::malloc(size_t n)
     }//endif
   }//endfor
   return nullptr;
-}
+}//end Local_initiator_module::malloc(...)
 
 //------------------------------------------------------------------------------
-void  Local_initiator_module::free(Byte_ptr ptr)
+void  Local_initiator_module:: free(Byte_ptr ptr)
 {
   size_t addr = m_memory - ptr;
   assert(m_used.count(addr) == 1); //< didn't allocate
@@ -262,7 +262,7 @@ void  Local_initiator_module::free(Byte_ptr ptr)
 }
 
 //------------------------------------------------------------------------------
-void Local_initiator_module::mem_write(size_t waddr, int* data_ptr, size_t words)
+void Local_initiator_module:: mem_write(size_t waddr, int* data_ptr, size_t words)
 {
   bool dmi = false;
   unsigned char* dmi_pointer;
@@ -319,7 +319,7 @@ void Local_initiator_module::mem_write(size_t waddr, int* data_ptr, size_t words
 }
 
 //------------------------------------------------------------------------------
-void Local_initiator_module::mem_read (size_t waddr, int* data_ptr, size_t words)
+void Local_initiator_module:: mem_read (size_t waddr, int* data_ptr, size_t words)
 {
   bool dmi = false;
   unsigned char* dmi_pointer;
@@ -377,21 +377,21 @@ void Local_initiator_module::mem_read (size_t waddr, int* data_ptr, size_t words
 
 //------------------------------------------------------------------------------
 // NOTE: addr & n represent 32-bit locations (ie. 4 bytes per)
-void Local_initiator_module::mem_write(size_t addr, int& data)
+void Local_initiator_module:: mem_write(size_t addr, int& data)
 {
   mem_write(addr,&data,1);
 }
 
 //------------------------------------------------------------------------------
 // NOTE: addr & n represent 32-bit locations (ie. 4 bytes per)
-void Local_initiator_module::mem_read (size_t addr, int& data)
+void Local_initiator_module:: mem_read (size_t addr, int& data)
 {
   mem_read(addr,&data,1);
 }
 
 //------------------------------------------------------------------------------
 // NOTE: addr & n represent 32-bit locations (ie. 4 bytes per)
-int  Local_initiator_module::mem_read (size_t addr)
+int  Local_initiator_module:: mem_read (size_t addr)
 {
   int result;
   mem_read(addr, result);
@@ -400,7 +400,7 @@ int  Local_initiator_module::mem_read (size_t addr)
 
 //------------------------------------------------------------------------------
 // NOTE: addr & n represent 32-bit locations (ie. 4 bytes per)
-void Local_initiator_module::dev_write(size_t waddr, int* data_ptr, size_t words)
+void Local_initiator_module:: dev_write(size_t waddr, int* data_ptr, size_t words)
 {
   size_t addr = waddr*sizeof(Data_t); // adjust for byte addresses
   size_t n    = words*sizeof(Data_t);
@@ -430,7 +430,7 @@ void Local_initiator_module::dev_write(size_t waddr, int* data_ptr, size_t words
 
 //------------------------------------------------------------------------------
 // NOTE: addr & n represent 32-bit locations (ie. 4 bytes per)
-void Local_initiator_module::dev_read (size_t waddr, int* data_ptr, size_t words)
+void Local_initiator_module:: dev_read (size_t waddr, int* data_ptr, size_t words)
 {
   size_t addr = waddr*sizeof(Data_t); // adjust for byte addresses
   size_t n    = words*sizeof(Data_t);
@@ -459,21 +459,21 @@ void Local_initiator_module::dev_read (size_t waddr, int* data_ptr, size_t words
 
 //------------------------------------------------------------------------------
 // NOTE: addr & n represent 32-bit locations (ie. 4 bytes per)
-void Local_initiator_module::dev_write(size_t addr, int& data)
+void Local_initiator_module:: dev_write(size_t addr, int& data)
 {
   dev_write(addr,&data,1);
 }
 
 //------------------------------------------------------------------------------
 // NOTE: addr & n represent 32-bit locations (ie. 4 bytes per)
-void Local_initiator_module::dev_read (size_t addr, int& data)
+void Local_initiator_module:: dev_read (size_t addr, int& data)
 {
   dev_read(addr,&data,1);
 }
 
 //------------------------------------------------------------------------------
 // NOTE: addr & n represent 32-bit locations (ie. 4 bytes per)
-int  Local_initiator_module::dev_read (size_t addr)
+int  Local_initiator_module:: dev_read (size_t addr)
 {
   int result;
   dev_read(addr, result);
