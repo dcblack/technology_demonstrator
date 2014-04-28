@@ -19,6 +19,7 @@
 // limitations under the License.
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <tlm.h>
 #include "tlmx_channel.h"
 #include "tlm_utils/simple_initiator_socket.h"
 #include "memory_manager.h"
