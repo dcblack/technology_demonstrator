@@ -1,5 +1,4 @@
-DESCRIPTION
-===========
+# DESCRIPTION
 
 This directory and its contents contain a project that ties a C++ HLS design to
 a Xilinx Zynq on a Zedboard and a SystemC ESL design. 
@@ -54,8 +53,7 @@ The hls/ directory contains a script to run the Vivado_HLS synthesis tool.
 
 The rtl/ directory contains Vivado output (also a script to automate).
 
-REQUIREMENTS
-============
+# REQUIREMENTS
 
 * A C++11 compliant compiler such as g++ 4.7 or clang++ 3.2 
 
@@ -73,59 +71,56 @@ REQUIREMENTS
 * Zedboard (around 400 $US at time of writing) -- go to zedboard.org for more
   information
 
-
-      #     #    #    #####  #     # ### #     #  #### 
-      #  #  #   # #   #    # ##    #  #  ##    # #    #
-      #  #  #  #   #  #    # # #   #  #  # #   # #     
-      #  #  # #     # #####  #  #  #  #  #  #  # #  ###
-      #  #  # ####### #  #   #   # #  #  #   # # #    #
-      #  #  # #     # #   #  #    ##  #  #    ## #    #
-       ## ##  #     # #    # #     # ### #     #  #### 
+````
+	#     #    #    #####  #     # ### #     #  #### 
+	#  #  #   # #   #    # ##    #  #  ##    # #    #
+	#  #  #  #   #  #    # # #   #  #  # #   # #     
+	#  #  # #     # #####  #  #  #  #  #  #  # #  ###
+	#  #  # ####### #  #   #   # #  #  #   # # #    #
+	#  #  # #     # #   #  #    ##  #  #    ## #    #
+	 ## ##  #     # #    # #     # ### #     #  #### 
+````
 
    {:WARNING: Below here following needs to be updated.:}
 
-HOW TO BUILD
-============
+# HOW TO BUILD
 
 Make sure you meet the general requirements. See NOTES.md for additional
 information.
 
 To build the software for systemc, type:
 
-- pushd sysc && make clean exe && popd
+	pushd sysc && make clean exe && popd
 
 To build the software for zedboard, type:
 
-- pushd zedboard && make TARGET_ARCH=ZEDBOARD clean exe && popd
+	pushd zedboard && make TARGET_ARCH=ZEDBOARD clean exe && popd
 
 
-HOW TO RUN
-==========
+# HOW TO RUN
 
 Before running this software, it is neccesary to connect the ethernet to a host
 that is running the SystemC server/simulator software called zynq.x.  On the
 remote host, type:
 
-- sysc/async_adaptor-linux64.x -port=PORTNUMBER
+	sysc/async_adaptor-linux64.x -port=PORTNUMBER
 
 It should output half a page of info and then pause.
 
 To execute the initiator software in the zedboard directory type:
 
-- zedboard/software.x HOSTNAME PORTNUMBER
+	zedboard/software.x HOSTNAME PORTNUMBER
 
-Where HOSTNAME should designate a host running the SystemC simulator on the
-ethernet and the PORTNUMBER should match the sysc number. You can specify either
+Where `HOSTNAME` should designate a host running the SystemC simulator on the
+ethernet and the `PORTNUMBER` should match the sysc number. You can specify either
 a DNS name or the IP address (e.g.  198.168.1.12)
 
 Port numbers should be number greater than 2000 to avoid collisions with
 standard OS ports (e.g. mail or ssh). Suggest using 4000.
 
-ABOUT THE SOURCE
-================
+# ABOUT THE SOURCE
 
-SystemC code for simulated portion:
------------------------------------
+## SystemC code for simulated portion:
 
 * sysc/Makefile -- customized for this directory
 * sysc/dev.cpp -- "device" used as target
@@ -140,8 +135,7 @@ SystemC code for simulated portion:
 * sysc/tlmx_packet.cpp -- TLM-like class used over sockets. Includes serialization.
 * sysc/top.cpp -- top-level netlist
 
-C-code for embedded system:
----------------------------
+## C-code for embedded system:
 
 * zedboard/Makefile -- customized for this directory
 * zedboard/creport.c -- simplifies error reporting
@@ -150,8 +144,7 @@ C-code for embedded system:
 * zedboard/software.c -- main
 * zedboard/tlmx_packet.c -- describes the TLM-like structure used over sockets. Includes serialization.
 
-C++ code for high-level synthesis
----------------------------------
+## C++ code for high-level synthesis
 
 * src/Makefile -- customized for this directory
 * src/command.cpp -- models commands
