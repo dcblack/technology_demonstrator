@@ -23,6 +23,6 @@ Miscellaneous notes
 ===================
 - Some of the simulations use C++11 extensions (i.e. gcc 4.7 or clang 3.2)
 - Xilinx tools were run under 64bit CentOS 5.8
-- Some .o files may be from OSX
+- Verification was done under both CentOS and Mac OSX
 
 END vim:syntax=markdown
