@@ -122,6 +122,8 @@ foreach solution [array names constraints] {
     csim_design -clean
   }
 
+  if {[has SIMONLY]} { continue }
+
   if {![has NOSYNTH]} {
     header SYNTHESIZE
     csynth_design
