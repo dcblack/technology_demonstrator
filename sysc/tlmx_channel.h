@@ -1,6 +1,7 @@
 #ifndef TLMX_CHANNEL_H
 #define TLMX_CHANNEL_H
 
+#include "use_cxx11.h"
 #include "async_thread_if.h"
 #include "async_sysc_if.h"
 #include <list>
