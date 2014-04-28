@@ -35,12 +35,12 @@ int Software::sw_main(void)
 
   // A few C++ liberties in the interest of time...
   std::vector<int> cmd(1000,0); //< list of commands
-  for (auto& v : cmd) v = Mtx::command(HALT); //< fill with HALT
-  std::vector<int> exp(1000,0); //< list of expected status
-  for (auto& v : exp) v = DONE; //< fill with DONE
+  for (size_t i=0; i!=cmd.size(); ++i) cmd[i] = Mtx::command(HALT); //< fill with HALT
+  std::vector<int> expected_status(1000,0); //< list of expected status
+  for (size_t i=0; i!=expected_status.size(); ++i) expected_status[i] = DONE; //< fill with DONE (normal expectation)
   mtx_t mtx; //< local image of device registers
   int retval = 0;
-  for (auto& v : mtx.reg) v = 0xBADF00d5; //< fill local copy of registers
+  for (size_t i=0; i!=REGISTERS; ++i) mtx.reg[i] = 0xBADF00d5; //< fill local copy of registers
   retval = mtx_ioctl(fd,Mtx::READ,&mtx);
   if (retval != 0) {
     printf("FATAL: Device ioctl failed with %d\n", retval);
@@ -49,7 +49,7 @@ int Software::sw_main(void)
   }
   printf("INFO: Initial values:\n");
   Mtx::dump_registers(&mtx);
-  for (auto& v : mtx.reg) v = 0x2DECADE5; //< fill local copy of registers
+  for (size_t i=0; i!=REGISTERS; ++i) mtx.reg[i] = 0x2DECADE5; //< fill local copy of registers
   retval = mtx_ioctl(fd,Mtx::WRITE,&mtx);
   if (retval != 0) {
     printf("FATAL: Device ioctl failed with %d\n", retval);
@@ -60,7 +60,7 @@ int Software::sw_main(void)
   int i=0;
   cmd[i++] = Mtx::command(NOP);
   cmd[i++] = Mtx::command(RESET);
-  exp[i-1] = IDLE;
+  expected_status[i-1] = IDLE;
 
 // Simplify test writing
 #define DoCmnd1(op)                 cmd[i++] = Mtx::command(op)
@@ -76,27 +76,38 @@ int Software::sw_main(void)
   Matrix  m0(3,4);          //< construct matrix object to hold matrix
   MatrixI(M0,3,4,0x0000);   //< set registers to point to appropriate address of internal memory
   SetRegX(R8,0xBEAD);       //< value to use during FILL operation
-  DoCmnd3(FILL,M0,R8);      //< fill the matrix with value
+  DoCmnd3(MFILL,M0,R8);     //< fill the matrix with value
+#if ENABLE_MFILL == 0
+  expected_status[i-1] = UNSUPPORTED_ERROR;
+#endif
 
   // m1 = fill(0x1)
   Matrix  m1(3,4);
   MatrixI(M1,3,4,0x0010);
   SetRegX(R8,1);
-  DoCmnd3(FILL,M2,R8);
+  DoCmnd3(MFILL,M2,R8);
+#if ENABLE_MFILL == 0
+  expected_status[i-1] = UNSUPPORTED_ERROR;
+#endif
 
   // m2 = M0 + M1
   Matrix  m2(3,4);
   MatrixI(M2,3,4,0x0020);
   DoCmnd4(MADD,M2,M0,M1);
+#if ENABLE_ELTOPS == 0
+  expected_status[i-1] = UNSUPPORTED_ERROR;
+#endif
 
   // Store M0 (not supported by device -- expect error)
   LoadI32(R9,mem_addr);
   DoCmnd3(STORE,R9,M2);
-  exp[i-1] = UNSUPPORTED_ERROR;
+#if ENABLE_STORE == 0
+  expected_status[i-1] = UNSUPPORTED_ERROR;
+#endif
 
   DoCmnd1(NOP);
   DoCmnd1(HALT);
-  exp[i-1] = HALTED;
+  expected_status[i-1] = HALTED;
 
   int last=i;
   printf("INFO: Preparing to test %d commands\n",last);
@@ -113,7 +124,7 @@ int Software::sw_main(void)
     sys->wait_dev();
     mtx_read(fd,&status,0); //< 0 clears interrupt
     // Check results
-    if (status == exp[i]) {
+    if (status == expected_status[i]) {
       printf("INFO: Status: %s\n",Mtx::status_cstr(status)); fflush(stdout);
     } else {
       printf("ERROR: Status: %s\n",Mtx::status_cstr(status));
