@@ -20,7 +20,7 @@ int Mtx::open(const char* nam, int mode)
   return (strcmp(nam,"/dev/mtx") == 0) ? FD : error(ERR_DEV);
 }
 
-ssize_t Mtx::read(int fd, int* buff, size_t size)
+int Mtx::read(int fd, int* buff, size_t size)
 {
   sys->dev_read(devbase+STATUS,buff,1);
   if (size == 0) {
@@ -30,7 +30,7 @@ ssize_t Mtx::read(int fd, int* buff, size_t size)
   return Mtx::OK;
 }
 
-ssize_t Mtx::write(int fd, int* buff, size_t size)
+int Mtx::write(int fd, int* buff, size_t size)
 {
   sys->dev_write(devbase+COMMAND,buff,1);
   static int start = START;

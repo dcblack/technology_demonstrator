@@ -31,8 +31,8 @@ struct Mtx
   static int get_error(void) { return s_error; }
   // Driver calls
   static int open(const char* nam, int mode);
-  static ssize_t read(int fd, int* buff, size_t size);
-  static ssize_t write(int fd, int* buff, size_t size);
+  static int read(int fd, int* buff, size_t size);
+  static int write(int fd, int* buff, size_t size);
   static int ioctl(int fd, Request_t request, mtx_t* ctrl);
   static int close(int fd);
   // Conveniences
