@@ -1,0 +1,30 @@
+# CMND: bmake TARGET=LINUX exe
+-- INK = . .. ../.. ../../.. /home2/dcblack
+-- MKF = Bmakefile bmakefile GNUmakefile makefile Makefile
+eval `envv set PLUSDEFINES ' '`
+eval `envv set PLUSFLAGS ' '`
+/usr/bin/gmake -f ./makefile TARGET=LINUX exe
+INFO: [01;31mTargeting LINUX HOST[00m
+rm -f *.o *.x
+[01;31m################################################################################[00m
+INFO: Compiling random.c
+gcc  -D_LINUX -D_POSIX_SOURCE -D__USE_POSIX199506  -g -pthread -std=c99 -c -o random.o random.c
+[01;31m################################################################################[00m
+INFO: Compiling creport.c
+gcc  -D_LINUX -D_POSIX_SOURCE -D__USE_POSIX199506  -g -pthread -std=c99 -c -o creport.o creport.c
+[01;31m################################################################################[00m
+INFO: Compiling tlmx_packet.c
+gcc  -D_LINUX -D_POSIX_SOURCE -D__USE_POSIX199506  -g -pthread -std=c99 -c -o tlmx_packet.o tlmx_packet.c
+[01;31m################################################################################[00m
+INFO: Compiling driver.c
+gcc  -D_LINUX -D_POSIX_SOURCE -D__USE_POSIX199506  -g -pthread -std=c99 -c -o driver.o driver.c
+driver.c: In function 'interrupt_server':
+driver.c:132: warning: implicit declaration of function 'pthread_kill'
+[01;31m################################################################################[00m
+INFO: Compiling software.c
+gcc  -D_LINUX -D_POSIX_SOURCE -D__USE_POSIX199506  -g -pthread -std=c99 -c -o software.o software.c
+[01;31m################################################################################[00m
+INFO: Linking software.x
+gcc -o software.x random.o creport.o tlmx_packet.o driver.o software.o random.h creport.h tlmx_packet.h driver.h   -lpthread -lc
+[01;31m################################################################################[00m
+INFO: Done
