@@ -493,7 +493,7 @@ ifneq "$(wildcard ${SRCS} ${SHARED_SRCS})" ""
  $(info INFO: Examining source files)
  #------------------------------------------------------------------------------
  ifndef NOT_CXX11
- ifneq "$(strip $(call File_contains,nullptr|unique_ptr|(?:<memory|thread|random>),${SRCS} ${SHARED_SRCS}))" ""
+ ifneq "$(strip $(call File_contains,require_cxx11|nullptr|unique_ptr|(?:<(memory|thread|)random>),${SRCS} ${SHARED_SRCS}))" ""
   USING_CXX11:=1
  endif
  ifneq "$(strip $(call File_contains,201103L|([/= ]c[+][+]11),${SRCS} ${SHARED_SRCS}))" ""
@@ -834,7 +834,7 @@ ifeq (${USING_DYNAMIC},1)
   C_DEFS += -DSC_INCLUDE_DYNAMIC_PROCESSES
 endif
 ifeq (${USING_CXX11},1)
-  CXX11 += -std=c++11
+  CXX11 += -std=c++11 $(if ${USING_CLANG},-stdlib=libc++,)
   LIBS  += $(if ${USING_CLANG},-stdlib=libc++,)
 endif
 CC_CMD  += -m${CPUWIDTH}
@@ -1020,13 +1020,9 @@ noscript:
 ifdef NOSCRIPT
   SCRIPT:=""
 else
-  export EXE
-  export UNIT
-  export TARGET_ARCH
   SCRIPT=./${UNIT}.scr
 endif
 LDLIB:=$(call Env,LD_LIBRARY_PATH,${SYSTEMC}/lib-${TARGET_ARCH})
-RUNTIME_ERRORS:="$(BOLD)$(CRED)ALERT: Simulation had runtime errors$(NONE)"
 run: ${EXE}
 	@${RULER};
 	@echo "RUNNING SIMULATION";
@@ -1034,27 +1030,27 @@ run: ${EXE}
 ifndef NORUN
 	@${RULER};
  ifneq "$(wildcard ${SCRIPT})" ""
-	@echo "$(wildcard ./${SCRIPT}) ${RUNTIME_ARGS}"
-	@-time ./$(wildcard ./${SCRIPT}) ${RUNTIME_ARGS}\
-        || echo $(RUNTIME_ERRORS)
+	@echo "$(wildcard ./${UNIT}.scr) ${RUNTIME_ARGS}"
+	@-time ./$(wildcard ./${UNIT}.scr) ${RUNTIME_ARGS}\
+        || echo "INFO: Simulation had runtime errors"
  else
  ifdef VISTA_HOME
   ifneq "$(wildcard ./${UNIT}_rcfg.xml)" ""
         # Execution with a run-time configuration
 	@echo "vista -exec ${EXE} --rcfg ./${UNIT}_rcfg.xml ${RUNTIME_ARGS}"
 	@-time vista -exec ./${EXE} --rcfg ./${UNIT}_rcfg.xml ${RUN_TIME_ARGS}\
-        || echo $(RUNTIME_ERRORS)
+        || echo "INFO: Simulation had runtime errors"
   else
   ifneq "$(wildcard ./${UNIT}.dat)" ""
         # Execute streaming a data file into STDIN
 	@echo "vista -exec ${EXE} ${RUNTIME_ARGS} < $(wildcard ./${UNIT}.dat)"
 	@-time vista -exec ./${EXE} ${RUN_TIME_ARGS} < $(wildcard ./${UNIT}.dat)\
-	|| echo $(RUNTIME_ERRORS)
+	|| echo "INFO: Simulation had runtime errors"
   else
         # Simple execution
 	@echo "vista -exec ${EXE} ${RUNTIME_ARGS}"
 	@-time vista -exec ./${EXE} ${RUN_TIME_ARGS}\
-        || echo $(RUNTIME_ERRORS)
+        || echo "INFO: Simulation had runtime errors"
   endif
   endif
  else
@@ -1062,18 +1058,18 @@ ifndef NORUN
         # Execution with a run-time configuration
 	@echo "${EXE} --rcfg ./${UNIT}_rcfg.xml ${RUNTIME_ARGS}"
 	@-time ./${EXE} --rcfg ./${UNIT}_rcfg.xml ${RUNTIME_ARGS}\
-        || echo $(RUNTIME_ERRORS)
+        || echo "INFO: Simulation had runtime errors"
   else
   ifneq "$(wildcard ./${UNIT}.dat)" ""
         # Execute streaming a data file into STDIN
 	@echo "${EXE} ${RUNTIME_ARGS} < $(wildcard ./${UNIT}.dat)"
 	@-time ./${EXE} ${RUNTIME_ARGS} < $(wildcard ./${UNIT}.dat)\
-	|| echo $(RUNTIME_ERRORS)
+	|| echo "INFO: Simulation had runtime errors"
   else
         # Simple execution
 	@echo "${EXE} ${RUNTIME_ARGS}"
 	@-time ./${EXE} ${RUNTIME_ARGS}\
-        || echo $(RUNTIME_ERRORS)
+        || echo "INFO: Simulation had runtime errors"
   endif
   endif
   endif
@@ -1281,7 +1277,7 @@ TARLIST=$(call Unique,\
   ${HDRS}\
   ${SRCS}\
   $(wildcard $(OTHER_TAR))\
-  $(wildcard ${SCRIPT} ${UNIT}.dat)\
+  $(wildcard ${UNIT}.scr ${UNIT}.dat)\
   )
 tar:
 	@test -e ${UNIT} || ln -s . ${UNIT}; # create link if non-existant
