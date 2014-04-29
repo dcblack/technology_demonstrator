@@ -29,7 +29,7 @@
 
 UNIT := software
 SRCS :=\
-  random.c      \
+  myrand.c      \
   creport.c     \
   tlmx_packet.c \
   driver.c      \
