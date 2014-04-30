@@ -417,7 +417,7 @@ void Matrix::fill(Kind kind)
 void Matrix::fill_patt(Pattern_t patt) {
   typedef std::uniform_int_distribution<Pattern_t> Pattern_distribution;
   //{:ODDITY: g++ -pedantic won't allow following to be static:}
-  Pattern_distribution  distr((int(FILL0)),(int(RANDOM)));
+  Pattern_distribution  distr(int(FILL0),int(RANDOM));
   static default_random_engine gen;
   if (patt == NONE) return;
   Data_t value = 0;
