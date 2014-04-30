@@ -30,7 +30,7 @@ int Software::sw_main(void)
   printf("INFO: Running main application\n");
 
   printf("INFO: malloc(1MB)\n"); fflush(stdout);
-  int* xmem = (int*) sys->malloc(1*MB);
+  //BROKEN FOR NOW - int* xmem = (int*) sys->malloc(1*MB);
   sys->cycles(50); //< simulate passing of time
 
   // A few C++ liberties in the interest of time...
