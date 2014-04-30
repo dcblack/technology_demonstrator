@@ -12,6 +12,10 @@ EOF
   exit $ERRORS
 }
 
+D=$(realpath $(dirname $(find ../.. -path '*Example/setup.profile')))
+B=$(basename $D)
+T=zynq_hls_n_systemc_example
+
 L=0
 N=0
 Q=0
@@ -23,6 +27,9 @@ while [[ $# != 0 ]]; do
     N=1;
   elif [[ "$1" == "-q" ]]; then
     Q=1;
+  elif [[ "$1" == "-t" ]]; then
+    shift
+    T="$1";
   elif [[ "$1" =~ -.* ]]; then
     Display_Syntax "Unexpected option '$1'!"
   elif [[ $CMD == "" ]]; then
@@ -36,19 +43,61 @@ if [[ $CMD == "" ]]; then
   Display_Syntax
 fi
 
-D=$(realpath $(dirname $(find ../.. -path '*Example/setup.profile')))
-B=$(basename $D)
-LOGFILE="$D/$CMD-MANIFEST.log"
-TARBALL="$D/$CMD.tgz"
+LOGFILE="$D/$T-$CMD-MANIFEST.log"
+TARBALL="$D/$T-$CMD.tgz"
+MD5TEXT="$D/$T-md5.txt"
 TAROPTS="chvzf"
-STD="$B/README.txt $B/ABOUT.txt $B/LICENSE.txt $B/NOTES.txt $B/bin $B/lib $B/etc $B/setup.profile"
-LIST=""
-hls_LIST=$(echo $B/hls/*.tcl $B/src/*.{h,cpp} $B/src/Makefile $B/hls/example_run.log)
-src_LIST=$(echo $B/src/*.{h,cpp} $B/src/Makefile $B/src/make-golden.log)
-sysc_LIST=$(echo $B/sysc/*.{h,cpp,c} $B/sysc/Makefile $B/sysc/*.log)
-zed_LIST=$(echo $B/zedb*/*.{h,c} $B/zedb*/Makefile $B/zedb*/*.log)
-all_LIST=$(echo $hls_list $src_list $sysc_LIST $zed_LIST)
+STD="              \
+  $T/ABOUT.txt     \
+  $T/GITHEAD       \
+  $T/LICENSE.txt   \
+  $T/NOTES.txt     \
+  $T/README.txt    \
+  $T/TOOLS.txt     \
+  $T/bin           \
+  $T/docs          \
+  $T/etc           \
+  $T/lib           \
+  $T/setup.profile \
+  "
+hls_LIST=$(echo          \
+  $T/hls/*.tcl           \
+  $T/hls/example_run.log \
+  $T/src/*.{h,cpp}       \
+  $T/src/Makefile        \
+  )
+src_LIST=$(echo       \
+  $T/src/*-golden.log \
+  $T/src/*.{h,cpp}    \
+  $T/src/Makefile     \
+  )
+sysc_LIST=$(echo       \
+  $T/sysc/*-golden.log \
+  $T/sysc/*.{h,cpp,c}  \
+  $T/sysc/Makefile     \
+  )
+zed_LIST=$(echo         \
+  $T/zedb*/*-golden.log \
+  $T/zedb*/*.{h,c}      \
+  $T/zedb*/Makefile     \
+  )
+top_LIST=$(echo \
+  $T/.git       \
+  $T/Makefile   \
+  )
+all_LIST=$(echo \
+  $top_LIST     \
+  $hls_LIST     \
+  $src_LIST     \
+  $sysc_LIST    \
+  $zed_LIST     \
+  )
+
 cd $(dirname $D)
+if [[ ! -L $T ]]; then
+  ln -s $D $T
+fi
+LIST=""
 case $CMD in
   all) LIST=$all_LIST
        ;;
@@ -63,6 +112,7 @@ case $CMD in
   *  ) Display_Syntax "Unknown directive '$CMD'"
        ;;
 esac
+LIST=$(echo $LIST | perl -pe 's/\s+/ /g;s/^ //;s/ *$/\n/;')
 if [[ "$LIST" != "" ]]; then
   if [[ $L == 1 ]]; then
     for e in $LIST; do
@@ -71,11 +121,17 @@ if [[ "$LIST" != "" ]]; then
     done
   fi
   if [[ $Q == 0 ]]; then
-    echo "tar $TAROPTS '$TARBALL' $STD '$LIST' > $LOGFILE" ;
+    echo "% tar $TAROPTS '$TARBALL' $STD '$LIST'" | tee $LOGFILE
   fi
   if [[ $N == 0 ]]; then
-    tar $TAROPTS $TARBALL $STD $LIST > $LOGFILE 2>&1;
-    printf "Created %s & %s\n" "$B/$(basename $TARBALL)" "$B/$(basename $LOGFILE)"
+    tar $TAROPTS $TARBALL $STD $LIST >> $LOGFILE 2>&1;
+    echo "% md5 $(basename $TARBALL)" | tee $MD5TEXT
+    md5 $TARBALL >>$MD5TEXT
+    printf "Created under $T/:\n  %s\n  %s\n  %s\n  %s\n"\
+           "$(basename $TARBALL)" "$(basename $LOGFILE)" "$(basename $MD5TEXT)"
+  fi
+  if [[ -L $T ]]; then
+    rm $T
   fi
   exit 0;
 else
