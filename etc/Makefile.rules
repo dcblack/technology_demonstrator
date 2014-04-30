@@ -309,7 +309,7 @@ endef
 
 .PHONY: default help selftest envv obj compile objs lib link exe run debug gdb ddd deps rmdeps tar  \
         install dist rmdist sweep clean ultraclean distclean version\
-        sim simulation html pdf lns gprof gcov show
+        sim simulation html pdf lns gprof gcov show git
 
 ifndef EDA
  $(info INFO: Defining EDA)
@@ -1271,6 +1271,11 @@ endif
 ################################################################################
 # Housekeeping
 ################################################################################
+git:
+	@date >GITHEAD || rm -f GITHEAD
+	@git version 2>/dev/null >>GITHEAD || rm -f GITHEAD
+	@/bin/echo -n "git info " >>GITHEAD && git rev-parse HEAD 2>/dev/null >>GITHEAD || rm -f GITHEAD
+
 TARBALL:=${UNIT}.tgz
 TARLIST=$(call Unique,\
   $(wildcard README* LICENSE* GITHEAD CHANGELOG* NOTES* INSTALL* ?akefile docs etc)\
@@ -1279,13 +1284,12 @@ TARLIST=$(call Unique,\
   $(wildcard $(OTHER_TAR))\
   $(wildcard ${UNIT}.scr ${UNIT}.dat)\
   )
-tar:
+tar: GITHEAD
 	@test -e ${UNIT} || ln -s . ${UNIT}; # create link if non-existant
 	@$(call Mkdir,${UNIT}/etc)
 	@$(call Mkln,${MAKEFILE_RULES},${UNIT}/etc/$(notdir ${MAKEFILE_RULES}))
 	@$(call Mkln,${MAKEFILE_MACROS},${UNIT}/etc/$(notdir ${MAKEFILE_MACROS}))
 	@$(call Mkln,${HLDW}/bin,)
-	@echo "git version " >GITHEAD && git rev-parse HEAD 2>/dev/null >>GITHEAD || rm -f GITHEAD
 	tar cvhzf ${TARBALL} $(addprefix ${UNIT}/,${TARLIST}) >MANIFEST.txt 2>&1
 	@rm ${UNIT}
 	@echo "Created ${TARBALL}"
