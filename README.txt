@@ -4,13 +4,17 @@ This directory and its contents contain a project that ties a C++ HLS design to
 a Xilinx Zynq on a Zedboard and a SystemC ESL design. 
 
 This was first described in a presentation entitled "A SystemC Technology
-Demonstrator" at the SystemC Tutorial at DVCon 2013 in San Jose.
+Demonstrator" at the SystemC Tutorial at DVCon 2013 in San Jose. Subsequently, a
+Webinar entitled "Transforming Slow Software into Fast Hardware on a Zynq(R) All
+Programmable SoC using Vivado(R) HLS and SystemC/TLM-2.0" in late 2013 and early
+2014.
 
-The goal of this project is to demonstrate multiple technologies including:
+The goals of this project included demonstration of multiple technologies:
 
 - An HLS design used to augment software
 - Effective use of HLS synthesis with SystemC
-- Devepment of code that can run on Zedboard (under Linux), in SystemC and
+- Simplicity of implementing an AXI slave device for interface with software
+- Development of code that can run on Zedboard (under Linux), in SystemC and
   stand-alone to test an algorithm implemented with the HLS design.
 - ZedBoard containing Xylinx Zynq-7000 FPGA technology (contains dual Cortex
   A9's and many peripherals)
@@ -32,10 +36,16 @@ The goal of this project is to demonstrate multiple technologies including:
 
 This directory contains several subdirectories: hls/, rtl/, src/, sysc/ and
 zedboard/ representing the component parts. There are also a few supporting
-directories: docs/ contains information about the project. bin/ contains some
-supporting scripts for one of several makefile flows (systemc related). etc/
-contains makefile automation. NOTE: Hopefully you do not need to understand the
-two makefile flows in any detail.
+directories: docs/ contains information about the project. bin/ & lib/ contain
+some supporting scripts for one of several makefile flows (systemc related).
+etc/ contains makefile automation. NOTE: Hopefully you do not need to understand
+the two makefile flows in any detail. You may wish to add bin/ to your search
+path.
+
+IMPORTANT: There is also a .git/ repository present because this project was
+maintained under git; although, with not a lot of rigor. Some of the branches
+and tags may have better versions. This of course assumes you know git or can
+spend time learning the basics.
 
 The core design is represented by src/dev_hls.cpp. Other files under src/ are
 for stand-alone testing.
@@ -72,18 +82,20 @@ The rtl/ directory contains Vivado output (also a script to automate).
   information
 
 ````
-	#     #    #    #####  #     # ### #     #  #### 
-	#  #  #   # #   #    # ##    #  #  ##    # #    #
-	#  #  #  #   #  #    # # #   #  #  # #   # #     
-	#  #  # #     # #####  #  #  #  #  #  #  # #  ###
-	#  #  # ####### #  #   #   # #  #  #   # # #    #
-	#  #  # #     # #   #  #    ##  #  #    ## #    #
-	 ## ##  #     # #    # #     # ### #     #  #### 
+	|---------------------------------------------------|
+	| #     #    #    #####  #     # ### #     #  ####  |
+	| #  #  #   # #   #    # ##    #  #  ##    # #    # |
+	| #  #  #  #   #  #    # # #   #  #  # #   # #      |
+	| #  #  # #     # #####  #  #  #  #  #  #  # #  ### |
+	| #  #  # ####### #  #   #   # #  #  #   # # #    # |
+	| #  #  # #     # #   #  #    ##  #  #    ## #    # |
+	|  ## ##  #     # #    # #     # ### #     #  ####  |
+	|---------------------------------------------------|
 ````
 
-   {:WARNING: Below here following needs to be updated.:}
+   {:WARNING: The following is NOT about how to do High Level Synthesis or verification:}
 
-# HOW TO BUILD
+# HOW TO BUILD THE TECHNOLOGY DEMONSTRATOR
 
 Make sure you meet the general requirements. See NOTES.md for additional
 information.
@@ -97,7 +109,7 @@ To build the software for zedboard, type:
 	pushd zedboard && make TARGET_ARCH=ZEDBOARD clean exe && popd
 
 
-# HOW TO RUN
+# HOW TO RUN THE TECHNOLOGY DEMONSTRATOR
 
 Before running this software, it is neccesary to connect the ethernet to a host
 that is running the SystemC server/simulator software called zynq.x.  On the
@@ -118,7 +130,7 @@ a DNS name or the IP address (e.g.  198.168.1.12)
 Port numbers should be number greater than 2000 to avoid collisions with
 standard OS ports (e.g. mail or ssh). Suggest using 4000.
 
-# ABOUT THE SOURCE
+# ABOUT THE SOURCE FOR THE TECHNOLOGY DEMONSTRATOR
 
 ## SystemC code for simulated portion:
 
