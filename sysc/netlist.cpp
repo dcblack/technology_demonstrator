@@ -1,5 +1,5 @@
 //BEGIN netlist.cpp (systemc)
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 // $Info: Netlisting utility $
 
 #include "netlist.h"
@@ -20,21 +20,28 @@ namespace {
   static char const * const RCSID = "(@)$Id: netlist.cpp  1.0 09/02/12 10:00 dcblack $";
   //                                         FILENAME     VER DATE     TIME  USERNAME
 
-////////////////////////////////////////////////////////////////////////////>>/
-// Traverse the entire object subhierarchy 
-// below a given object 
-void scan_hierarchy(sc_object* obj,string indent) { 
-  std::vector<sc_object*> children = obj->get_child_objects(); 
-  for ( unsigned int i=0; i != children.size(); i++ ) {
-    REPORT_INFO( indent << ' ' << children[i]->basename() << " {kind:" << children[i]->kind() << "}" );
-    if ( children[i] ) {
-      scan_hierarchy(children[i],string("| ")+indent); 
-    }//endif
-  }//endfor
-}//end scan_hierarchy()
+  void report_hierarchy(sc_object* obj,string indent) {
+    std::vector<sc_object*> children = obj->get_child_objects();
+    for ( auto& child : children ) {
+      REPORT_INFO( indent << ' ' << child->basename() << " {kind:" << child->kind() << "}" );
+#ifdef REPORT_CONNECTIONS /*{: Not yet implemented - Untested :}*/
+      sc_port_base* p = dynamic_cast<sc_port_base*>(child);
+      if (p != nullptr) {
+        for (int i=0; i!=p->bind_count(); ++i) {
+          sc_export_base* x = dynamic_cast<sc_export_base*>(p[i].get_interface());
+          if (x != nullptr) REPORT_INFO( indent << " [" << i << "]->" << x->name() );
+        }//endfor
+      }//endif
+#endif
+      if ( child ) {
+        report_hierarchy(child,string("| ")+indent);
+      }//endif
+    }//endfor
+  }//end report_hierarchy()
 
 }//endnamespace
 
+////////////////////////////////////////////////////////////////////////////////
 namespace util {
 
 void netlist(void) {
@@ -44,7 +51,7 @@ void netlist(void) {
     for ( unsigned int i=0; i != tops.size(); i++ ) {
       if ( tops[i] ) {
         REPORT_INFO( tops[i]->name() << " {kind:" << tops[i]->kind() << "}" );
-        scan_hierarchy(tops[i],"+-");
+        report_hierarchy(tops[i],"+-");
       }//endif
     }//endfor
     REPORT_INFO("End netlist");
