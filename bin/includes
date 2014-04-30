@@ -1,0 +1,115 @@
+#!/usr/bin/perl
+#
+# for documentation: use -help option or 'perldoc <THIS_FILE>'
+
+require 5.008;
+use strict;
+use warnings;
+use Pod::Usage;
+if (@ARGV == 0) {
+  warn "WARNING: Missing arguments to $0. Use --help for more information\n";
+  exit 0;
+}
+if ("@ARGV" =~ m{^-+h(?:elp)?$}) {
+  pod2usage(-exitval => 0, -verbose => 2);
+  exit 0;
+}
+
+my %file;
+my $found;
+# Top-level search
+for my $file (@ARGV) {
+  next unless -r $file;
+  open FILE,"<$file" or die "FATAL: Unable to read $file!";
+  while (<FILE>) {
+    next unless m{^\s*#\s*include\s+"([^"]+)"};
+    $found = $1;
+    next if defined $file{$found};
+    $file{$found}=1;
+  }#endwhile
+  close FILE;
+}
+
+# Search for sub-includes
+my $count;
+my %scan = %file;
+do {
+  $count = scalar keys %file;
+  for my $file (sort keys %scan) {
+    delete $scan{$file};
+    next unless -r $file;
+    open FILE,"<$file" or die "FATAL: Unable to read $file!";
+    while (<FILE>) {
+      next unless m{^\s*#\s*include\s+"([^"]+)"};
+      $found=$1;
+      next if defined $file{$found};
+      $scan{$found}=1;
+      $file{$found}=1;
+    }#endwhile
+    close FILE;
+  }#endfor
+} until scalar(keys %scan)==0;
+
+# Return results
+print join("\n",sort keys %file),"\n";
+
+exit 0;
+
+__DATA__
+############################################################################>>>
+## BEGIN DOCUMENTATION #####################################################<<<
+###############################################################################
+=pod
+
+=head1 NAME
+
+B<includes> - extracts #include filenames from C/C++ source files
+
+=head1 SYNOPSIS
+
+B<includes> I<FILELIST>
+
+=head1 DESCRIPTION
+
+Scans C/C++ source code files for #include "PATH" lines and returns
+a unique list of PATH(s).
+
+=head1 OPTIONS
+
+None
+
+=head1 EXAMPLES
+
+B<includes> *.cpp *.c
+
+=head1 FUTURES
+
+Add -I{DIR}, -D{VAR[=VAL]} and #if(n)def handling.
+
+=head1 ABOUT
+
+ $Version$
+ $Author: David C Black $
+
+=head1 LICENSE
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+=cut
+
+###############################################################################
+## END DOCUMENTATION ##########################################################
+############################################################################>>>
+#############################################################################
+#END $Id$
+#############################################################################

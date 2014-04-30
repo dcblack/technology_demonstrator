@@ -1,0 +1,22 @@
+#!/bin/bash
+
+TARBALL=/Dropbox/dev_snapshot.tgz
+BASE="./mtxdev"
+LIST="ABOUT.txt LICENSE.txt NOTES.txt README.txt hls include rtl sdk_sw_repo shared src sysc vivado_ip_repo zedboard bin etc GITHEAD"
+FILES=""
+for f in $LIST; do
+  FILES="$FILES $BASE/$f"
+done
+RDIR=$(realpath .|perl -pe 's{/Example/?.*}{}')
+
+echo "cd $RDIR"
+cd $RDIR || exit
+test -d Example || exit
+
+echo "git version " >GITHEAD 
+git rev-parse HEAD 2>/dev/null >>GITHEAD || rm -f GITHEAD
+
+test -h $BASE || ln -s Example $BASE
+echo "tar czf $TARBALL $FILES"
+      tar czf $TARBALL $FILES
+

@@ -1,0 +1,216 @@
+#!/usr/bin/perl
+
+##############################################################################
+## Documentation first  ######################################################
+##############################################################################
+=pod
+
+=head1 NAME
+
+B<gcc_version> - returns the version (and other info) of the default gcc
+
+=head1 SYNOPSIS
+
+B<gcc_version>
+
+=head1 DESCRIPTION
+
+B<gcc_version> examines the default B<gcc> command and returns its version
+number in several formats. It can be used to check for a minimum version
+number, either with the B<-min> option or by simple examination of the output.
+This script is often used in automation (e.g. makefiles).
+
+=head1 OPTIONS
+
+ -help     this text (aka -h)
+ -clang    equivalent to C<-pgm clang>
+ -full     full version (all 3 parts instead of two)
+ -us       use underscore instead of . for separators (aka _ or -underscore)
+ -D        formated for gcc -D option (aka -var)
+ -integer  return as a valid integer (aka -int)
+ -min #    require a minimum version #
+ -path     show the path to the current gcc
+ -pgm PGM  specify name of program to check (default 'gcc')
+ -quiet    quiet, return appropriate exit status (aka -q)
+ -squeeze  squeeze out non-alpha (aka -sq)
+ -suffix   version becomes a suffix to program name (e.g. returns gcc4.1)
+ -vs SW    specify the name of the version switch (defautl '-v')
+ -verbose  verbose (aka -v)
+
+=head1 EXAMPLES
+
+ # Ensure version minimum
+ if gcc_version -min 4.2; then echo OK; else echo BAD; fi
+
+ # Compile code ifdef'd on SystemC version
+ gcc -D`gcc_version -D` top.cpp
+
+=head1 BUGS
+
+Options names are somewhat funky.
+
+=head1 AUTHOR
+
+David C. Black <dcblack@hldwizard.com>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2003-2007,2009 David C Black
+
+=head1 LICENSE
+
+This software, B<gcc_version>, is a copyrighted work. The GNU
+GPL version 2 describes the conditions under which the software may
+be copied, modified and distributed. No fee may be charged for this
+software or any derivative work (whether in exchange for copying,
+distribution, use, or otherwise).
+
+=cut
+##############################################################################
+
+package main;
+
+use FindBin qw($RealBin $RealScript);
+
+sub REPORT_FATAL {
+  printf STDERR "FATAL: %s\n",$_[0];
+  exit 1;
+};
+
+my %OPT;
+
+# Defaults
+my $min   = "4.1";
+my $scale = 1000; 
+my $pgm   = 'gcc';
+my $vs    = '-v'; 
+
+$pgm='clang' if $0 =~ m{clang_version};
+
+# Parse command-line
+while (@ARGV) {
+  my $arg = shift @ARGV;
+  if ($arg eq '_' or $arg eq '-us' or $arg =~ m{^-{1,2}underscore$}) {
+    $OPT{-underscore} = 1;
+  } elsif ($arg =~ m{^-{1,2}h(elp)?}) {
+    exec "perldoc $RealBin/$RealScript";
+  } elsif ($arg =~ m{^-{1,2}f(ull)?}) {
+    $OPT{-full} = 1;
+  } elsif ($arg =~ m{^-{1,2}var} or $arg eq '-D') {
+    $OPT{-var} = 1;
+  } elsif ($arg =~ m{^-{1,2}int(eger)?$}) {
+    $OPT{-integer} = 1;
+  } elsif ($arg =~ m{^-{1,2}min(imum)?$}) {
+    $OPT{-min} = $min = shift @ARGV;
+    REPORT_FATAL "Must be a dotted or underscore separated number!" 
+      unless $min =~ m{^[1-9]\d*([._]\d+){0,2}};
+    $min =~ s/\./_/g;
+  } elsif ($arg =~ m{^-{1,2}path}) {
+    $OPT{-path} = '';
+  } elsif ($arg =~ m{^-{1,2}clang}) {
+    $pgm = 'clang';
+  } elsif ($arg =~ m{^-{1,2}pgm}) {
+    REPORT_FATAL "Must specify program name/path as argument to -pgm" 
+      unless @ARGV;
+    $pgm = shift @ARGV;
+  } elsif ($arg =~ m{^-{1,2}vs}) {
+    REPORT_FATAL "Must specify switch name/path as argument to -vs" 
+      unless @ARGV;
+      $OPT{-vs} = $vs = shift @ARGV;
+  } elsif ($arg =~ m{^-{1,2}v(erbose)?$}) {
+    $OPT{-verbose} = 1;
+  } elsif ($arg =~ m{^-{1,2}sq(ueeze)?$}) {
+    $OPT{-squeeze} = 1;
+  } elsif ($arg =~ m{^-{1,2}su(ffix)}) {
+    $OPT{-suffix} = 1;
+  } elsif ($arg =~ m{^-{1,2}q(uiet)?}) {
+    $OPT{-quiet} = 1;
+  } elsif ($arg =~ m{^-{1,2}test}) {
+    $OPT{-test} = shift @ARGV;
+  } else {
+  }#endif
+}#endwhile
+
+my $tail = $pgm;
+$tail =~ s{.*/}{};
+my $TAIL = uc $tail;
+my $ident = $tail;
+$ident =~ s{\W}{x}g;
+my $IDENT = uc $ident;
+
+my $path = qx($RealBin/findbin -q $pgm);
+
+if (exists $OPT{-path}) {
+  $OPT{-path} = $path;
+  chomp $OPT{-path};
+  chomp $OPT{-path};
+  $OPT{-path} = 'missing' unless $OPT{-path} =~ m{^\S+$};
+}#endif
+
+if ($path =~ m{\bclang} and not exists $OPT{-vs}) {
+  $vs = '--version';
+}#endif
+
+if ($path eq '') {
+  # Return an error or version NONEXISTANT
+  $api_version='0.0.0';
+} else {
+  # Ask the program to reveal its version
+  open VERSION,"$pgm $vs 2>&1 |" or die "Unable to pipe '$pgm $vs'!?";
+  while (<VERSION>) {
+    if ($tail =~ m{\bclang\b}) {
+      #Apple LLVM version 4.2 (clang-425.0.28) (based on LLVM 3.2svn)
+      if (m/$tail version (\d+\.\d+(?:\.\d+)?)/) {
+      $api_version = $1;
+      } elsif (m/clang-(\d)(\d)(\d*)/) {
+        $api_version = "$1.$2.$3";
+      } else {
+        next;
+      }#endif
+    } else {
+      next unless m/$tail version (\d+\.\d+\.\d+)/;
+      $api_version = $1;
+    }#endif
+    last;
+  }#endwhile
+  close VERSION;
+}#endif
+
+$api_version = $OPT{-test} if exists $OPT{-test};
+
+$api_version =~ s/\./_/g;
+
+my $exit = ($api_version ge $min)?0:1;
+$exit = 0 unless exists $OPT{-min};
+
+# Massage format of variable as directed by command-line options
+# Remove third rank
+$api_version =~ s/(\d+_\d+)_\d+$/$1/ if not exists $OPT{-full};
+# Integer format
+if (exists $OPT{-integer}) {
+  $api_version =~ m/(\d+)_(\d+)(?:_(\d+))?/;
+  my ($major,$minor,$bug) = ($1,$2,$3);
+  $bug = 0 unless defined $bug;
+  $api_version = ($major*$scale+$minor)*$scale+$bug;
+}#endif
+# Remove all underscores (squeeze)
+$api_version =~ s/_//g if exists $OPT{-squeeze};
+# Create a variable name suitable for use in make or environment
+$api_version =~ s/^/${IDENT}_V/ if exists $OPT{-var};
+$api_version =~ s/^/$tail/ if exists $OPT{-suffix};
+# Change underscores to decimals
+$api_version =~ s/_/./g unless exists $OPT{-var} or exists $OPT{-underscore};
+
+EXIT:
+# Announce results and exit successfully
+exit $exit if exists $OPT{-quiet};
+my $msg = '';
+$msg .= sprintf "ERROR: " if $exit;
+$msg .= sprintf "$TAIL version " if $OPT{-verbose} or $exit;
+$msg .= sprintf "$OPT{-path} " if exists $OPT{-path};
+$msg .= sprintf "%s",$api_version;
+$msg .= sprintf " does not meet minimum requirement of %s",$min if $exit;
+$msg .= sprintf "\n";
+if ($exit) { print STDERR $msg; } else { print $msg; }
+exit $exit;
+##############################################################################

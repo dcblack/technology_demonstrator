@@ -1,0 +1,224 @@
+#!/usr/bin/perl
+#$Info: parents - Returns a list of parent directories. $
+#$Documentation: - use 'perldoc <THIS_FILE>' or scroll the end. $
+#
+# @(#)$Email: <dcblack@hldwizard.com>. $
+
+#------------------------------------------------------------------------------
+# Requirements
+#------------------------------------------------------------------------------
+require 5.008;
+use strict;
+use warnings;
+use Cwd qw(abs_path getcwd);
+use English;
+use File::Basename;
+use File::Spec;
+use FileHandle;
+use FindBin qw($RealBin $RealScript);
+use Getopt::Long;
+use Pod::Usage;
+STDOUT->autoflush(1);
+STDERR->autoflush(1);
+
+#------------------------------------------------------------------------------
+# Prototypes
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# Parse command-line
+#------------------------------------------------------------------------------
+my $POD2MAN_BIN = 'pod2man';
+our @ORIG = @ARGV;
+our %opt;
+GetOptions(\%opt,
+  'help',
+  'man',
+  'nroff',
+  'usage',
+  'dir=s', # directory to start from
+  'fullpath',   # fullpath (opposite of relative)
+  'limit=i', # limit
+  'quote:s', # quote char (default nullstr)
+  'reverse',   # reverse list
+  'seperator:s', # separator string (default \n)
+  'top', # return only the top-most
+  'verbose',   # verbose
+)  or pod2usage(-verbose => 0);
+for my $opt (keys %opt) {next if $opt=~m/^-/;$opt{"-$opt"}=$opt{$opt};delete $opt{$opt};}
+sub opt($) { return (exists($opt{$_[0]})and $opt{$_[0]}); }
+if (exists $opt{-usage} ) {
+  pod2usage(-exitval => 0, -verbose => 0);
+}
+if (exists $opt{-man} ) {
+  pod2usage(-exitval => 0, -verbose => 2);
+}
+if (exists $opt{-nroff} ) {
+  open SCRIPT,"$POD2MAN_BIN --name='Scratch tools' $RealBin/$RealScript|";
+  print grep($_ ne '',<SCRIPT>);
+  close SCRIPT;
+  exit 0;
+}
+if (exists $opt{-help}) {
+  pod2usage(-verbose => 1);
+}
+$opt{-quote}     = q{'} if exists $opt{-quote};
+$opt{-separator} = q{:} if exists $opt{-separator};
+
+my $q = q{};
+my $s = qq{\n};
+$q = $opt{-quote} if exists $opt{-quote};
+$s = $opt{-seperator} if exists $opt{-seperator};
+$s = q{ } if $s eq ''; # never allow empty
+my $orig_dir = getcwd();
+@ARGV = qw(.) unless @ARGV;
+for my $here (@ARGV) {
+  chdir $orig_dir;
+  chdir $here;
+  my $dir = getcwd();
+  my @result = ();
+  # Note: Following approach is *NIX centric
+  my $count = ($dir =~ s{/}{}g);
+  my $parent = "..";
+  for (1..$count) {
+    my $path = abs_path($parent);
+    if (not exists $opt{-fullpath}) {
+      my $short = File::Spec->abs2rel($parent,$orig_dir);
+      $path = $short if length($short) < length($path);
+    }#endif
+    push @result,$path;
+    $parent .= "/..";
+  }#endfor
+  @result = reverse @result if exists $opt{-reverse};
+  if (exists $opt{-limit}){
+    my $limit = $opt{-limit};
+    if ($limit > 0) {
+      $limit = $#result if $limit-1 > $#result;
+      @result = @result[0..$limit];
+    } elsif ($limit < 0) {
+      $limit = scalar @result + $limit - 1;
+      $limit = 0 if $limit < 0; # never less than one
+      @result = @result[0..$limit];
+    }#endif
+  }#endif
+  if (exists $opt{-top}) {
+    @result = ( $result[$#result] );
+  }#endif
+  my $result = '';
+  while (@result) {
+    my $path = shift @result;
+    $result .= $q.$path.$q;
+    if (exists $opt{-verbose}) {
+      $result .= " => ".$q.abs_path($path).$q
+        if not exists $opt{-fullpath} and $path ne abs_path($path);
+      $result .= "\n";
+    } else {
+      $result .= $s if @result;
+    }#endif
+  }#endfor
+  print $result,"\n";
+}#endfor
+
+exit 0;
+
+###############################################################################
+# SUBROUTINES
+###############################################################################
+
+__DATA__
+############################################################################>>>
+## BEGIN DOCUMENTATION #####################################################<<<
+###############################################################################
+=pod
+
+=head1 NAME
+
+B<parents> - Returns a list of parent directories
+
+=head1 SYNOPSIS
+
+B<parents> -v [DIRECTORY]...
+
+=head1 DESCRIPTION
+
+Returns a list of directories that are parents to the current directory.
+This should be OS independent. The output is intended to be friendly for
+use in other scripts. Options customize how it returns the data and
+where to start from.
+
+=head1 OPTIONS
+
+=over
+
+=item B<--help>
+
+help (this text).
+
+=item B<--dir>=I<PATH>
+
+Directory to start from.
+
+=item B<--fullpath>
+
+Show full path rather than shortest.
+
+=item B<--limit>=I<NUMBER>
+
+Limit number of parents to show. Default NUMBER=0 implies all.
+A positive number indicates how many starting from the bottom.
+A negative number indicates to leave off the top NUMBER entries.
+
+=item B<--quote>=I<CHAR>
+
+Quote results. Default to NULLSTR.
+
+=item B<--reverse>
+
+Reverse order of list.
+
+=item B<--separator>=I<CHAR>
+
+Specify alternate separator. Defaults to NEWLINE.
+
+=item B<--verbose>
+
+Verbose mode.
+
+=back
+
+=head1 DEPENDENCIES
+
+=head1 EXAMPLES
+
+{:TO_BE_SUPPLIED:}
+
+=head1 ABOUT
+
+ $Version$
+ $Author: David C Black $
+ $Copyright: 2010 All rights reserved. $
+ $Creator: David C Black <dcblack@hldwizard.com> $
+
+=head1 LICENSE
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+=cut
+
+###############################################################################
+## END DOCUMENTATION ##########################################################
+############################################################################>>>
+#############################################################################
+# -*- perl -*- vim:tw=72:fmr=<<<,>>>
+#END $Id$
+#############################################################################

@@ -1,0 +1,251 @@
+#!/usr/bin/perl
+eval 'exec perl -S $0 ${1+"$@"}'
+  if $running_under_some_shell; $running_under_some_shell=0; # vim600:sw=2:tw=0:fdm=marker
+
+# @(#)$Info: systemc_version - extracts version information for SystemC $
+#
+# @(#)$Copyright: 2003-2005 David C Black All rights reserved. $
+# @(#)$License: GNU GPL 2. $
+# @(#)$Email: <dcblack@hldwizard.com>. $
+# @(#)$Id: systemc_version 1164 2011-02-07 11:59:00Z dcblack $
+
+require 5.006; # minimum Perl version
+use strict;
+use English;
+use FindBin qw($RealBin $RealScript);
+use vars qw($exe);
+use File::Find qw(find);
+
+use Carp;
+use FileHandle;
+use Cwd;
+STDOUT->autoflush(1);
+STDERR->autoflush(1);
+
+## BEGIN DOCUMENTATION #####################################################{{{
+###############################################################################
+$exe = "$RealBin/$RealScript";
+exec "perldoc $exe" if "@ARGV" =~ m/^-+h(elp)?$/;
+=pod
+
+=head1 NAME
+
+B<systemc_version> - extracts & displays the version of systemc
+
+=head1 SYNOPSIS
+
+B<systemc_version> [I<OPTIONS>]
+
+=head1 DESCRIPTION
+
+B<systemc_version> examines the SYSTEMC (or SYSTEMC_HOME) environment
+variable and then extracts the SystemC version number from a file within
+the SystemC include file hierarchy. The result is to print the version
+number in one of several formats.
+
+=head1 OPTIONS
+
+ -help     this text
+ -us       use underscore
+ -full     full version (all 3 parts)
+ -D        formated for gcc
+ -int      integer format major*1e6+minor*1e3+bug
+ -min #    require a minimum version #
+ -sq       squeeze out non-alpha
+ -q        quiet, return appropriate exit status
+ -sc PATH  specifies a path to search instead of environment variables
+ -cxx      compile minimal program and utilize real API rather than search includes
+ -nocxx    turns off -cxx
+
+=head1 ENVIRONMENT
+
+B<SYSTEMC_VERSIONRC> can be used to supply default arguments.
+
+=head1 EXAMPLES
+
+ # Ensure version minimum
+ systemc_version -min 2.1
+
+ # Compile code ifdef'd on SystemC version
+ gcc -D`systemc_version -D` top.cpp
+
+=head1 AUTHOR
+
+David C. Black <dcblack@hldwizard.com>
+
+=head1 COPYRIGHT
+
+Copyright (C) 2003-2011 David C Black
+
+=head1 LICENSE
+
+This software, B<systemc_version>, is a copyrighted work. The GNU
+GPL version 2 describes the conditions under which the software may
+be copied, modified and distributed. No fee may be charged for this
+software or any derivative work (whether in exchange for copying,
+distribution, use, or otherwise).
+
+=cut
+
+##}}}
+
+package main;
+
+our @FOUND;
+sub wanted {
+  push @FOUND,$File::Find::name if m{\bsc_ver\.h\b}s;
+}
+
+sub Die {
+  printf "FATAL: %s\n",$_[0];
+  exit 1;
+};
+
+my %OPT;
+
+# Parse command-line
+my $arg;
+my $min = "2.0.1";
+my $scale=1000;
+my $SYSTEMC = '';
+unshift @ARGV,split(m/\s+/,$ENV{'SYSTEMC_VERSIONRC'}) if exists $ENV{'SYSTEMC_VERSIONRC'};
+while (@ARGV) {
+  $arg = shift @ARGV;
+  if ($arg eq '_' or $arg eq '-us') {
+    $OPT{-us} = 1;
+  } elsif ($arg eq '-DEBUG') {
+    $OPT{-DEBUG} = 1;
+  } elsif ($arg eq '-full') {
+    $OPT{-full} = 1;
+  } elsif ($arg eq '-nocxx') {
+    $OPT{-cxx} = 0;
+  } elsif ($arg eq '-cxx') {
+    $OPT{-cxx} = 1;
+  } elsif ($arg eq '-var' or $arg eq '-D') {
+    $OPT{-var} = 1;
+  } elsif ($arg eq '-int') {
+    $OPT{-int} = 1;
+  } elsif ($arg eq '-min') {
+    $min = shift @ARGV;
+    Die "Must be a dotted or underscore separated number!" 
+      unless $min =~ m{^[1-9]\d*([._]\d+){0,2}};
+    $min =~ s/\./_/g;
+  } elsif ($arg eq '-sq') {
+    $OPT{-sq} = 1;
+  } elsif ($arg eq '-q' or $arg eq '-quiet') {
+    $OPT{-quit} = 1;
+  } elsif ($arg eq '-v' or $arg eq '-verbose') {
+    $OPT{-verbose} = 1;
+  } elsif ($arg eq '-sc') {
+    Die "-sc must specify a directory" unless @ARGV and -d $ARGV[0];
+    $SYSTEMC = shift @ARGV;
+  } elsif ($arg eq '-test') {
+    $OPT{-test} = shift @ARGV;
+  } else {
+  }#endif
+}#endwhile
+
+# Find location of SystemC
+$SYSTEMC = $ENV{'SYSTEMC'} if not defined $SYSTEMC or $SYSTEMC eq '';
+$SYSTEMC = $ENV{'SYSTEMC_HOME'} if not defined $SYSTEMC or $SYSTEMC eq '';
+&Die("SYSTEMC environment variable is undefined") if not defined $SYSTEMC or $SYSTEMC eq '';
+print "SYSTEMC=$SYSTEMC\n" if exists $OPT{-DEBUG};
+
+my $api_version = $min;
+my $api_extra = '';
+my $api_version_file;
+if (exists $OPT{-cxx} and $OPT{-cxx}) {
+  my $orig = getcwd();
+  my $CXX = 'g++';
+  my $temp_dir = "/tmp/systemc_version.$$";
+  my $temp_cpp = "./sc_version.cpp";
+  my $temp_exe = "./sc_version.x";
+  mkdir $temp_dir,007;
+  chdir $temp_dir;
+  open SOURCE,">$temp_cpp";
+  print SOURCE <<'.';
+#include <systemc>
+#include <iostream>
+using namespace std;
+using namespace sc_core;
+int sc_main(int argc, char* argv[]) {
+  cout << "api_version = " << sc_release() << endl;
+  return 0;
+}
+.
+  close SOURCE;
+  my $lib = join(" -L",glob("$SYSTEMC/lib-*"));
+  my $cmd = "$CXX -m32 -o $temp_exe -I$SYSTEMC/include -L$lib -lsystemc $temp_cpp";
+  printf "%% %s\n",$cmd if exists $OPT{-verbose};
+  system($cmd);
+  printf "%% %s\n",$temp_exe if exists $OPT{-verbose};
+  open EXE,"$temp_exe 2>&1 |";
+  while (<EXE>) {
+    chomp;
+    next unless m/^api_version = /;
+    $api_version = $';
+  }#endwhile
+  close EXE;
+  unlink glob('sc_version.*');
+  chdir $orig;
+  unlink $temp_dir;
+  $api_version =~ m{^\d+\.\d+\.\d+};
+  ($api_version,$api_extra) = ($&,$');
+} else {
+# Scan sc_ver.h to find version information
+  @FOUND = ();
+  find({wanted => \&main::wanted}, $SYSTEMC.'/include');
+  &Die("Unable to find version file!?\n") unless @FOUND;
+  $api_version_file = shift @FOUND;
+
+  open(API_VERSION,"<$api_version_file") 
+    or &Die("Unable to read $api_version_file!!?");
+
+  # Scan for definition of API version
+  while (<API_VERSION>) {
+    if (m/#define\s+SC_VERSION_MAJOR\s+(\d+)\b/) {
+      $api_version = $1;
+    } elsif (m/#define\s+SC_VERSION_MINOR\s+(\d+)\b/) {
+      $api_version .= '.'.$1;
+    } elsif (m/#define\s+SC_VERSION_PATCH\s+(\d+)\b/) {
+      $api_version .= '.'.$1;
+    } elsif (m/#define\s+SC_API_VERSION_STRING\s+sc_api_version_(\w+)/) {
+      $api_version = $1;
+      last;
+    }
+  }#endwhile <API_VERSION>
+  close(API_VERSION);
+}
+
+$api_version = $OPT{-test} if defined $OPT{-test};
+
+print "api_version=$api_version\n" if exists $OPT{-DEBUG};
+
+$api_version =~ s/\./_/g;
+
+my $exit = ($api_version ge $min)?0:1;
+
+# Massage format of variable as directed by command-line options
+# Remove third rank
+$api_version =~ s/(\d+_\d+)_\d+$/$1/ if not defined $OPT{-full};
+# Integer format
+if (defined $OPT{-int}) {
+  $api_version =~ m/(\d+)_(\d+)(?:_(\d+))?/;
+  my ($major,$minor,$bug) = ($1,$2,$3);
+  $bug = 0 unless defined $bug;
+  $api_version = ($major*$scale+$minor)*$scale+$bug;
+}#endif
+# Remove all underscores (squeeze)
+$api_version =~ s/_//g if defined $OPT{-sq};
+# Create a variable name suitable for use in make or environment
+$api_version =~ s/^/SYSTEMC_V/ if defined $OPT{-var};
+# Change underscores to decimals
+$api_version =~ s/_/./g unless defined $OPT{-var} or defined $OPT{-us};
+
+# Announce results and exit successfully
+exit $exit if defined $OPT{-quit};
+printf "ERROR: " if $exit;
+printf "%s",$api_version;
+printf " does not meet minimum requirement of %s",$min if $exit;
+print "\n";
+exit $exit;

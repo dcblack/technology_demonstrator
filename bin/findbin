@@ -1,0 +1,276 @@
+#!/usr/bin/perl
+eval 'exec perl -S $0 ${1+"$@"}'
+  if 0; #$running_under_some_shell;
+
+# $Info: findbin - Returns a list of executable or manpage paths. $
+# $Syntax: findbin [-a] [-man] [-l] [-d#] COMMAND(S) $
+# $Copyright: 2001 All rights reserved. $
+# $Email: <dcblack@hldwizard.com>. $
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+###############################################################################
+sub help { #[[[2
+  open MAN,"|pod2man|nroff -man|less";
+  while (<DATA>) {
+    print MAN $_;
+  }#endwhile
+  close MAN;
+  exit 0;
+}#endsub help
+
+###############################################################################
+
+use strict;
+use warnings;
+use FindBin qw($RealBin $RealScript);
+my $Realdir = $RealBin;
+$Realdir =~ s{/[^/]+$}{};
+$ENV{HLDW}="/bogus" if not exists $ENV{HLDW} or not -d $ENV{HLDW};
+$ENV{HLDW}=$Realdir if -r "$Realdir/lib/Envv.pm" and not -d $ENV{HLDW};
+$ENV{HLDW}='/eda/hldw/default' if not exists $ENV{HLDW} and -d '/eda/hldw/default';
+$ENV{HLDW}=$ENV{HOME} if not exists $ENV{HLDW};
+print STDERR "Using HLDW=$ENV{HLDW}\n" if "@ARGV" =~ m{-v\b};
+use lib "$ENV{HLDW}/lib";
+use Envv qw{&envvopt &expand_path &reduce};
+&envvopt('manual');
+
+our @PATHS = ();
+our ($path);
+foreach $path (split(":", $ENV{PATH})) {
+  push @PATHS,&expand_path($path);
+}#endforeach
+@PATHS = &reduce(@PATHS);
+
+our @MANPATHS = ();
+if (exists $ENV{MANPATH}) {
+  foreach $path (split(":", $ENV{MANPATH})) {
+  push @MANPATHS,&expand_path($path);
+  }#endforeach
+  @MANPATHS = &reduce(@MANPATHS);
+}#endif
+
+our %OPT;
+
+sub resolve {
+  my ($path, $max, $link, $dir, @result);
+  PATH: foreach $path (@_) {
+    $max = 10;
+    $link = $path;
+    while (-l $path and $max-- > 0) {
+      $link = readlink $path;
+      last if $link =~ m{^/};
+      $path =~ s#/[^/]+#/#;
+      $link = $path.$link;
+    }#endwhile
+    $path = $link;
+    push @result,$path;
+  }#endforeach
+  return wantarray ? @result : $result[0];
+}#endsub resolve
+
+sub glob2re {
+   foreach my $glob (@_) {
+      next unless $glob =~ m/[*?]/;
+      $glob =~ s/[.]/\\./g;
+      $glob =~ s/[*]/.*/g;
+      $glob =~ s/[?]/./g;
+   }#endforeach
+   return wantarray ? @_ : "@_";
+}#endsub glob2re
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#  &findexe(@TOOLS) searches for each element of @TOOLS via the
+#  environment variables $PATH and $MANPATH for corresponding entries,
+#  and returns a list of paths to those found. Options may be set with
+#  "-a", "-d[#]", "-l", "-man" and "-q". The global variables $OPT{-a},
+#  $OPT{-man}, and $OPT{-q} are set if indicated. "-a" indicates that ALL
+#  finds are to be returned. Without "-a", only the first find is
+#  recorded. Without "-man", only executables are recorded. "-man"
+#  indicates that manpages are to be included. "-l" indicates to follow
+#  symbolic links if needed to resolve paths. "-d[#]" indicates to
+#  return the parent path.
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+sub findexe {
+  my ($opt, $exe, @found);
+  $OPT{-d} = 0;
+  while ($_[0] =~ m/^-/) {
+    $opt = shift(@_);
+    if ($opt eq '--all' or $opt eq '-a') {
+      $OPT{-a} = 1;
+    } elsif ($opt =~ m/^-d(\d+)$/) {
+      $OPT{-d} = $1;
+    } elsif ($opt eq '-d') {
+      $OPT{-d}++;
+    } elsif ($opt =~ m/^-+help$/ or $opt eq '-h') {
+      &help();
+    } elsif ($opt eq '--link' or $opt eq '-l') {
+      $OPT{-l} = 1;
+    } elsif ($opt eq '-man') {
+      $OPT{-man} = 1;
+    } elsif ($opt eq '--quiet' or $opt eq '-q') {
+      $OPT{-q} = 1;
+    } elsif ($opt eq '--verbose' or $opt eq '-v') {
+      $OPT{-v} = 1;
+    } elsif ($opt eq '--require') {
+      $OPT{-require} = 1;
+    }#endif
+  }#endwhile
+  EXE: foreach $exe (@_) {
+     next if $exe eq '';
+     if ($exe =~ m{^/}) {
+       if (-x $exe and not -d $exe) {
+         $exe = &resolve($exe) if exists $OPT{-l};
+         push(@found, $exe);
+       }#endif
+     } else {
+       my ($bin, $exepath);
+       BIN: foreach $bin (@PATHS) {
+         GLOB: foreach $exepath (glob "$bin/$exe") {
+           next GLOB unless -x $exepath and not -d $exepath;
+           $exepath = &resolve($exepath) if exists $OPT{-l};
+           push(@found, $exepath);
+           last BIN unless exists $OPT{-a};
+         }#endforeach
+       }#endforeach
+     }#endif
+     next EXE unless exists $OPT{-man};
+     if ($exe =~ m{^/}) {
+       $exe =~ s{.*/}{};
+     }#endif
+     my ($mandir, @man);
+     MAN: foreach $mandir (@MANPATHS) {
+       @man = glob "$mandir/man*/$exe.*";
+       push @man,glob "$mandir/cat*/$exe.*";
+       next MAN unless @man;
+       push(@found, @man);
+       last MAN unless exists $OPT{-a};
+     }#endforeach
+  }#endforeach
+  return @found;
+}#ensub findexe
+
+use IO::Handle;
+STDERR->autoflush(1);
+STDOUT->autoflush(1);
+use vars qw{@found};
+our @opts = ();
+if (@found == 0) {
+  my $arg;
+  ARG: while (@ARGV) {
+    $arg = shift(@ARGV);
+    if ($arg eq '-p') {
+      $ENV{'PATH'} = shift(@ARGV);
+      next ARG;
+    }#endif
+    while ($arg =~ m/^-/) {
+      push @opts,$arg;
+      $arg = shift(@ARGV);
+    }#endwhile
+    @found = &findexe(@opts,$arg);
+    if ($OPT{-d} > 0) {
+      foreach my $found (@found) {
+        $found =~ s/(\/[^\/]+){$OPT{-d}}$//;
+      }#endforeach
+    }#endif
+    if (@found) {
+      for my $found (@found) {
+        print $found;
+        print '@' if exists $OPT{-v} and -l $found;
+        print "\n";
+      }#endfor
+    } else {
+      printf STDERR "Nothing found for $arg\n" unless exists $OPT{-q};
+      printf "ERROR\n" if exists $OPT{-require};
+    }#endif
+  }#endforeach
+
+   exit (@found > 0) ? 0 : 1;
+}#endif
+__DATA__
+# DOCUMENTATION #[[[1
+
+=pod
+
+=head1 NAME
+
+B<findbin> - find an executable or man page
+
+=head1 SYNOPSIS
+
+B<findbin> -h  ###### provides this help
+
+B<findbin> I<[OPTIONS] PATTERNS...>
+
+=head1 DESCRIPTION
+
+Searches PATH and optionally MANPATH directories for files related to specified
+patterns.
+
+=head1 OPTIONS
+
+=over
+
+=item B<--all>
+
+Find all instances rather than just the first one.
+
+=item B<-d>I<#>
+
+Return the parent path.
+
+=item B<--help>
+
+Help (this text). Aka B<-h>.
+
+=item B<--link>
+
+Following symbolic links if needed to resolve paths. Aka B<-l>.
+
+=item B<--quiet>
+
+Quiet mode. Aka B<-q>.
+
+=item B<--verbose>
+
+Verbose mode. Aka B<-v>.
+
+=back
+
+=head1 ENVIRONMENT
+
+B<PATH> specifies directories containing executables.
+
+B<MANPATH> specifies directories containing manpages.
+
+=head1 LICENSE
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+=head1 AUTHOR
+
+David C Black
+
+=cut
+
