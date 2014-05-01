@@ -1,4 +1,6 @@
 #!/bin/bash
+#
+# Info: Create tarball for distribution
 
 function Display_Syntax() {
   ERRORS=0
@@ -7,7 +9,7 @@ function Display_Syntax() {
     echo "ERROR: $*"
   fi
   cat <<EOF
-SYNTAX: mktar [-n] ( all | hls | src | sc | zed )
+SYNTAX: mktar [OPTIONS] ( all | hls | src | sc | zed )
 EOF
   exit $ERRORS
 }
@@ -15,21 +17,28 @@ EOF
 D=$(realpath $(dirname $(find ../.. -path '*Example/setup.profile')))
 B=$(basename $D)
 T=zynq_hls_n_systemc_example
-
+V=2.0
+G=0
 L=0
 N=0
 Q=0
 CMD=""
+ARGS="$*"
 while [[ $# != 0 ]]; do
-  if [[ "$1" == "-l" ]]; then
+  if [[ "$1" == "-g" ]]; then # list
+    G=1;
+  elif [[ "$1" == "-l" ]]; then # list
     L=1; N=1;
-  elif [[ "$1" == "-n" ]]; then
+  elif [[ "$1" == "-n" ]]; then # not really
     N=1;
-  elif [[ "$1" == "-q" ]]; then
+  elif [[ "$1" == "-q" ]]; then # quiet
     Q=1;
-  elif [[ "$1" == "-t" ]]; then
+  elif [[ "$1" == "-t" ]]; then # target directory name
     shift
     T="$1";
+  elif [[ "$1" == "-v" ]]; then # version
+    shift
+    V="$1";
   elif [[ "$1" =~ -.* ]]; then
     Display_Syntax "Unexpected option '$1'!"
   elif [[ $CMD == "" ]]; then
@@ -43,9 +52,9 @@ if [[ $CMD == "" ]]; then
   Display_Syntax
 fi
 
-LOGFILE="$D/$T-$CMD-MANIFEST.log"
-TARBALL="$D/$T-$CMD.tgz"
-MD5TEXT="$D/$T-md5.txt"
+LOGFILE="$D/$T-$V.log"
+TARBALL="$D/$T-$V.tgz"
+MD5TEXT="$D/$T-$V.md5"
 TAROPTS="chvzf"
 STD="              \
   $T/ABOUT.txt     \
@@ -81,10 +90,16 @@ zed_LIST=$(echo         \
   $T/zedb*/*.{h,c}      \
   $T/zedb*/Makefile     \
   )
+if [[ $G == 1 ]]; then
 top_LIST=$(echo \
-  $T/.git       \
+  $T/Makefile   \
+  $T/.git\
+  )
+else
+top_LIST=$(echo \
   $T/Makefile   \
   )
+fi
 all_LIST=$(echo \
   $top_LIST     \
   $hls_LIST     \
@@ -116,18 +131,19 @@ LIST=$(echo $LIST | perl -pe 's/\s+/ /g;s/^ //;s/ *$/\n/;')
 if [[ "$LIST" != "" ]]; then
   if [[ $L == 1 ]]; then
     for e in $LIST; do
-      file $e
-      test -r "$e" || echo "Missing $e"
+      test -r "$e" && file $e || echo "Missing $e"
     done
   fi
+  echo "# mktar $ARGS" > $LOGFILE
   if [[ $Q == 0 ]]; then
-    echo "% tar $TAROPTS '$TARBALL' $STD '$LIST'" | tee $LOGFILE
+    echo "% tar $TAROPTS '$TARBALL' $STD '$LIST'" | tee -a $LOGFILE
   fi
   if [[ $N == 0 ]]; then
     tar $TAROPTS $TARBALL $STD $LIST >> $LOGFILE 2>&1;
+    echo "#EOF" >> $LOGFILE
     echo "% md5 $(basename $TARBALL)" | tee $MD5TEXT
     md5 $TARBALL >>$MD5TEXT
-    printf "Created under $T/:\n  %s\n  %s\n  %s\n  %s\n"\
+    printf "Created under $D/:\n  %s\n  %s\n  %s\n  %s\n"\
            "$(basename $TARBALL)" "$(basename $LOGFILE)" "$(basename $MD5TEXT)"
   fi
   if [[ -L $T ]]; then
